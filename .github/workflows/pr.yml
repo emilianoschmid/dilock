@@ -124,7 +124,7 @@ jobs:
         id: test_cpp
         if: matrix.sdk == 'cpp'
         run: |
-          cmake -S sdk/cpp -B .tools/ci/cpp-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/.tools/ci/cpp-deps/build/generators/conan_toolchain.cmake" -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=OFF
+          cmake -S sdk/cpp -B .tools/ci/cpp-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/.tools/ci/cpp-deps/build/Release/generators/conan_toolchain.cmake" -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=OFF
           cmake --build .tools/ci/cpp-build --parallel 2
           ctest --test-dir .tools/ci/cpp-build --output-on-failure
       - name: Test Python SDK
