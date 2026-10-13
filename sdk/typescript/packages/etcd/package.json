@@ -1,0 +1,36 @@
+{
+  "name": "@dilock/etcd",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "etcd native-lock backend for the Dilock TypeScript SDK",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/*.js",
+    "dist/*.d.ts",
+    "dist/internal/*.js",
+    "dist/internal/*.d.ts",
+    "proto",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@dilock/core": "0.1.0",
+    "@grpc/grpc-js": "1.14.5",
+    "@grpc/proto-loader": "0.8.1"
+  }
+}

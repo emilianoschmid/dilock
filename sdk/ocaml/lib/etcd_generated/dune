@@ -1,0 +1,6 @@
+(library
+ (name dilock_etcd_generated)
+ (public_name dilock.etcd_generated)
+ (wrapped false)
+ (modules kv rpc v3lock)
+ (libraries ocaml-protoc-plugin))

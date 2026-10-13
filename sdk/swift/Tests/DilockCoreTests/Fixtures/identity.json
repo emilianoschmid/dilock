@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "valid": [
+    {
+      "id": "valid-01",
+      "namespace": "default",
+      "resource": "camera/123/reindex",
+      "sha256": "e0cdd484a99b6aee4162335939d2a2d128a490c097069fd85b2fc1e540a940b6",
+      "redis_key": "dilock:{e0cdd484a99b6aee4162335939d2a2d128a490c097069fd85b2fc1e540a940b6}:lease",
+      "etcd_lock_name": "/dilock/locks/e0cdd484a99b6aee4162335939d2a2d128a490c097069fd85b2fc1e540a940b6"
+    },
+    {
+      "id": "valid-02",
+      "namespace": "default",
+      "resource": "Camera/123/reindex",
+      "sha256": "6f830c75098fd14a6e06e698e97eeb22e0466b675a686275b00d7156a7094cfa",
+      "redis_key": "dilock:{6f830c75098fd14a6e06e698e97eeb22e0466b675a686275b00d7156a7094cfa}:lease",
+      "etcd_lock_name": "/dilock/locks/6f830c75098fd14a6e06e698e97eeb22e0466b675a686275b00d7156a7094cfa"
+    },
+    {
+      "id": "valid-03",
+      "namespace": "production",
+      "resource": "camera/123/reindex",
+      "sha256": "108a4892951d9877844697fa7b42c4298f5fb299121fb288b78076a64f8e9300",
+      "redis_key": "dilock:{108a4892951d9877844697fa7b42c4298f5fb299121fb288b78076a64f8e9300}:lease",
+      "etcd_lock_name": "/dilock/locks/108a4892951d9877844697fa7b42c4298f5fb299121fb288b78076a64f8e9300"
+    },
+    {
+      "id": "valid-04",
+      "namespace": "default",
+      "resource": "camera/123/reindex ",
+      "sha256": "f18915b1cec5f03e956c7730ea7fd16101d51ce78a70d958e069844ffde29200",
+      "redis_key": "dilock:{f18915b1cec5f03e956c7730ea7fd16101d51ce78a70d958e069844ffde29200}:lease",
+      "etcd_lock_name": "/dilock/locks/f18915b1cec5f03e956c7730ea7fd16101d51ce78a70d958e069844ffde29200"
+    },
+    {
+      "id": "valid-05",
+      "namespace": "default",
+      "resource": "caf\u00e9",
+      "sha256": "f54cd29fb42ada568b9dba8e35503001f4c01caf1ca07029df266e1e5476843f",
+      "redis_key": "dilock:{f54cd29fb42ada568b9dba8e35503001f4c01caf1ca07029df266e1e5476843f}:lease",
+      "etcd_lock_name": "/dilock/locks/f54cd29fb42ada568b9dba8e35503001f4c01caf1ca07029df266e1e5476843f"
+    },
+    {
+      "id": "valid-06",
+      "namespace": "default",
+      "resource": "cafe\u0301",
+      "sha256": "5c7bcc6de8e3d026541f9a11e39bbb3f89f9990e8146bca5421046a20ff1466f",
+      "redis_key": "dilock:{5c7bcc6de8e3d026541f9a11e39bbb3f89f9990e8146bca5421046a20ff1466f}:lease",
+      "etcd_lock_name": "/dilock/locks/5c7bcc6de8e3d026541f9a11e39bbb3f89f9990e8146bca5421046a20ff1466f"
+    },
+    {
+      "id": "valid-07",
+      "namespace": "default",
+      "resource": "c\u00e1mara/\u00f1",
+      "sha256": "9cc8f069717ec59720c034ce61b72d8a2f61d648624fdba0eadf088f3f5b779e",
+      "redis_key": "dilock:{9cc8f069717ec59720c034ce61b72d8a2f61d648624fdba0eadf088f3f5b779e}:lease",
+      "etcd_lock_name": "/dilock/locks/9cc8f069717ec59720c034ce61b72d8a2f61d648624fdba0eadf088f3f5b779e"
+    },
+    {
+      "id": "valid-08",
+      "namespace": "tenant.one",
+      "resource": "\u6444\u50cf\u5934/\u4e00",
+      "sha256": "809ee6487b4f3a495654005539884e66c50e719d62c2dd980e2d875f81931cad",
+      "redis_key": "dilock:{809ee6487b4f3a495654005539884e66c50e719d62c2dd980e2d875f81931cad}:lease",
+      "etcd_lock_name": "/dilock/locks/809ee6487b4f3a495654005539884e66c50e719d62c2dd980e2d875f81931cad"
+    },
+    {
+      "id": "valid-09",
+      "namespace": "tenant-two",
+      "resource": "camera/\ud83d\udcf7",
+      "sha256": "b252bf6a7bdc0ccd048669161b318729035519c66f8f5b80158258003c4183a3",
+      "redis_key": "dilock:{b252bf6a7bdc0ccd048669161b318729035519c66f8f5b80158258003c4183a3}:lease",
+      "etcd_lock_name": "/dilock/locks/b252bf6a7bdc0ccd048669161b318729035519c66f8f5b80158258003c4183a3"
+    },
+    {
+      "id": "valid-10",
+      "namespace": "x",
+      "resource": "a:b/c",
+      "sha256": "79b29270d814e12cd0750604c2130c9ecc4a47361d0975dba4406ae12a2590e9",
+      "redis_key": "dilock:{79b29270d814e12cd0750604c2130c9ecc4a47361d0975dba4406ae12a2590e9}:lease",
+      "etcd_lock_name": "/dilock/locks/79b29270d814e12cd0750604c2130c9ecc4a47361d0975dba4406ae12a2590e9"
+    },
+    {
+      "id": "valid-11",
+      "namespace": "x",
+      "resource": "a\nb",
+      "sha256": "047b13b680423bf69dd88c757734837e01f895260ad437879ce0ba389ad97c86",
+      "redis_key": "dilock:{047b13b680423bf69dd88c757734837e01f895260ad437879ce0ba389ad97c86}:lease",
+      "etcd_lock_name": "/dilock/locks/047b13b680423bf69dd88c757734837e01f895260ad437879ce0ba389ad97c86"
+    },
+    {
+      "id": "valid-12",
+      "namespace": "x",
+      "resource": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "sha256": "a7aa6dc840069aee8f7aa0311d73353e5902584996b342009321a5b133ddb71d",
+      "redis_key": "dilock:{a7aa6dc840069aee8f7aa0311d73353e5902584996b342009321a5b133ddb71d}:lease",
+      "etcd_lock_name": "/dilock/locks/a7aa6dc840069aee8f7aa0311d73353e5902584996b342009321a5b133ddb71d"
+    },
+    {
+      "id": "valid-13",
+      "namespace": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+      "resource": "r",
+      "sha256": "3e90dca94d1ba8f82db97c0b10e1ff6143bfb43321daf4cfb0f0658f93173c73",
+      "redis_key": "dilock:{3e90dca94d1ba8f82db97c0b10e1ff6143bfb43321daf4cfb0f0658f93173c73}:lease",
+      "etcd_lock_name": "/dilock/locks/3e90dca94d1ba8f82db97c0b10e1ff6143bfb43321daf4cfb0f0658f93173c73"
+    }
+  ],
+  "invalid": [
+    {
+      "id": "empty-namespace",
+      "namespace": "",
+      "resource": "r"
+    },
+    {
+      "id": "upper-namespace",
+      "namespace": "Prod",
+      "resource": "r"
+    },
+    {
+      "id": "slash-namespace",
+      "namespace": "a/b",
+      "resource": "r"
+    },
+    {
+      "id": "long-namespace",
+      "namespace": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+      "resource": "r"
+    },
+    {
+      "id": "empty-resource",
+      "namespace": "default",
+      "resource": ""
+    },
+    {
+      "id": "nul-resource",
+      "namespace": "default",
+      "resource": "a\u0000b"
+    },
+    {
+      "id": "surrogate-resource",
+      "namespace": "default",
+      "resource": "\ud800"
+    },
+    {
+      "id": "overlong-ascii-resource",
+      "namespace": "default",
+      "resource": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "id": "overlong-utf8-resource",
+      "namespace": "default",
+      "resource": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9"
+    },
+    {
+      "id": "nonstring-resource",
+      "namespace": "default",
+      "resource": 42
+    },
+    {
+      "id": "nonstring-namespace",
+      "namespace": null,
+      "resource": "r"
+    }
+  ]
+}

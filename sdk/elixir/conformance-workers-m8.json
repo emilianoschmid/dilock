@@ -1,0 +1,8 @@
+{
+  "elixir": {
+    "argv": ["python", "sdk/elixir/worker_launcher.py"]
+  },
+  "elixir_peer": {
+    "argv": ["python", "sdk/elixir/worker_launcher.py"]
+  }
+}

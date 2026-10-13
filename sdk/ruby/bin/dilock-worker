@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require_relative '../lib/dilock'
+require_relative '../lib/dilock/conformance_worker'
+
+config_path = ARGV.last
+unless config_path && File.file?(config_path)
+  warn 'usage: dilock-worker <config.json>'
+  exit 2
+end
+
+begin
+  config = JSON.parse(File.read(config_path, encoding: 'UTF-8'))
+  raise ArgumentError, 'config must be a JSON object' unless config.is_a?(Hash)
+
+  backend = config.fetch('backend', 'redis')
+  endpoint = config.fetch('endpoint')
+  namespace = config.fetch('namespace')
+  epoch = config.fetch('epoch')
+  provider = case backend
+             when 'redis'
+               Dilock::RedisProvider.connect(endpoint, namespace: namespace, epoch: epoch)
+             when 'etcd'
+               Dilock::EtcdProvider.connect(endpoint, namespace: namespace, epoch: epoch)
+             else
+               raise ArgumentError, 'backend must be redis or etcd'
+             end
+  Dilock::ConformanceWorker.new(provider: provider, backend: backend).run
+rescue StandardError => e
+  warn "dilock ruby worker: startup failed (#{e.class})"
+  exit 1
+end

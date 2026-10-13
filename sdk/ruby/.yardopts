@@ -1,0 +1,2 @@
+--exclude lib/dilock/etcd/proto/.*
+--no-private

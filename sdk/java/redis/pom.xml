@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>org.dilock</groupId><artifactId>dilock-java-parent</artifactId><version>0.1.0</version><relativePath>../pom.xml</relativePath></parent>
+  <artifactId>dilock-redis</artifactId>
+  <name>Dilock Java Redis adapter</name>
+  <description>Optional Redis single-authority adapter.</description>
+  <dependencies>
+    <dependency><groupId>org.dilock</groupId><artifactId>dilock-core</artifactId></dependency>
+    <dependency><groupId>redis.clients</groupId><artifactId>jedis</artifactId></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+  </dependencies>
+</project>

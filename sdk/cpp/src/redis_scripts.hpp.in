@@ -1,0 +1,8 @@
+#pragma once
+
+#include <string_view>
+
+namespace dilock::detail {
+inline constexpr std::string_view release_script = R"DILOCK_RELEASE(@DILOCK_RELEASE_SCRIPT@)DILOCK_RELEASE";
+inline constexpr std::string_view renew_script = R"DILOCK_RENEW(@DILOCK_RENEW_SCRIPT@)DILOCK_RENEW";
+} // namespace dilock::detail

@@ -1,0 +1,47 @@
+{
+  "dotnet": {
+    "argv": [
+      "dotnet",
+      "sdk/dotnet/Worker/bin/Release/net8.0/Worker.dll"
+    ]
+  },
+  "python": {
+    "argv": [
+      "python",
+      "conformance/launch_python_worker.py"
+    ]
+  },
+  "cpp": {
+    "argv": [
+      "python",
+      "sdk/cpp/worker_launcher.py"
+    ]
+  },
+  "go": {
+    "argv": [
+      "go",
+      "-C",
+      "sdk/go/cmd/dilock-go-worker",
+      "run",
+      "."
+    ]
+  },
+  "rust": {
+    "argv": [
+      "python",
+      "sdk/rust/worker_launcher.py"
+    ]
+  },
+  "java": {
+    "argv": [
+      "python",
+      "sdk/java/worker_launcher.py"
+    ]
+  },
+  "typescript": {
+    "argv": [
+      "node",
+      "sdk/typescript/worker-launcher.mjs"
+    ]
+  }
+}

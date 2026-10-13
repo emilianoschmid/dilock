@@ -1,0 +1,12 @@
+name: dilock_redis
+description: Redis single-authority adapter for Dilock distributed leases.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+dependencies:
+  dilock:
+    ^0.1.0
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.29.0

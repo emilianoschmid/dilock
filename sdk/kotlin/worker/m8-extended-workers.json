@@ -1,0 +1,17 @@
+{
+  "kotlin": {
+    "argv": ["python", "sdk/kotlin/worker/conformance_launcher.py"]
+  },
+  "php": {
+    "argv": ["python", "conformance/launch_php_worker_docker.py"]
+  },
+  "ruby": {
+    "argv": ["python", "sdk/ruby/worker_launcher.py"]
+  },
+  "dart": {
+    "argv": ["python", "conformance/launch_dart_worker_docker.py"]
+  },
+  "swift": {
+    "argv": ["python", "conformance/launch_swift_worker_docker.py"]
+  }
+}

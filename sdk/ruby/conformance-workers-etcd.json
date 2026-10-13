@@ -1,0 +1,17 @@
+{
+  "ruby": {
+    "argv": ["python", "sdk/ruby/worker_launcher.py"]
+  },
+  "ruby_peer": {
+    "argv": ["python", "sdk/ruby/worker_launcher.py"]
+  },
+  "php": {
+    "argv": ["python", "conformance/launch_php_worker_docker.py"]
+  },
+  "dart": {
+    "argv": ["python", "conformance/launch_dart_worker_docker.py"]
+  },
+  "swift": {
+    "argv": ["python", "conformance/launch_swift_worker_docker.py"]
+  }
+}

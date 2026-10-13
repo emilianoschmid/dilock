@@ -1,0 +1,11 @@
+{
+  "name": "dilock-redis-quickstart",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node quickstart.mjs", "configured": "node quickstart.mjs --configured" },
+  "dependencies": {
+    "@dilock/core": "file:../../../../sdk/typescript/packages/core",
+    "@dilock/redis": "file:../../../../sdk/typescript/packages/redis"
+  }
+}

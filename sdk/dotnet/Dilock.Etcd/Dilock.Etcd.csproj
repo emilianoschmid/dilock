@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><GenerateDocumentationFile>true</GenerateDocumentationFile><Version>0.1.0-dev.1</Version><PackageLicenseExpression>Apache-2.0</PackageLicenseExpression><PackageReadmeFile>README.md</PackageReadmeFile><TreatWarningsAsErrors>true</TreatWarningsAsErrors><RestorePackagesWithLockFile>true</RestorePackagesWithLockFile></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Dilock.Core/Dilock.Core.csproj"/>
+    <PackageReference Include="dotnet-etcd" Version="9.1.0"/>
+    <PackageReference Include="Google.Protobuf" Version="3.35.1" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.80.0" />
+    <PackageReference Include="Grpc.Net.Common" Version="2.80.0" />
+    <PackageReference Include="Grpc.Core.Api" Version="2.80.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Dilock.Tests" /></ItemGroup>
+</Project>

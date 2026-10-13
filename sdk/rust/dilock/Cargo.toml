@@ -1,0 +1,12 @@
+[package]
+name = "dilock"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+license-file = "../LICENSE"
+description = "Shared types and identity rules for Dilock distributed leases"
+
+[dependencies]
+sha2.workspace = true
+thiserror.workspace = true

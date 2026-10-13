@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>org.dilock</groupId><artifactId>dilock-java-parent</artifactId><version>0.1.0</version><relativePath>../pom.xml</relativePath></parent>
+  <artifactId>dilock-etcd</artifactId>
+  <name>Dilock Java etcd adapter</name>
+  <description>Optional etcd native Lock adapter.</description>
+  <dependencies>
+    <dependency><groupId>org.dilock</groupId><artifactId>dilock-core</artifactId></dependency>
+    <dependency>
+      <groupId>io.etcd</groupId>
+      <artifactId>jetcd-grpc</artifactId>
+      <exclusions>
+        <!-- Dilock uses the generated protobuf/gRPC stubs directly; it does not use jetcd's Vert.x client. -->
+        <exclusion><groupId>io.vertx</groupId><artifactId>vertx-grpc</artifactId></exclusion>
+      </exclusions>
+    </dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+  </dependencies>
+</project>

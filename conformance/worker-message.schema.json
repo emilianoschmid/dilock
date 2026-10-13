@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dilock conformance request envelope (minimal draft, not complete response validation)",
+  "type": "object",
+  "required": [
+    "id",
+    "op"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "op": {
+      "enum": [
+        "hello",
+        "acquire",
+        "try_acquire",
+        "renew",
+        "release",
+        "inspect",
+        "cancel_request",
+        "shutdown"
+      ]
+    },
+    "resource": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lease_id": {
+      "type": "string"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "wait_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "lease_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "auto_renew": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "op": {
+            "enum": [
+              "acquire",
+              "try_acquire"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "resource"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "op": {
+            "enum": [
+              "renew",
+              "release",
+              "inspect"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "lease_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "op": {
+            "const": "cancel_request"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "target_id"
+        ]
+      }
+    }
+  ]
+}

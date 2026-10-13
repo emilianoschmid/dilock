@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Crystal Docs 1.18.2">
+<meta name="crystal_docs.project_version" content="0.16.0">
+<meta name="crystal_docs.project_name" content="redis">
+
+
+
+<link href="../css/style.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="../js/doc.js"></script>
+
+  <meta name="repository-name" content="redis">
+  <title>Redis::JSON(Runnable) - redis 0.16.0</title>
+  <script type="text/javascript">
+    CrystalDocs.base_path = "../";
+  </script>
+</head>
+<body>
+
+<svg class="hidden">
+  <symbol id="octicon-link" viewBox="0 0 16 16">
+    <path fill="currentColor" fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path>
+  </symbol>
+</svg>
+<input type="checkbox" id="sidebar-btn">
+<label for="sidebar-btn" id="sidebar-btn-label">
+  <svg class="open" xmlns="http://www.w3.org/2000/svg" height="2em" width="2em" viewBox="0 0 512 512"><title>Open Sidebar</title><path fill="currentColor" d="M80 96v64h352V96H80zm0 112v64h352v-64H80zm0 112v64h352v-64H80z"></path></svg>
+  <svg class="close" xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 512 512"><title>Close Sidebar</title><path fill="currentColor" d="m118.6 73.4-45.2 45.2L210.7 256 73.4 393.4l45.2 45.2L256 301.3l137.4 137.3 45.2-45.2L301.3 256l137.3-137.4-45.2-45.2L256 210.7Z"></path></svg>
+</label>
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="search-box">
+      <input type="search" class="search-input" placeholder="Search..." spellcheck="false" aria-label="Search">
+    </div>
+
+    <div class="project-summary">
+      <h1 class="project-name">
+        <a href="../index.html">
+          redis
+        </a>
+      </h1>
+
+      <span class="project-version">
+        0.16.0
+      </span>
+    </div>
+  </div>
+
+  <div class="search-results hidden">
+    <ul class="search-list"></ul>
+  </div>
+
+  <div class="types-list">
+    <ul>
+  
+  <li class="parent open current" data-id="redis/Redis" data-name="redis">
+      <a href="../Redis.html">Redis</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/BloomFilter" data-name="redis::bloomfilter">
+      <a href="../Redis/BloomFilter.html">BloomFilter</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/BusyGroup" data-name="redis::busygroup">
+      <a href="../Redis/BusyGroup.html">BusyGroup</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Client" data-name="redis::client">
+      <a href="../Redis/Client.html">Client</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Client/SScanIterator" data-name="redis::client::sscaniterator">
+      <a href="../Redis/Client/SScanIterator.html">SScanIterator</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Cluster" data-name="redis::cluster">
+      <a href="../Redis/Cluster.html">Cluster</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Cluster/Ask" data-name="redis::cluster::ask">
+      <a href="../Redis/Cluster/Ask.html">Ask</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Cluster/CrossSlot" data-name="redis::cluster::crossslot">
+      <a href="../Redis/Cluster/CrossSlot.html">CrossSlot</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Cluster/Error" data-name="redis::cluster::error">
+      <a href="../Redis/Cluster/Error.html">Error</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Cluster/Moved" data-name="redis::cluster::moved">
+      <a href="../Redis/Cluster/Moved.html">Moved</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Commands" data-name="redis::commands">
+      <a href="../Redis/Commands.html">Commands</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Commands/Deferred" data-name="redis::commands::deferred">
+      <a href="../Redis/Commands/Deferred.html">Deferred</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/EmptyEnumerable" data-name="redis::commands::emptyenumerable">
+      <a href="../Redis/Commands/EmptyEnumerable.html">EmptyEnumerable</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/Geo" data-name="redis::commands::geo">
+      <a href="../Redis/Commands/Geo.html">Geo</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/Hash" data-name="redis::commands::hash">
+      <a href="../Redis/Commands/Hash.html">Hash</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/HyperLogLog" data-name="redis::commands::hyperloglog">
+      <a href="../Redis/Commands/HyperLogLog.html">HyperLogLog</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/Immediate" data-name="redis::commands::immediate">
+      <a href="../Redis/Commands/Immediate.html">Immediate</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Commands/List" data-name="redis::commands::list">
+      <a href="../Redis/Commands/List.html">List</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Commands/List/Side" data-name="redis::commands::list::side">
+      <a href="../Redis/Commands/List/Side.html">Side</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/ScriptFlushMode" data-name="redis::commands::scriptflushmode">
+      <a href="../Redis/Commands/ScriptFlushMode.html">ScriptFlushMode</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/Set" data-name="redis::commands::set">
+      <a href="../Redis/Commands/Set.html">Set</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Commands/SortedSet" data-name="redis::commands::sortedset">
+      <a href="../Redis/Commands/SortedSet.html">SortedSet</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Commands/SortedSet/ZRangeOrder" data-name="redis::commands::sortedset::zrangeorder">
+      <a href="../Redis/Commands/SortedSet/ZRangeOrder.html">ZRangeOrder</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Commands/Stream" data-name="redis::commands::stream">
+      <a href="../Redis/Commands/Stream.html">Stream</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Commands/Stream/DeleteMode" data-name="redis::commands::stream::deletemode">
+      <a href="../Redis/Commands/Stream/DeleteMode.html">DeleteMode</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/Stream/NackMode" data-name="redis::commands::stream::nackmode">
+      <a href="../Redis/Commands/Stream/NackMode.html">NackMode</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/Stream/XGroup" data-name="redis::commands::stream::xgroup">
+      <a href="../Redis/Commands/Stream/XGroup.html">XGroup</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Commands/Vector" data-name="redis::commands::vector">
+      <a href="../Redis/Commands/Vector.html">Vector</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Connection" data-name="redis::connection">
+      <a href="../Redis/Connection.html">Connection</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/CountMinSketch" data-name="redis::countminsketch">
+      <a href="../Redis/CountMinSketch.html">CountMinSketch</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/CountMinSketch/Immediate" data-name="redis::countminsketch::immediate">
+      <a href="../Redis/CountMinSketch/Immediate.html">Immediate</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Error" data-name="redis::error">
+      <a href="../Redis/Error.html">Error</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/FullText" data-name="redis::fulltext(runnable)">
+      <a href="../Redis/FullText.html">FullText</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/FullText/Apply" data-name="redis::fulltext::apply">
+      <a href="../Redis/FullText/Apply.html">Apply</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/FullText/Filter" data-name="redis::fulltext::filter">
+      <a href="../Redis/FullText/Filter.html">Filter</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/FullText/GeoFilter" data-name="redis::fulltext::geofilter">
+      <a href="../Redis/FullText/GeoFilter.html">GeoFilter</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/FullText/GeoUnit" data-name="redis::fulltext::geounit">
+      <a href="../Redis/FullText/GeoUnit.html">GeoUnit</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/FullText/GroupBy" data-name="redis::fulltext::groupby">
+      <a href="../Redis/FullText/GroupBy.html">GroupBy</a>
+      
+        <ul>
+  
+  <li class="parent " data-id="redis/Redis/FullText/GroupBy/Reducer" data-name="redis::fulltext::groupby::reducer">
+      <a href="../Redis/FullText/GroupBy/Reducer.html">Reducer</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/FullText/GroupBy/Reducer/Order" data-name="redis::fulltext::groupby::reducer::order">
+      <a href="../Redis/FullText/GroupBy/Reducer/Order.html">Order</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/FullText/Highlight" data-name="redis::fulltext::highlight">
+      <a href="../Redis/FullText/Highlight.html">Highlight</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/FullText/SortBy" data-name="redis::fulltext::sortby">
+      <a href="../Redis/FullText/SortBy.html">SortBy</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/FullText/SortByAggregate" data-name="redis::fulltext::sortbyaggregate">
+      <a href="../Redis/FullText/SortByAggregate.html">SortByAggregate</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/FullText/SortByAggregate/Order" data-name="redis::fulltext::sortbyaggregate::order">
+      <a href="../Redis/FullText/SortByAggregate/Order.html">Order</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/FullText/SortByAggregate/Property" data-name="redis::fulltext::sortbyaggregate::property">
+      <a href="../Redis/FullText/SortByAggregate/Property.html">Property</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/FullText/SortDirection" data-name="redis::fulltext::sortdirection">
+      <a href="../Redis/FullText/SortDirection.html">SortDirection</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/FullText/Summarize" data-name="redis::fulltext::summarize">
+      <a href="../Redis/FullText/Summarize.html">Summarize</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Future" data-name="redis::future">
+      <a href="../Redis/Future.html">Future</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Future/NotResolved" data-name="redis::future::notresolved">
+      <a href="../Redis/Future/NotResolved.html">NotResolved</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Geo" data-name="redis::geo">
+      <a href="../Redis/Geo.html">Geo</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Geo/Box" data-name="redis::geo::box">
+      <a href="../Redis/Geo/Box.html">Box</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Geo/Member" data-name="redis::geo::member">
+      <a href="../Redis/Geo/Member.html">Member</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Geo/Radius" data-name="redis::geo::radius">
+      <a href="../Redis/Geo/Radius.html">Radius</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Geo/Sort" data-name="redis::geo::sort">
+      <a href="../Redis/Geo/Sort.html">Sort</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Geo/Unit" data-name="redis::geo::unit">
+      <a href="../Redis/Geo/Unit.html">Unit</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" current" data-id="redis/Redis/JSON" data-name="redis::json(runnable)">
+      <a href="../Redis/JSON.html">JSON</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/MissingKey" data-name="redis::missingkey">
+      <a href="../Redis/MissingKey.html">MissingKey</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/NoGroup" data-name="redis::nogroup">
+      <a href="../Redis/NoGroup.html">NoGroup</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Parser" data-name="redis::parser">
+      <a href="../Redis/Parser.html">Parser</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Pipeline" data-name="redis::pipeline">
+      <a href="../Redis/Pipeline.html">Pipeline</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Pipeline/ResolutionError" data-name="redis::pipeline::resolutionerror">
+      <a href="../Redis/Pipeline/ResolutionError.html">ResolutionError</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/ReadOnly" data-name="redis::readonly">
+      <a href="../Redis/ReadOnly.html">ReadOnly</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/ReplicationClient" data-name="redis::replicationclient">
+      <a href="../Redis/ReplicationClient.html">ReplicationClient</a>
+      
+        <ul>
+  
+  <li class="parent " data-id="redis/Redis/ReplicationClient/Info" data-name="redis::replicationclient::info">
+      <a href="../Redis/ReplicationClient/Info.html">Info</a>
+      
+        <ul>
+  
+  <li class="parent " data-id="redis/Redis/ReplicationClient/Info/Replica" data-name="redis::replicationclient::info::replica">
+      <a href="../Redis/ReplicationClient/Info/Replica.html">Replica</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/ReplicationClient/Info/Replica/State" data-name="redis::replicationclient::info::replica::state">
+      <a href="../Redis/ReplicationClient/Info/Replica/State.html">State</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/ReplicationClient/Info/Replication" data-name="redis::replicationclient::info::replication">
+      <a href="../Redis/ReplicationClient/Info/Replication.html">Replication</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/ReplicationClient/Info/Replication/Role" data-name="redis::replicationclient::info::replication::role">
+      <a href="../Redis/ReplicationClient/Info/Replication/Role.html">Role</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Streaming" data-name="redis::streaming">
+      <a href="../Redis/Streaming.html">Streaming</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Streaming/Message" data-name="redis::streaming::message">
+      <a href="../Redis/Streaming/Message.html">Message</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XAutoClaimResponse" data-name="redis::streaming::xautoclaimresponse">
+      <a href="../Redis/Streaming/XAutoClaimResponse.html">XAutoClaimResponse</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Streaming/XInfoConsumersResponse" data-name="redis::streaming::xinfoconsumersresponse">
+      <a href="../Redis/Streaming/XInfoConsumersResponse.html">XInfoConsumersResponse</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XInfoConsumersResponse/Consumer" data-name="redis::streaming::xinfoconsumersresponse::consumer">
+      <a href="../Redis/Streaming/XInfoConsumersResponse/Consumer.html">Consumer</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Streaming/XInfoGroupsResponse" data-name="redis::streaming::xinfogroupsresponse">
+      <a href="../Redis/Streaming/XInfoGroupsResponse.html">XInfoGroupsResponse</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XInfoGroupsResponse/Group" data-name="redis::streaming::xinfogroupsresponse::group">
+      <a href="../Redis/Streaming/XInfoGroupsResponse/Group.html">Group</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Streaming/XInfoStreamFullResponse" data-name="redis::streaming::xinfostreamfullresponse">
+      <a href="../Redis/Streaming/XInfoStreamFullResponse.html">XInfoStreamFullResponse</a>
+      
+        <ul>
+  
+  <li class="parent " data-id="redis/Redis/Streaming/XInfoStreamFullResponse/Consumer" data-name="redis::streaming::xinfostreamfullresponse::consumer">
+      <a href="../Redis/Streaming/XInfoStreamFullResponse/Consumer.html">Consumer</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XInfoStreamFullResponse/Consumer/PendingEntry" data-name="redis::streaming::xinfostreamfullresponse::consumer::pendingentry">
+      <a href="../Redis/Streaming/XInfoStreamFullResponse/Consumer/PendingEntry.html">PendingEntry</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Streaming/XInfoStreamFullResponse/Group" data-name="redis::streaming::xinfostreamfullresponse::group">
+      <a href="../Redis/Streaming/XInfoStreamFullResponse/Group.html">Group</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XInfoStreamFullResponse/Group/PendingEntry" data-name="redis::streaming::xinfostreamfullresponse::group::pendingentry">
+      <a href="../Redis/Streaming/XInfoStreamFullResponse/Group/PendingEntry.html">PendingEntry</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XInfoStreamResponse" data-name="redis::streaming::xinfostreamresponse">
+      <a href="../Redis/Streaming/XInfoStreamResponse.html">XInfoStreamResponse</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XPendingBaseResponse" data-name="redis::streaming::xpendingbaseresponse">
+      <a href="../Redis/Streaming/XPendingBaseResponse.html">XPendingBaseResponse</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Streaming/XPendingExtendedResponse" data-name="redis::streaming::xpendingextendedresponse">
+      <a href="../Redis/Streaming/XPendingExtendedResponse.html">XPendingExtendedResponse</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XPendingExtendedResponse/MessageData" data-name="redis::streaming::xpendingextendedresponse::messagedata">
+      <a href="../Redis/Streaming/XPendingExtendedResponse/MessageData.html">MessageData</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Streaming/XPendingResponse" data-name="redis::streaming::xpendingresponse">
+      <a href="../Redis/Streaming/XPendingResponse.html">XPendingResponse</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XPendingResponse/Data" data-name="redis::streaming::xpendingresponse::data">
+      <a href="../Redis/Streaming/XPendingResponse/Data.html">Data</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XRangeResponse" data-name="redis::streaming::xrangeresponse">
+      <a href="../Redis/Streaming/XRangeResponse.html">XRangeResponse</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Streaming/XReadGroupResponse" data-name="redis::streaming::xreadgroupresponse">
+      <a href="../Redis/Streaming/XReadGroupResponse.html">XReadGroupResponse</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XReadGroupResponse/MessageIterator" data-name="redis::streaming::xreadgroupresponse::messageiterator">
+      <a href="../Redis/Streaming/XReadGroupResponse/MessageIterator.html">MessageIterator</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XReadGroupResponse/Result" data-name="redis::streaming::xreadgroupresponse::result">
+      <a href="../Redis/Streaming/XReadGroupResponse/Result.html">Result</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Streaming/XReadResponse" data-name="redis::streaming::xreadresponse">
+      <a href="../Redis/Streaming/XReadResponse.html">XReadResponse</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Subscription" data-name="redis::subscription">
+      <a href="../Redis/Subscription.html">Subscription</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Subscription/InvalidMessage" data-name="redis::subscription::invalidmessage">
+      <a href="../Redis/Subscription/InvalidMessage.html">InvalidMessage</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TDigest" data-name="redis::tdigest">
+      <a href="../Redis/TDigest.html">TDigest</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/TimeSeries" data-name="redis::timeseries(runnable)">
+      <a href="../Redis/TimeSeries.html">TimeSeries</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/Aggregation" data-name="redis::timeseries::aggregation">
+      <a href="../Redis/TimeSeries/Aggregation.html">Aggregation</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/AggregationType" data-name="redis::timeseries::aggregationtype">
+      <a href="../Redis/TimeSeries/AggregationType.html">AggregationType</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/Alignment" data-name="redis::timeseries::alignment">
+      <a href="../Redis/TimeSeries/Alignment.html">Alignment</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/BucketTimestamp" data-name="redis::timeseries::buckettimestamp">
+      <a href="../Redis/TimeSeries/BucketTimestamp.html">BucketTimestamp</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/Datapoint" data-name="redis::timeseries::datapoint">
+      <a href="../Redis/TimeSeries/Datapoint.html">Datapoint</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/Datapoints" data-name="redis::timeseries::datapoints">
+      <a href="../Redis/TimeSeries/Datapoints.html">Datapoints</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/DuplicatePolicy" data-name="redis::timeseries::duplicatepolicy">
+      <a href="../Redis/TimeSeries/DuplicatePolicy.html">DuplicatePolicy</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/Encoding" data-name="redis::timeseries::encoding">
+      <a href="../Redis/TimeSeries/Encoding.html">Encoding</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/Labels" data-name="redis::timeseries::labels">
+      <a href="../Redis/TimeSeries/Labels.html">Labels</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/TimeSeries/MRangeResponse" data-name="redis::timeseries::mrangeresponse">
+      <a href="../Redis/TimeSeries/MRangeResponse.html">MRangeResponse</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/MRangeResponse/DatapointMap" data-name="redis::timeseries::mrangeresponse::datapointmap">
+      <a href="../Redis/TimeSeries/MRangeResponse/DatapointMap.html">DatapointMap</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/Range" data-name="redis::timeseries::range">
+      <a href="../Redis/TimeSeries/Range.html">Range</a>
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/TimeSeries/RangeOptions" data-name="redis::timeseries::rangeoptions">
+      <a href="../Redis/TimeSeries/RangeOptions.html">RangeOptions</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/TimeSeries/RangeOptions/Aggregation" data-name="redis::timeseries::rangeoptions::aggregation">
+      <a href="../Redis/TimeSeries/RangeOptions/Aggregation.html">Aggregation</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/TopK" data-name="redis::topk">
+      <a href="../Redis/TopK.html">TopK</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/TopK/Immediate" data-name="redis::topk::immediate">
+      <a href="../Redis/TopK/Immediate.html">Immediate</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class="parent " data-id="redis/Redis/Transaction" data-name="redis::transaction">
+      <a href="../Redis/Transaction.html">Transaction</a>
+      
+        <ul>
+  
+  <li class=" " data-id="redis/Redis/Transaction/Status" data-name="redis::transaction::status">
+      <a href="../Redis/Transaction/Status.html">Status</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Value" data-name="redis::value">
+      <a href="../Redis/Value.html">Value</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/VectorEncoder" data-name="redis::vectorencoder">
+      <a href="../Redis/VectorEncoder.html">VectorEncoder</a>
+      
+    </li>
+  
+  <li class=" " data-id="redis/Redis/Writer" data-name="redis::writer">
+      <a href="../Redis/Writer.html">Writer</a>
+      
+    </li>
+  
+</ul>
+
+      
+    </li>
+  
+</ul>
+
+  </div>
+</div>
+
+
+<div class="main-content">
+<h1 class="type-name">
+
+  <span class="kind">
+    struct
+  </span> Redis::<wbr>JSON(Runnable)
+
+</h1>
+
+
+  <ul class="superclass-hierarchy"><li class="superclass"><a href="../Redis/JSON.html">Redis::JSON(Runnable)</a></li><li class="superclass">Struct</li><li class="superclass">Value</li><li class="superclass">Object</li></ul>
+
+
+
+
+  <h2>
+    <a id="overview" class="anchor" href="#overview">
+  <svg class="octicon-link" aria-hidden="true">
+    <use href="#octicon-link"/>
+  </svg>
+</a>
+    Overview
+  </h2>
+
+  <p><code><a href="../Redis/JSON.html">Redis::JSON</a></code> wraps a <code><a href="../Redis/Client.html">Redis::Client</a></code> or <code><a href="../Redis/Cluster.html">Redis::Cluster</a></code> to execute
+commands against keys storing JSON data using the
+<a href="https://oss.redis.com/redisjson/">RedisJSON</a> plugin for Redis.</p>
+<pre><code class="language-crystal"><span class="k">require</span> <span class="s">&quot;redis&quot;</span>
+<span class="k">require</span> <span class="s">&quot;redis/json&quot;</span>
+<span class="k">require</span> <span class="s">&quot;uuid/json&quot;</span>
+
+<span class="k">struct</span> <span class="t">Person</span>
+  <span class="k">include</span> <span class="t">JSON</span><span class="t">::</span><span class="t">Serializable</span>
+
+  getter id : <span class="t">UUID</span>
+  getter name : <span class="t">String</span>
+  getter email : <span class="t">String</span>
+
+  <span class="k">def</span> <span class="m">initialize</span>(@id, @name, @email)
+  <span class="k">end</span>
+<span class="k">end</span>
+
+redis <span class="o">=</span> <span class="t">Redis</span><span class="t">::</span><span class="t">Client</span>.new
+
+id <span class="o">=</span> <span class="t">UUID</span>.random
+
+redis.json.set <span class="s">&quot;person:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.&quot;</span>, <span class="t">Person</span>.new(id, <span class="s">&quot;Jamie&quot;</span>, <span class="s">&quot;jamie@example.com&quot;</span>)
+redis.json.get(<span class="s">&quot;person:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.&quot;</span>, <span class="k">as</span>: <span class="t">Person</span>)
+<span class="c"># =&gt; Person(@email=&quot;jamie@example.com&quot;, @id=UUID(081af617-6b50-48d3-b53f-dbc17a1072f5), @name=&quot;Jamie&quot;)</span>
+redis.json.get(<span class="s">&quot;person:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.name&quot;</span>, <span class="k">as</span>: <span class="t">String</span>)
+<span class="c"># =&gt; &quot;Jamie&quot;</span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <h2>
+    <a id="defined-in" class="anchor" href="#defined-in">
+  <svg class="octicon-link" aria-hidden="true">
+    <use href="#octicon-link"/>
+  </svg>
+</a>
+    Defined in:
+  </h2>
+  
+    
+      <a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L36" target="_blank">
+        json.cr
+      </a>
+    
+    <br/>
+  
+
+
+
+
+
+  
+  <h2>
+    <a id="constructors" class="anchor" href="#constructors">
+  <svg class="octicon-link" aria-hidden="true">
+    <use href="#octicon-link"/>
+  </svg>
+</a>
+    Constructors
+  </h2>
+  <ul class="list-summary">
+    
+      <li class="entry-summary">
+        <a href="#new%28redis%3ARunnable%29-class-method" class="signature"><strong>.new</strong>(redis : Runnable)</a>
+        
+      </li>
+    
+  </ul>
+
+
+  
+
+  
+
+  
+  <h2>
+    <a id="instance-method-summary" class="anchor" href="#instance-method-summary">
+  <svg class="octicon-link" aria-hidden="true">
+    <use href="#octicon-link"/>
+  </svg>
+</a>
+    Instance Method Summary
+  </h2>
+  <ul class="list-summary">
+    
+      <li class="entry-summary">
+        <a href="#arrappend%28key%3AString%2Cpath%3AString%2Cvalue%29-instance-method" class="signature"><strong>#arrappend</strong>(key : String, path : String, value)</a>
+        
+          <div class="summary"><p>Append <code>value</code> as JSON to the array located at the JSONPath in <code>key</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrappend%28key%3AString%2Cpath%3AString%2C%2A%2Cvalues%3AArray%29-instance-method" class="signature"><strong>#arrappend</strong>(key : String, path : String, *, values : Array)</a>
+        
+          <div class="summary"><p>Append <code>values</code> as JSON to the array located at the JSONPath in <code>key</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrindex%28key%3AString%2Cpath%3AString%2Cvalue%2Cbetweenrange%3ARange%28Int%2CInt%7CNil%29%29-instance-method" class="signature"><strong>#arrindex</strong>(key : String, path : String, value, between range : Range(Int, Int | Nil))</a>
+        
+          <div class="summary"><p>Get the index of <code>value</code> in the array located at the JSONPath in <code>key</code> if and only if it falls in the specified <code>range</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrindex%28key%3AString%2Cpath%3AString%2Cvalue%29-instance-method" class="signature"><strong>#arrindex</strong>(key : String, path : String, value)</a>
+        
+          <div class="summary"><p>Get the index of <code>value</code> in the array located at the JSONPath in <code>key</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrinsert%28key%3AString%2Cpath%3AString%2Cindex%3AInt%2Cvalue%29-instance-method" class="signature"><strong>#arrinsert</strong>(key : String, path : String, index : Int, value)</a>
+        
+          <div class="summary"><p>Insert <code>value</code> into the array located at the JSONPath in <code>key</code> at <code>index</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrinsert%28key%3AString%2Cpath%3AString%2Cindex%3AInt%2C%2A%2Cvalues%3AArray%29-instance-method" class="signature"><strong>#arrinsert</strong>(key : String, path : String, index : Int, *, values : Array)</a>
+        
+          <div class="summary"><p>Insert the elements of <code>values</code> into the array located at the JSONPath in <code>key</code> at <code>index</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrlen%28key%3AString%2Cpath%3AString%29-instance-method" class="signature"><strong>#arrlen</strong>(key : String, path : String)</a>
+        
+          <div class="summary"><p>Get the number of elements in the array located at the JSONPath in <code>key</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrpop%28key%3AString%2Cpath%3AString%7CNil%3Dnil%2C%2A%2Cindex%3AInt%3D-1%29-instance-method" class="signature"><strong>#arrpop</strong>(key : String, path : String | Nil = <span class="n">nil</span>, *, index : Int = <span class="n">-1</span>)</a>
+        
+          <div class="summary"><p>Remove and return the value located at <code>index</code> (defaulting to the last element) in the array located at the JSONPath in <code>key</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrpop%28key%3AString%2Cpath%3AString%2C%2A%2Cindex%3AInt%3D-1%2Cas%3AT.class%29%3AT%7CNilforallT-instance-method" class="signature"><strong>#arrpop</strong>(key : String, path : String, *, index : Int = <span class="n">-1</span>, as : <span class="t">T</span>.<span class="k">class</span>) : T | Nil forall T</a>
+        
+          <div class="summary"><p>Remove and return the value located at <code>index</code> (defaulting to the last element) in the array located at the JSONPath in <code>key</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#arrtrim%28key%3AString%2Cpath%3AString%2Cstart%3AInt%7CString%2Cstop%3AInt%7CString%29-instance-method" class="signature"><strong>#arrtrim</strong>(key : String, path : String, start : Int | String, stop : Int | String)</a>
+        
+          <div class="summary"><p>Trim the array stored at <code>path</code> in <code>key</code> down to the indexes <code>start..stop</code> (inclusive), equivalent to <code>redis.json.set(key, path, redis.json.get(key, path, as: Array)[start..stop])</code>.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#clear%28key%3AString%2Cpath%3AString%7CNil%3Dnil%29-instance-method" class="signature"><strong>#clear</strong>(key : String, path : String | Nil = <span class="n">nil</span>)</a>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#del%28key%3AString%2Cpath%3AString%7CNil%3Dnil%29-instance-method" class="signature"><strong>#del</strong>(key : String, path : String | Nil = <span class="n">nil</span>)</a>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#get%28key%3AString%2Cpath%3AString%2Castype%3AT.class%29%3AT%7CNilforallT-instance-method" class="signature"><strong>#get</strong>(key : String, path : String, as type : <span class="t">T</span>.<span class="k">class</span>) : T | Nil forall T</a>
+        
+          <div class="summary"><p>Get the value stored at the given JSONPath inside the given <code>key</code>, deserializing the value into the type <code>T</code>.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#get%28key%3AString%2Cpath%3AString%29-instance-method" class="signature"><strong>#get</strong>(key : String, path : String)</a>
+        
+          <div class="summary"><p>Get the raw JSON string representation at the given <code>key</code> nested at the given JSONPath.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#get%28key%3AString%2Cpaths%3AArray%28String%29%2Castype%3AT.class%3D%3A%3AJSON%3A%3AAny%29forallT-instance-method" class="signature"><strong>#get</strong>(key : String, paths : Array(String), as type : <span class="t">T</span>.<span class="k">class</span> = <span class="t">::</span><span class="t">JSON</span><span class="t">::</span><span class="t">Any</span>) forall T</a>
+        
+          <div class="summary"><p>Get the values stored at the specifed JSONPaths, deserializing them into the specified type as values in a <code>Hash</code>.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#get%28key%3AString%29-instance-method" class="signature"><strong>#get</strong>(key : String)</a>
+        
+          <div class="summary"><p>Get the raw JSON string at the specified <code>key</code></p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#merge%28key%3AString%2Cpath%3AString%2Cvalue%3AString%29-instance-method" class="signature"><strong>#merge</strong>(key : String, path : String, value : String)</a>
+        
+          <div class="summary"><p>redis.json.get(key, as: NamedTuple(one: String, two: String, three: String)) # =&gt; {one: 1, two: 2, three: 3} ```</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#merge%28key%3AString%2Cpath%3AString%2Cvalue%29-instance-method" class="signature"><strong>#merge</strong>(key : String, path : String, value)</a>
+        
+          <div class="summary"><p>redis.json.get(key, as: NamedTuple(one: String, two: String, three: String)) # =&gt; {one: 1, two: 2, three: 3} ```</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#mget%28keys%3AArray%28String%29%2Cpath%3AString%2Castype%3AT.class%29%3AArray%28T%7CNil%29forallT-instance-method" class="signature"><strong>#mget</strong>(keys : Array(String), path : String, as type : <span class="t">T</span>.<span class="k">class</span>) : Array(T | Nil) forall T</a>
+        
+          <div class="summary"><p>Get the values for all <code>keys</code> at the specified JSONPaths.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#mset%28entries%3AEnumerable%28Tuple%28String%2CString%2CT%29%29%29forallT-instance-method" class="signature"><strong>#mset</strong>(entries : Enumerable(Tuple(String, String, T))) forall T</a>
+        
+          <div class="summary"><p>Set multiple JSON values, using multiple paths and even multiple keys.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#numincrby%28key%3AString%2Cpath%3AString%2Ccount%3AString%7CInt%2Castype%3AT.class%29%3ATforallT-instance-method" class="signature"><strong>#numincrby</strong>(key : String, path : String, count : String | Int, as type : <span class="t">T</span>.<span class="k">class</span>) : T forall T</a>
+        
+          <div class="summary"><p>Increment the number at the specified JSONPath</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#numincrby%28key%3AString%2Cpath%3AString%2Ccount%3AString%7CInt%29-instance-method" class="signature"><strong>#numincrby</strong>(key : String, path : String, count : String | Int)</a>
+        
+          <div class="summary"><p>Increment the number at the specified JSONPath</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#nummultby%28key%3AString%2Cpath%3AString%2Cfactor%3AString%7CInt%29-instance-method" class="signature"><strong>#nummultby</strong>(key : String, path : String, factor : String | Int)</a>
+        
+          <div class="summary"><p>Multiply the number at the given <code>path</code> in <code>key</code> by <code>factor</code>.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#objkeys%28key%3AString%2Cpath%3AString%29-instance-method" class="signature"><strong>#objkeys</strong>(key : String, path : String)</a>
+        
+          <div class="summary"><p>Returns the keys for the JSON object stored in <code>key</code> at <code>path</code>.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#objlen%28key%3AString%2Cpath%3AString%7CNil%3Dnil%29-instance-method" class="signature"><strong>#objlen</strong>(key : String, path : String | Nil = <span class="n">nil</span>)</a>
+        
+          <div class="summary"><p>Returns the number of keys for the JSON object stored in <code>key</code> at <code>path</code>, with <code>path</code> defaulting to the root object.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#set%28key%3AString%2Cpath%3AString%2Cvalue%2C%2A%2Cnx%3Dfalse%2Cxx%3Dfalse%29-instance-method" class="signature"><strong>#set</strong>(key : String, path : String, value, *, nx = <span class="n">false</span>, xx = <span class="n">false</span>)</a>
+        
+          <div class="summary"><p>Set the given key to the given JSON <code>value</code>.</p></div>
+        
+      </li>
+    
+      <li class="entry-summary">
+        <a href="#toggle%28key%3AString%2Cpath%3AString%29-instance-method" class="signature"><strong>#toggle</strong>(key : String, path : String)</a>
+        
+      </li>
+    
+  </ul>
+
+
+
+  <div class="methods-inherited">
+    
+      
+
+
+      
+
+
+      
+
+
+      
+
+
+    
+      
+
+
+      
+
+
+      
+
+
+      
+
+
+    
+      
+
+
+      
+
+
+      
+
+
+      
+
+
+    
+  </div>
+
+  
+  <h2>
+    <a id="constructor-detail" class="anchor" href="#constructor-detail">
+  <svg class="octicon-link" aria-hidden="true">
+    <use href="#octicon-link"/>
+  </svg>
+</a>
+    Constructor Detail
+  </h2>
+  
+    <div class="entry-detail" id="new(redis:Runnable)-class-method">
+      <div class="signature">
+        
+        def self.<strong>new</strong>(redis : Runnable)
+
+        <a class="method-permalink" href="#new%28redis%3ARunnable%29-class-method">#</a>
+      </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L37" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+
+
+  
+
+  
+
+  
+  <h2>
+    <a id="instance-method-detail" class="anchor" href="#instance-method-detail">
+  <svg class="octicon-link" aria-hidden="true">
+    <use href="#octicon-link"/>
+  </svg>
+</a>
+    Instance Method Detail
+  </h2>
+  
+    <div class="entry-detail" id="arrappend(key:String,path:String,value)-instance-method">
+      <div class="signature">
+        
+        def <strong>arrappend</strong>(key : String, path : String, value)
+
+        <a class="method-permalink" href="#arrappend%28key%3AString%2Cpath%3AString%2Cvalue%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Append <code>value</code> as JSON to the array located at the JSONPath in <code>key</code></p>
+<pre><code class="language-crystal">redis.json.arrappend <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>, <span class="s">&quot;redis&quot;</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L317" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrappend(key:String,path:String,*,values:Array)-instance-method">
+      <div class="signature">
+        
+        def <strong>arrappend</strong>(key : String, path : String, *, values : Array)
+
+        <a class="method-permalink" href="#arrappend%28key%3AString%2Cpath%3AString%2C%2A%2Cvalues%3AArray%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Append <code>values</code> as JSON to the array located at the JSONPath in <code>key</code></p>
+<pre><code class="language-crystal">redis.json.arrappend <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>, <span class="s">%w[redis crystal]</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L326" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrindex(key:String,path:String,value,betweenrange:Range(Int,Int|Nil))-instance-method">
+      <div class="signature">
+        
+        def <strong>arrindex</strong>(key : String, path : String, value, between range : Range(Int, Int | Nil))
+
+        <a class="method-permalink" href="#arrindex%28key%3AString%2Cpath%3AString%2Cvalue%2Cbetweenrange%3ARange%28Int%2CInt%7CNil%29%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Get the index of <code>value</code> in the array located at the JSONPath in <code>key</code> if
+and only if it falls in the specified <code>range</code></p>
+<pre><code class="language-crystal">redis.json.arrindex <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>, <span class="s">&quot;redis&quot;</span>, between: <span class="n">1</span>..<span class="n">3</span>
+<span class="c"># =&gt; 2</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L352" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrindex(key:String,path:String,value)-instance-method">
+      <div class="signature">
+        
+        def <strong>arrindex</strong>(key : String, path : String, value)
+
+        <a class="method-permalink" href="#arrindex%28key%3AString%2Cpath%3AString%2Cvalue%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Get the index of <code>value</code> in the array located at the JSONPath in <code>key</code></p>
+<pre><code class="language-crystal">redis.json.arrindex <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>, <span class="s">&quot;redis&quot;</span> <span class="c"># =&gt; 2</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L341" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrinsert(key:String,path:String,index:Int,value)-instance-method">
+      <div class="signature">
+        
+        def <strong>arrinsert</strong>(key : String, path : String, index : Int, value)
+
+        <a class="method-permalink" href="#arrinsert%28key%3AString%2Cpath%3AString%2Cindex%3AInt%2Cvalue%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Insert <code>value</code> into the array located at the JSONPath in <code>key</code> at <code>index</code></p>
+<pre><code class="language-crystal">redis.json.arrinsert <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>, index: <span class="n">1</span>, value: <span class="s">&quot;redis&quot;</span>
+<span class="c"># =&gt; 3</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L371" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrinsert(key:String,path:String,index:Int,*,values:Array)-instance-method">
+      <div class="signature">
+        
+        def <strong>arrinsert</strong>(key : String, path : String, index : Int, *, values : Array)
+
+        <a class="method-permalink" href="#arrinsert%28key%3AString%2Cpath%3AString%2Cindex%3AInt%2C%2A%2Cvalues%3AArray%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Insert the elements of <code>values</code> into the array located at the JSONPath in
+<code>key</code> at <code>index</code></p>
+<pre><code class="language-crystal">redis.json.arrinsert <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>, index: <span class="n">1</span>, values: <span class="s">%w[
+  redis
+  crystal
+]</span>
+<span class="c"># =&gt; 4</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L385" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrlen(key:String,path:String)-instance-method">
+      <div class="signature">
+        
+        def <strong>arrlen</strong>(key : String, path : String)
+
+        <a class="method-permalink" href="#arrlen%28key%3AString%2Cpath%3AString%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Get the number of elements in the array located at the JSONPath in <code>key</code></p>
+<pre><code class="language-crystal">redis.json.arrlen <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>
+<span class="c"># =&gt; 4</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L401" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrpop(key:String,path:String|Nil=nil,*,index:Int=-1)-instance-method">
+      <div class="signature">
+        
+        def <strong>arrpop</strong>(key : String, path : String | Nil = <span class="n">nil</span>, *, index : Int = <span class="n">-1</span>)
+
+        <a class="method-permalink" href="#arrpop%28key%3AString%2Cpath%3AString%7CNil%3Dnil%2C%2A%2Cindex%3AInt%3D-1%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Remove and return the value located at <code>index</code> (defaulting to the last
+element) in the array located at the JSONPath in <code>key</code></p>
+<pre><code class="language-crystal">redis.json.arrlen <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>
+<span class="c"># =&gt; 4</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L412" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrpop(key:String,path:String,*,index:Int=-1,as:T.class):T|NilforallT-instance-method">
+      <div class="signature">
+        
+        def <strong>arrpop</strong>(key : String, path : String, *, index : Int = <span class="n">-1</span>, as : <span class="t">T</span>.<span class="k">class</span>) : T | Nil forall T
+
+        <a class="method-permalink" href="#arrpop%28key%3AString%2Cpath%3AString%2C%2A%2Cindex%3AInt%3D-1%2Cas%3AT.class%29%3AT%7CNilforallT-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Remove and return the value located at <code>index</code> (defaulting to the last
+element) in the array located at the JSONPath in <code>key</code></p>
+<pre><code class="language-crystal">redis.json.arrlen <span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.tags&quot;</span>
+<span class="c"># =&gt; 4</span></code></pre>
+<p><span class="flag purple">NOTE</span>  This method cannot be invoked on a pipeline or the transaction
+yielded to a <code><a href="../Redis/Connection.html#multi%28retries%3D5%2C%26%29-instance-method">Redis::Connection#multi</a></code> block.</p>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L432" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="arrtrim(key:String,path:String,start:Int|String,stop:Int|String)-instance-method">
+      <div class="signature">
+        
+        def <strong>arrtrim</strong>(key : String, path : String, start : Int | String, stop : Int | String)
+
+        <a class="method-permalink" href="#arrtrim%28key%3AString%2Cpath%3AString%2Cstart%3AInt%7CString%2Cstop%3AInt%7CString%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Trim the array stored at <code>path</code> in <code>key</code> down to the indexes <code>start..stop</code> (inclusive), equivalent to <code>redis.json.set(key, path, redis.json.get(key, path, as: Array)[start..stop])</code>.</p>
+<pre><code class="language-crystal">redis.json.set <span class="s">&quot;post:123&quot;</span>, <span class="s">&quot;.author_ids&quot;</span>, [<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>]
+
+redis.json.arrtrim(<span class="s">&quot;post:123&quot;</span>, <span class="s">&quot;.author_ids&quot;</span>, start: <span class="n">1</span>, stop: <span class="n">1</span>)
+
+redis.json.get(<span class="s">&quot;post:123&quot;</span>, <span class="s">&quot;.author_ids&quot;</span>, <span class="k">as</span>: <span class="t">Array</span>(<span class="t">Int64</span>))
+<span class="c"># =&gt; [2]</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L448" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="clear(key:String,path:String|Nil=nil)-instance-method">
+      <div class="signature">
+        
+        def <strong>clear</strong>(key : String, path : String | Nil = <span class="n">nil</span>)
+
+        <a class="method-permalink" href="#clear%28key%3AString%2Cpath%3AString%7CNil%3Dnil%29-instance-method">#</a>
+      </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L220" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="del(key:String,path:String|Nil=nil)-instance-method">
+      <div class="signature">
+        
+        def <strong>del</strong>(key : String, path : String | Nil = <span class="n">nil</span>)
+
+        <a class="method-permalink" href="#del%28key%3AString%2Cpath%3AString%7CNil%3Dnil%29-instance-method">#</a>
+      </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L227" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="get(key:String,path:String,astype:T.class):T|NilforallT-instance-method">
+      <div class="signature">
+        
+        def <strong>get</strong>(key : String, path : String, as type : <span class="t">T</span>.<span class="k">class</span>) : T | Nil forall T
+
+        <a class="method-permalink" href="#get%28key%3AString%2Cpath%3AString%2Castype%3AT.class%29%3AT%7CNilforallT-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Get the value stored at the given JSONPath inside the given <code>key</code>,
+deserializing the value into the type <code>T</code>. You can use this to deserialize
+your custom <code>JSON::Serializable</code> objects.</p>
+<pre><code class="language-crystal"><span class="k">struct</span> <span class="t">Order</span>
+  <span class="k">include</span> <span class="t">JSON</span><span class="t">::</span><span class="t">Serializable</span>
+  getter id : <span class="t">UUID</span>
+  getter customer_id : <span class="t">UUID</span>
+  getter line_items : <span class="t">Array</span>(<span class="t">LineItem</span>)
+<span class="k">end</span>
+
+<span class="k">struct</span> <span class="t">LineItem</span>
+  <span class="k">include</span> <span class="t">JSON</span><span class="t">::</span><span class="t">Serializable</span>
+  getter product_id : <span class="t">UUID</span>
+  getter quantity : <span class="t">Int32</span>
+  getter unit_price_cents : <span class="t">Int32</span>
+<span class="k">end</span>
+
+<span class="c"># Get the Order at the root</span>
+redis.json.get(<span class="s">&quot;order:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.&quot;</span>, <span class="k">as</span>: <span class="t">Order</span>)
+<span class="c"># Get the LineItems at the `.line_items` JSONPath</span>
+<span class="c"># Note the `$` at the beginning to make it an array</span>
+redis.json.get(<span class="s">&quot;order:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;$.line_items&quot;</span>, <span class="k">as</span>: <span class="t">Array</span>(<span class="t">LineItem</span>))
+<span class="c"># Get only the `product_id` properties of all the `line_items`</span>
+redis.json.get(<span class="s">&quot;order:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;$.line_items..product_id&quot;</span>, <span class="k">as</span>: <span class="t">Array</span>(<span class="t">UUID</span>))</code></pre>
+<p><span class="flag purple">NOTE</span>  This method <em>cannot</em> be used in a pipeline or <code><a href="../Redis/Connection.html#multi%28retries%3D5%2C%26%29-instance-method">Redis::Connection#multi</a></code>
+block because it operates on the value returned from the Redis server
+inside the method, which isn't possible when using pipelines or <code>multi</code>.</p>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L164" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="get(key:String,path:String)-instance-method">
+      <div class="signature">
+        
+        def <strong>get</strong>(key : String, path : String)
+
+        <a class="method-permalink" href="#get%28key%3AString%2Cpath%3AString%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Get the raw JSON string representation at the given <code>key</code> nested at the
+given JSONPath.</p>
+<pre><code class="language-crystal">email <span class="o">=</span> redis.json.get(<span class="s">&quot;user:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.email&quot;</span>).<span class="k">as</span>(<span class="t">String</span>)
+<span class="c"># =&gt; &quot;me@example.com&quot;</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L110" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="get(key:String,paths:Array(String),astype:T.class=::JSON::Any)forallT-instance-method">
+      <div class="signature">
+        
+        def <strong>get</strong>(key : String, paths : Array(String), as type : <span class="t">T</span>.<span class="k">class</span> = <span class="t">::</span><span class="t">JSON</span><span class="t">::</span><span class="t">Any</span>) forall T
+
+        <a class="method-permalink" href="#get%28key%3AString%2Cpaths%3AArray%28String%29%2Castype%3AT.class%3D%3A%3AJSON%3A%3AAny%29forallT-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Get the values stored at the specifed JSONPaths, deserializing them into
+the specified type as values in a <code>Hash</code>.</p>
+<pre><code class="language-crystal"><span class="k">if</span> result <span class="o">=</span> redis.json.get(<span class="s">&quot;posts:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">%w[title tags]</span>, <span class="k">as</span>: <span class="t">String</span> <span class="o">|</span> <span class="t">Array</span>(<span class="t">String</span>))
+  result         <span class="c"># =&gt; {&quot;title&quot; =&gt; &quot;JSON with Redis&quot;, tags: [&quot;redis&quot;, &quot;json&quot;, &quot;crystal&quot;]}</span>
+  <span class="k">typeof</span>(result) <span class="c"># =&gt; Hash(String, String | Array(String))</span>
+<span class="k">end</span></code></pre>
+<p><span class="flag purple">NOTE</span>  This method <em>cannot</em> be used in a pipeline or <code><a href="../Redis/Connection.html#multi%28retries%3D5%2C%26%29-instance-method">Redis::Connection#multi</a></code>
+block because it operates on the value returned from the Redis server,
+which isn't a thing when using pipelines or <code>multi</code>.</p>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L127" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="get(key:String)-instance-method">
+      <div class="signature">
+        
+        def <strong>get</strong>(key : String)
+
+        <a class="method-permalink" href="#get%28key%3AString%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Get the raw JSON string at the specified <code>key</code></p>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L99" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="merge(key:String,path:String,value:String)-instance-method">
+      <div class="signature">
+        
+        def <strong>merge</strong>(key : String, path : String, value : String)
+
+        <a class="method-permalink" href="#merge%28key%3AString%2Cpath%3AString%2Cvalue%3AString%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>redis.json.get(key, as: NamedTuple(one: String, two: String, three: String))</p>
+<h1><a id="one-1-two-2-three-3" class="anchor" href="#one-1-two-2-three-3">
+  <svg class="octicon-link" aria-hidden="true">
+    <use href="#octicon-link"/>
+  </svg>
+</a>=&gt; {one: 1, two: 2, three: 3}</h1>
+<pre><code class="language-crystal"></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L308" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="merge(key:String,path:String,value)-instance-method">
+      <div class="signature">
+        
+        def <strong>merge</strong>(key : String, path : String, value)
+
+        <a class="method-permalink" href="#merge%28key%3AString%2Cpath%3AString%2Cvalue%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>redis.json.get(key, as: NamedTuple(one: String, two: String, three: String))</p>
+<h1><a id="one-1-two-2-three-3" class="anchor" href="#one-1-two-2-three-3">
+  <svg class="octicon-link" aria-hidden="true">
+    <use href="#octicon-link"/>
+  </svg>
+</a>=&gt; {one: 1, two: 2, three: 3}</h1>
+<pre><code class="language-crystal"></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L292" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="mget(keys:Array(String),path:String,astype:T.class):Array(T|Nil)forallT-instance-method">
+      <div class="signature">
+        
+        def <strong>mget</strong>(keys : Array(String), path : String, as type : <span class="t">T</span>.<span class="k">class</span>) : Array(T | Nil) forall T
+
+        <a class="method-permalink" href="#mget%28keys%3AArray%28String%29%2Cpath%3AString%2Castype%3AT.class%29%3AArray%28T%7CNil%29forallT-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Get the values for all <code>keys</code> at the specified JSONPaths.</p>
+<p><span class="flag purple">NOTE</span>  This method <em>cannot</em> be used in a pipeline or <code><a href="../Redis/Connection.html#multi%28retries%3D5%2C%26%29-instance-method">Redis::Connection#multi</a></code>
+block because it operates on the value returned from the Redis server
+inside the method, which isn't possible when using pipelines or <code>multi</code>.</p>
+<p><span class="flag purple">NOTE</span>  If you are using a cluster, the <code>keys</code> <em>must</em> all be on the same
+shard, or you may only get some of them back with this method. When using
+<code><a href="../Redis/JSON.html#mget%28keys%3AArray%28String%29%2Cpath%3AString%2Castype%3AT.class%29%3AArray%28T%7CNil%29forallT-instance-method">#mget</a></code> in a cluster, you'll most likely want to use subhashed keys (with
+<code>{}</code> around the same part of the name) to ensure all keys are on the same
+shard.</p>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L180" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="mset(entries:Enumerable(Tuple(String,String,T)))forallT-instance-method">
+      <div class="signature">
+        
+        def <strong>mset</strong>(entries : Enumerable(Tuple(String, String, T))) forall T
+
+        <a class="method-permalink" href="#mset%28entries%3AEnumerable%28Tuple%28String%2CString%2CT%29%29%29forallT-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Set multiple JSON values, using multiple paths and even multiple keys.
+This is the equivalent of running multiple <code>JSON.SET</code> commands in a single
+atomic command.</p>
+<pre><code class="language-crystal">redis.json.mset([
+  {<span class="s">&quot;post:</span><span class="i">#{</span>post_id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.&quot;</span>, post},
+  {<span class="s">&quot;user:</span><span class="i">#{</span>post.author_id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.last_posted_at&quot;</span>, now},
+])</code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L82" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="numincrby(key:String,path:String,count:String|Int,astype:T.class):TforallT-instance-method">
+      <div class="signature">
+        
+        def <strong>numincrby</strong>(key : String, path : String, count : String | Int, as type : <span class="t">T</span>.<span class="k">class</span>) : T forall T
+
+        <a class="method-permalink" href="#numincrby%28key%3AString%2Cpath%3AString%2Ccount%3AString%7CInt%2Castype%3AT.class%29%3ATforallT-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Increment the number at the specified JSONPath</p>
+<pre><code class="language-crystal">redis.json.numincrby <span class="s">&quot;product:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.purchase_count&quot;</span>, <span class="n">1</span>, <span class="k">as</span>: <span class="t">Int64</span>
+<span class="c"># =&gt; 2</span></code></pre>
+<p>If <code>key</code> exists and an incrementable number exists at the specified
+JSONPath (including the possibility of incrementing multiple numbers if
+the JSONPath resolves to multiple numeric values), then this method
+returns a value of type <code>T</code>. If the JSONPath resolves to multiple values
+(for example, it begins with &quot;$&quot; or is recursive), you will need to
+specify that it can be an <code>Array</code> of that type.</p>
+<p><span class="flag purple">NOTE</span>  This method cannot be used on deferred command runners like
+<code><a href="../Redis/Pipeline.html">Redis::Pipeline</a></code> or <code><a href="../Redis/Transaction.html">Redis::Transaction</a></code>. It eagerly consumes the
+result from the server, so the result must not be deferred.</p>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L260" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="numincrby(key:String,path:String,count:String|Int)-instance-method">
+      <div class="signature">
+        
+        def <strong>numincrby</strong>(key : String, path : String, count : String | Int)
+
+        <a class="method-permalink" href="#numincrby%28key%3AString%2Cpath%3AString%2Ccount%3AString%7CInt%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Increment the number at the specified JSONPath</p>
+<pre><code class="language-crystal">redis.json.numincrby <span class="s">&quot;product:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.purchase_count&quot;</span>, <span class="n">1</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L239" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="nummultby(key:String,path:String,factor:String|Int)-instance-method">
+      <div class="signature">
+        
+        def <strong>nummultby</strong>(key : String, path : String, factor : String | Int)
+
+        <a class="method-permalink" href="#nummultby%28key%3AString%2Cpath%3AString%2Cfactor%3AString%7CInt%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Multiply the number at the given <code>path</code> in <code>key</code> by <code>factor</code>.</p>
+<pre><code class="language-crystal">redis.json.set key, <span class="s">&quot;.&quot;</span>, {value: <span class="n">23</span>}
+redis.json.nummultby key, <span class="s">&quot;.value&quot;</span>, <span class="n">3</span>
+
+redis.json.get key, <span class="s">&quot;.value&quot;</span>, <span class="k">as</span>: <span class="t">Int64</span> <span class="c"># =&gt; 69</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L272" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="objkeys(key:String,path:String)-instance-method">
+      <div class="signature">
+        
+        def <strong>objkeys</strong>(key : String, path : String)
+
+        <a class="method-permalink" href="#objkeys%28key%3AString%2Cpath%3AString%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Returns the keys for the JSON object stored in <code>key</code> at <code>path</code>. The return value depends on whether <code>path</code> is <code>$</code>-based or <code>.</code>-based. <code>$</code>-based paths will return an array of arrays of strings while <code>.</code>-based paths will return an array of strings, however the compile-time return type of this method is <code><a href="../Redis/Value.html">Redis::Value</a></code>, so you'll need to downcast manually.</p>
+<pre><code class="language-crystal">redis.json.set <span class="s">&quot;user:123&quot;</span>, <span class="s">&quot;.&quot;</span>, {id: <span class="n">123</span>, name: <span class="s">&quot;Jamie&quot;</span>, created_at: <span class="t">Time</span>.utc.to_unix_ms}
+
+redis.json.objkeys(<span class="s">&quot;user:123&quot;</span>, <span class="s">&quot;.&quot;</span>) <span class="c"># =&gt; [&quot;id&quot;, &quot;name&quot;, &quot;created_at&quot;]</span>
+redis.json.objkeys(<span class="s">&quot;user:123&quot;</span>, <span class="s">&quot;$&quot;</span>) <span class="c"># =&gt; [[&quot;id&quot;, &quot;name&quot;, &quot;created_at&quot;]]</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L202" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="objlen(key:String,path:String|Nil=nil)-instance-method">
+      <div class="signature">
+        
+        def <strong>objlen</strong>(key : String, path : String | Nil = <span class="n">nil</span>)
+
+        <a class="method-permalink" href="#objlen%28key%3AString%2Cpath%3AString%7CNil%3Dnil%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Returns the number of keys for the JSON object stored in <code>key</code> at <code>path</code>, with <code>path</code> defaulting to the root object. The return value depends on whether <code>path</code> is <code>$</code>-based or <code>.</code>-based. <code>$</code>-based paths will return an array of <code>Int64?</code> (paths that don't result in an object return <code>nil</code>) while <code>.</code>-based paths will return an <code>Int64?</code>, however the compile-time return type of this method is <code><a href="../Redis/Value.html">Redis::Value</a></code> because the path is not inferred at compile-time, so you'll need to downcast manually.</p>
+<pre><code class="language-crystal">redis.json.set <span class="s">&quot;user:123&quot;</span>, <span class="s">&quot;.&quot;</span>, {id: <span class="n">123</span>, name: <span class="s">&quot;Jamie&quot;</span>, created_at: <span class="t">Time</span>.utc.to_unix_ms}
+
+redis.json.objlen(<span class="s">&quot;user:123&quot;</span>, <span class="s">&quot;.&quot;</span>) <span class="c"># =&gt; 3</span>
+redis.json.objlen(<span class="s">&quot;user:123&quot;</span>, <span class="s">&quot;$&quot;</span>) <span class="c"># =&gt; [3]</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L214" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="set(key:String,path:String,value,*,nx=false,xx=false)-instance-method">
+      <div class="signature">
+        
+        def <strong>set</strong>(key : String, path : String, value, *, nx = <span class="n">false</span>, xx = <span class="n">false</span>)
+
+        <a class="method-permalink" href="#set%28key%3AString%2Cpath%3AString%2Cvalue%2C%2A%2Cnx%3Dfalse%2Cxx%3Dfalse%29-instance-method">#</a>
+      </div>
+      
+        <div class="doc">
+          
+          <p>Set the given key to the given JSON <code>value</code>. The <code>value</code> will have
+<code>to_json</code> called on it automatically. The <code>nx</code> and <code>xx</code> arguments are
+identical to <code><a href="../Redis/Commands.html#set%28key%2Cvalue%2C%2A%2Cex%3ATime%2Cnx%3Dfalse%2Cxx%3Dfalse%2Ckeepttl%3Dfalse%2Cget%3Dfalse%29-instance-method">Redis::Commands#set</a></code>.</p>
+<p>Store a user at the root JSONPath (<code>.</code>) of the specified key:</p>
+<pre><code class="language-crystal"><span class="k">struct</span> <span class="t">User</span>
+  <span class="k">include</span> <span class="t">JSON</span><span class="t">::</span><span class="t">Serializable</span>
+
+  getter id : <span class="t">UUID</span>
+  getter name : <span class="t">String</span>
+  getter email : <span class="t">String</span>
+<span class="k">end</span>
+
+redis.json.set <span class="s">&quot;user:</span><span class="i">#{</span>user.id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.&quot;</span>, user</code></pre>
+<p>Update (with <code>xx</code> so we ensure the key exists) a user's email by setting
+the new email value at the <code>.email</code> JSONPath:</p>
+<pre><code class="language-crystal">redis.json.set <span class="s">&quot;user:</span><span class="i">#{</span>id<span class="i">}</span><span class="s">&quot;</span>, <span class="s">&quot;.email&quot;</span>, new_email, xx: <span class="n">true</span></code></pre>
+        </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L64" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+    <div class="entry-detail" id="toggle(key:String,path:String)-instance-method">
+      <div class="signature">
+        
+        def <strong>toggle</strong>(key : String, path : String)
+
+        <a class="method-permalink" href="#toggle%28key%3AString%2Cpath%3AString%29-instance-method">#</a>
+      </div>
+      
+      <br/>
+      <div>
+        
+          [<a href="https://github.com/jgaskins/redis/blob/v0.16.0/src/json.cr#L276" target="_blank">View source</a>]
+        
+      </div>
+    </div>
+  
+
+
+
+</div>
+
+</body>
+</html>

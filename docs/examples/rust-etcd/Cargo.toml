@@ -1,0 +1,10 @@
+[package]
+name = "dilock-rust-etcd-consumer"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+dilock = { path = "../../../sdk/rust/dilock" }
+dilock-etcd = { path = "../../../sdk/rust/etcd" }
+tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread", "time"] }

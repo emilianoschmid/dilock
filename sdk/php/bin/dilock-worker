@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use Dilock\JsonLineWorker;
+
+$configPath = $argv[$argc - 1] ?? null;
+if (!is_string($configPath) || !is_file($configPath)) {
+    fwrite(STDERR, "usage: dilock-worker [--lease-child] <config.json>\\n");
+    exit(2);
+}
+try {
+    $config = json_decode((string) file_get_contents($configPath), true, 32, JSON_THROW_ON_ERROR);
+    if (!is_array($config)) {
+        throw new InvalidArgumentException('config must be a JSON object');
+    }
+    $worker = new JsonLineWorker($config, $configPath);
+    if (($argv[1] ?? null) === '--lease-child') {
+        $worker->runLeaseChild(STDIN, STDOUT);
+    } else {
+        $worker->run(STDIN, STDOUT);
+    }
+} catch (Throwable $error) {
+    fwrite(STDERR, 'dilock php worker: startup failed (' . $error::class . ")\\n");
+    exit(1);
+}

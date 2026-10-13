@@ -1,0 +1,66 @@
+name: Catalog release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Candidate archive version (native package versions are checked separately)
+        required: true
+        type: string
+      run_native:
+        description: Attempt all pinned offline Docker builds and exact-package consumers
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.9'
+      - name: Validate all language delivery recipes
+        run: python tools/release.py catalog
+      - name: Prepare all catalog source deliveries
+        env:
+          CANDIDATE_VERSION: ${{ inputs.version }}
+        run: python tools/release.py prepare --version "$CANDIDATE_VERSION" --output artifacts/candidate
+      - name: Attempt native package builds
+        id: native
+        if: inputs.run_native
+        run: python tools/release.py build --candidate artifacts/candidate
+      - name: Attempt exact installed consumers
+        if: ${{ always() && inputs.run_native && steps.native.outcome != 'skipped' }}
+        run: python tools/release.py consume --candidate artifacts/candidate
+      - name: Verify retained candidate hashes
+        if: always()
+        run: python tools/release.py verify --candidate artifacts/candidate
+      - name: Retain candidate and execution evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dilock-catalog-candidate
+          path: artifacts/candidate
+          if-no-files-found: error
+          retention-days: 14
+          # Frozen input inventory includes legitimate files such as .Rbuildignore.
+          # prepare uses explicit SDK/spec inputs and prunes local caches/config.
+          include-hidden-files: true
+
+# This workflow stages artifacts only. Native execution requires the configured
+# immutable images/dependency caches; missing prerequisites fail explicitly.
+# There is no registry publisher, repository-release job or write permission.

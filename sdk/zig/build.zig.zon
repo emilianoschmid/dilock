@@ -1,0 +1,7 @@
+.{
+    .name = .dilock,
+    .version = "0.1.0",
+    .fingerprint = 0x104ebdc10d2ae5a9,
+    .minimum_zig_version = "0.17.0",
+    .paths = .{ "build.zig", "build.zig.zon", "src", "tests", "examples", "README.md" },
+}

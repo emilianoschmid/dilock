@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "purpose": "Explicit allowlist of locally staged package artifacts. This does not represent registry contents or all SDK distribution formats.",
+  "artifacts": [
+    {
+      "path": ".tools/m6-rds001-nuget/Dilock.Redis.0.1.0-dev.1.nupkg",
+      "ecosystem": "nuget",
+      "consumer_tested": false
+    },
+    {
+      "path": ".tools/nuget-local-final/Dilock.Core.0.1.0-dev.1.nupkg",
+      "ecosystem": "nuget",
+      "consumer_tested": true
+    },
+    {
+      "path": ".tools/nuget-local-final/Dilock.Etcd.0.1.0-dev.1.nupkg",
+      "ecosystem": "nuget",
+      "consumer_tested": true
+    },
+    {
+      "path": "sdk/python/dist/dilock-0.1.0.dev1-py3-none-any.whl",
+      "ecosystem": "pypi",
+      "consumer_tested": true
+    },
+    {
+      "path": "sdk/python/dist/dilock-0.1.0.dev1.tar.gz",
+      "ecosystem": "pypi",
+      "consumer_tested": true
+    },
+    {
+      "path": ".tools/m6-python-java-postfix/java/dilock-java-0.1.0.jar",
+      "ecosystem": "maven",
+      "consumer_tested": true
+    },
+    {
+      "path": "sdk/rust/target/package/dilock-0.1.0.crate",
+      "ecosystem": "cargo",
+      "consumer_tested": true
+    },
+    {
+      "path": "sdk/rust/target/package/dilock-redis-0.1.0.crate",
+      "ecosystem": "cargo",
+      "consumer_tested": false
+    },
+    {
+      "path": "sdk/rust/target/package/dilock-etcd-0.1.0.crate",
+      "ecosystem": "cargo",
+      "consumer_tested": false
+    },
+    {
+      "path": ".tools/m6-adr0009-packages/typescript/dilock-typescript-0.1.0.tgz",
+      "ecosystem": "npm",
+      "consumer_tested": true
+    },
+    {
+      "path": ".tools/dilock-cpp-etcd-0.1.0-rds009-linux-x86_64-cmake.tar.gz",
+      "ecosystem": "cmake",
+      "consumer_tested": true
+    }
+  ],
+  "excluded_artifacts": [
+    {
+      "path": "sdk/rust/target/package/dilock-redis-worker-0.1.0.crate",
+      "reason": "Internal JSON Lines conformance worker, not one of the public Rust SDK packages in docs/engineering/PACKAGE-MATRIX.md; retain the archive but do not stage or publish it as an SDK crate. Archive Cargo.toml.orig, src/main.rs, and LICENSE were compared byte-for-byte with the current source; checksum refreshed from the current archive.",
+      "sha256": "357755b84ee77283e450ce2d857ac05f1875df240907a7337c6114e69dcb2e0e"
+    },
+    {
+      "path": ".tools/dotnet-home/.nuget/packages/dilock.core/0.1.0-dev.1/dilock.core.0.1.0-dev.1.nupkg",
+      "reason": "Preserved cache artifact has stale README metadata claiming etcd and cross-language conformance are unimplemented; the validated release candidate is .tools/nuget-local-final/Dilock.Core.0.1.0-dev.1.nupkg.",
+      "sha256": "40397dc9fad864463a1040476466785acbb700f400532b9de484aad456f2f06e"
+    }
+  ],
+  "not_represented": [
+    {
+      "ecosystem": "go",
+      "state": "blocked",
+      "reason": "No owner-qualified module path is confirmed; no standalone release artifact was staged."
+    }
+  ]
+}

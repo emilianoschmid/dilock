@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.dilock</groupId>
+  <artifactId>dilock-java-parent</artifactId>
+  <version>0.1.0</version>
+  <packaging>pom</packaging>
+  <name>Dilock Java SDK reactor</name>
+  <description>Local candidate Maven coordinates for independent Dilock Java modules; no publication is configured.</description>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <modules>
+    <module>core</module>
+    <module>redis</module>
+    <module>etcd</module>
+  </modules>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <jedis.version>8.0.1</jedis.version>
+    <jetcd.version>0.8.7</jetcd.version>
+    <jackson.version>2.21.2</jackson.version>
+    <junit.version>6.1.3</junit.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency><groupId>org.dilock</groupId><artifactId>dilock-core</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>org.dilock</groupId><artifactId>dilock-redis</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>org.dilock</groupId><artifactId>dilock-etcd</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>redis.clients</groupId><artifactId>jedis</artifactId><version>${jedis.version}</version></dependency>
+      <dependency><groupId>io.etcd</groupId><artifactId>jetcd-grpc</artifactId><version>${jetcd.version}</version></dependency>
+      <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>${jackson.version}</version></dependency>
+      <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>${junit.version}</version></dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <resources>
+      <resource><directory>src/main/resources</directory></resource>
+      <resource>
+        <directory>${project.basedir}/..</directory>
+        <targetPath>META-INF</targetPath>
+        <includes><include>LICENSE</include><include>NOTICE</include></includes>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.3.1</version>
+        <executions><execution><id>javadoc-license-resources</id><phase>generate-resources</phase><goals><goal>copy-resources</goal></goals>
+          <configuration>
+            <outputDirectory>${project.build.directory}/license-javadoc/resources</outputDirectory>
+            <resources><resource><directory>${project.basedir}/..</directory><includes><include>LICENSE</include><include>NOTICE</include></includes></resource></resources>
+          </configuration>
+        </execution></executions>
+      </plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.15.0</version><configuration><release>21</release></configuration></plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.6</version><configuration><useModulePath>false</useModulePath></configuration></plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId><version>3.12.0</version>
+        <configuration><release>21</release><doclint>all</doclint>
+          <javadocDirectory>${project.build.directory}/license-javadoc</javadocDirectory><docfilessubdirs>true</docfilessubdirs>
+        </configuration>
+        <executions><execution><id>attach-javadocs</id><phase>package</phase><goals><goal>jar</goal></goals></execution></executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-source-plugin</artifactId><version>3.3.1</version>
+        <executions><execution><id>attach-sources</id><phase>package</phase><goals><goal>jar-no-fork</goal></goals></execution></executions>
+      </plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.9.0</version></plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>conformance-worker</id>
+      <modules><module>worker</module></modules>
+    </profile>
+  </profiles>
+</project>

@@ -1,0 +1,11 @@
+[package]
+name = "dilock-etcd-quickstart"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+
+[dependencies]
+dilock = { path = "../../../../sdk/rust/dilock" }
+dilock-etcd = { path = "../../../../sdk/rust/etcd" }
+tokio = { version = "=1.53.2", features = ["macros", "rt-multi-thread"] }

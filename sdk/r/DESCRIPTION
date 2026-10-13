@@ -1,0 +1,13 @@
+Package: dilock
+Title: Experimental Distributed Lock Client for Redis and etcd
+Version: 0.1.0
+Authors@R: person("Dilock", "Contributors", role = c("aut", "cre"), email = "maintainers@example.invalid")
+Author: Dilock Contributors [aut, cre]
+Maintainer: Dilock Contributors <maintainers@example.invalid>
+Description: Experimental distributed-lock adapters for Redis and native etcd gRPC. The etcd adapter uses native Lock and Lease RPCs and is not production-supported.
+License: Apache License (== 2)
+Encoding: UTF-8
+Imports: jsonlite, openssl, RProtoBuf (== 0.4.28), rgrpc (== 0.1.2)
+Suggests: testthat (>= 3.0.0), redux
+SystemRequirements: C++11; Protocol Buffers compiler and development headers; gRPC C++ runtime required by rgrpc
+Config/testthat/edition: 3

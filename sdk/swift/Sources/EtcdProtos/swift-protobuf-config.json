@@ -1,0 +1,12 @@
+{
+  "invocations": [
+    {
+      "protoFiles": [
+        "kv.proto",
+        "rpc.proto",
+        "v3lock.proto"
+      ],
+      "visibility": "public"
+    }
+  ]
+}

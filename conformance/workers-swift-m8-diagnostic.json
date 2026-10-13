@@ -1,0 +1,8 @@
+{
+  "swift": {
+    "argv": [
+      "python",
+      "conformance/launch_swift_worker_docker.py"
+    ]
+  }
+}

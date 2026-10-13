@@ -1,0 +1,11 @@
+MANIFEST
+Makefile.PL
+README.md
+cpanfile
+lib/Dilock/Etcd.pm
+lib/Dilock.pm
+t/basic.t
+t/etcd_adapter.t
+t/etcd_integration.t
+t/lib/Crypt/URandom.pm
+t/redis_integration.t

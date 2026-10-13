@@ -1,0 +1,22 @@
+name = "Dilock"
+uuid = "74783c4a-e39f-4c19-b7c3-ff92e57a3db8"
+version = "0.1.0"
+
+[deps]
+gRPCClient = "aaca4a50-36af-4a1d-b878-4c443f2061ad"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+Redis = "0cf705f9-a9e2-50d1-a699-2b372a39b750"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[compat]
+julia = "1.10"
+JSON3 = "1"
+Redis = "3"
+gRPCClient = "1.1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

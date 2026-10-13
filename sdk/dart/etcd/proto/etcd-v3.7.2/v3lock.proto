@@ -1,0 +1,15 @@
+syntax = "proto3";
+package v3lockpb;
+
+import "rpc.proto";
+
+// Native lock service from etcd-io/etcd v3.7.2 server/etcdserver/api/v3lock/v3lockpb/v3lock.proto.
+service Lock {
+  rpc Lock(LockRequest) returns (LockResponse);
+  rpc Unlock(UnlockRequest) returns (UnlockResponse);
+}
+
+message LockRequest { bytes name = 1; int64 lease = 2; }
+message LockResponse { etcdserverpb.ResponseHeader header = 1; bytes key = 2; }
+message UnlockRequest { bytes key = 1; }
+message UnlockResponse { etcdserverpb.ResponseHeader header = 1; }

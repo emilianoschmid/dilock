@@ -1,0 +1,247 @@
+{
+  "sdk": "go",
+  "date": "2026-10-03",
+  "toolchain": {
+    "go": "go version go1.27.1 windows/amd64",
+    "source": "https://go.dev/doc/devel/release",
+    "status": "verified"
+  },
+  "dependency": {
+    "module": "github.com/redis/go-redis/v9",
+    "version": "v9.21.0",
+    "source": "https://github.com/redis/go-redis/releases/tag/v9.21.0",
+    "retry_configuration_source": "https://github.com/redis/go-redis/blob/v9.21.0/options.go",
+    "status": "pinned; downloaded and checksum-verified through proxy.golang.org and sum.golang.org"
+  },
+  "additional_dependencies": [
+    {
+      "module": "go.etcd.io/etcd/client/v3",
+      "version": "v3.7.2",
+      "native_lock_binding": "go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb@v3.7.2",
+      "grpc": "google.golang.org/grpc@v1.83.2",
+      "source": "https://github.com/etcd-io/etcd/releases/tag/v3.7.2",
+      "binding_source": "https://github.com/etcd-io/etcd/blob/v3.7.2/etcdserver/api/v3lock/v3lockpb/v3lock_grpc.pb.go",
+      "recipe_not_used_source": "https://github.com/etcd-io/etcd/blob/v3.7.2/client/v3/concurrency/mutex.go",
+      "status": "pinned; source and checksum verified; native Lock gRPC binding used instead of client concurrency recipe"
+    }
+  ],
+  "checks": [
+    {
+      "command": "gofmt -w <all sdk/go Go files>",
+      "status": "passed",
+      "evidence": "Completed with gofmt from Go 1.27.1."
+    },
+    {
+      "command": "gofmt -d <all sdk/go Go files>",
+      "status": "passed",
+      "evidence": "Output: gofmt clean."
+    },
+    {
+      "command": "go test .",
+      "status": "passed",
+      "evidence": "ok dilock (cached); draft 1 identity vectors and invalid inputs passed."
+    },
+    {
+      "command": "go vet .",
+      "status": "passed",
+      "evidence": "Exit code 0; no diagnostics."
+    },
+    {
+      "command": "go test ./...",
+      "status": "passed",
+      "evidence": "Go 1.27.1, DILOCK_ETCD_ENDPOINT=http://127.0.0.1:22379, DILOCK_ETCD_NAMESPACE=go-etcd-worker: ok dilock; worker package builds; ok dilock/etcd (single-member lifecycle, distinct leases, renewal across effective TTL, cancellation queue cleanup, exact key/lease Range, increasing create_revision, stale resource transaction rejection, Provider.Close waiter cancellation); Redis integration is recorded separately."
+    },
+    {
+      "command": "go mod tidy",
+      "status": "passed",
+      "evidence": "go mod tidy completed after clearing stale proxy environment and using the verified local module cache; go.sum was generated."
+    },
+    {
+      "command": "go vet ./...",
+      "status": "passed",
+      "evidence": "Exit code 0; no diagnostics across core, Redis adapter, etcd adapter and worker packages."
+    },
+    {
+      "command": "go build ./...",
+      "status": "passed",
+      "evidence": "Go 1.27.1, CGO_ENABLED=0; all packages and the JSONL worker compiled."
+    },
+    {
+      "command": "go mod verify",
+      "status": "passed",
+      "evidence": "All downloaded Go modules verified against go.sum after pinning etcd v3.7.2."
+    },
+    {
+      "command": "go test -race ./...",
+      "status": "blocked",
+      "evidence": "With CGO_ENABLED=1, Go reported: cgo: C compiler \"gcc\" not found. Race instrumentation could not compile."
+    },
+    {
+      "command": "Redis owner-checked integration test",
+      "status": "passed",
+      "evidence": "Ran TestRedisOwnerCheckedLifecycle once against redis://127.0.0.1:16379 with DILOCK_NAMESPACE=conformance-9fe9662b91c1496a837354eb82cea83f and DILOCK_EPOCH=local-disposable-1. It passed contention, expiry, stale-owner release, and handoff checks."
+    },
+    {
+      "command": "go test ./redis -run ^TestRedisOwnerCheckedLifecycle$ -count=1 -v",
+      "status": "passed",
+      "evidence": "Previously ran against redis://127.0.0.1:16379 with DILOCK_NAMESPACE=conformance-9fe9662b91c1496a837354eb82cea83f and DILOCK_EPOCH=local-disposable-1; contention, expiry, stale-owner release and handoff passed."
+    },
+    {
+      "command": "Go JSONL worker etcd smoke",
+      "status": "passed",
+      "evidence": "Repeated against local etcd 3.7.2 after final adapter lifecycle changes: hello reported etcd-native-lock/renewal/fencing; try_acquire returned acquired with effective_lease_ms 2000 and fence epoch local-functional-test-v1/create_revision 173; release returned released; shutdown reported outstanding_cleanup=0. Transcript summary: validation/implementation/go-etcd-worker-smoke.json."
+    },
+    {
+      "command": "Go\u2194Python etcd directed pair",
+      "status": "blocked",
+      "evidence": "Not run: current conformance/run.py provisioner always provisions Redis metadata and cannot provision etcd metadata; the existing Windows asyncio subprocess pipe failure also blocks process pairs. No shared runner/schema changes were made by the Go SDK worker."
+    },
+    {
+      "command": "etcd quorum/failover/restore/resource-fence scenarios",
+      "status": "not_run",
+      "evidence": "Only the pre-existing local single-member etcd 3.7.2 process was available. This run makes no quorum, leader-failover, disconnection, snapshot-restore or protected-resource atomic-fence claim."
+    },
+    {
+      "command": "Go\u2194Python Redis directed pair",
+      "status": "blocked",
+      "evidence": "Attempted conformance/run.py --sdks go python --backend redis against local Redis with a fresh disposable namespace. The harness failed before worker startup: Windows asyncio pipe creation raised PermissionError [WinError 5] Acceso denegado. No pair scenario ran. Harness output: validation/implementation/go-python-redis-pair.json."
+    },
+    {
+      "command": "Installed module consumer",
+      "status": "passed (local replace)",
+      "evidence": "Built and ran an isolated consumer at .tools/m6-go-consumer with Go 1.27.1 and GOPROXY=off. go.mod requires dilock v0.0.0 and replaces dilock with ../../sdk/go; go test -mod=readonly -v ./... passed. The external consumer imports dilock, dilock/redis and dilock/etcd, type-checks provider/handle calls, and exercises shared identity/options. This verifies the local exact module only; the final public module path and published installation remain not_run pending owner verification and authorization."
+    },
+    {
+      "command": "Seven-SDK Redis and etcd ordered-pair matrices",
+      "status": "passed",
+      "evidence": "validation/implementation/m4-seven-sdk-redis-final.json and m5-seven-sdk-etcd-final.json each record all 42 real-process ordered SDK pairs passed contention, handoff, repeat release, expiry and stale-release scenarios."
+    },
+    {
+      "command": "Isolated local-path Go consumer",
+      "status": "passed",
+      "evidence": "Directory .tools/m6-go-consumer; go.mod replace => ../../sdk/go; Go 1.27.1; GOPROXY=off; go mod tidy; go test -mod=readonly -v ./... => 1 passed. No backend endpoint or remote package registry was used."
+    },
+    {
+      "command": "Standalone versioned Go module artifact consumer",
+      "status": "blocked",
+      "evidence": "An isolated consumer with no replace directive was tested against a locally generated v0.1.0 module proxy archive. go mod tidy rejected imports dilock and dilock/redis because sdk/go/go.mod declares module dilock, a malformed external module path (missing dot in first path element). A verified owner-qualified module path is pending; none was guessed. See validation/implementation/m6-clean-go-rust-artifact-consumers.json."
+    },
+    {
+      "command": "Fresh Go 1.27.1 native offline suite: go test ./...",
+      "status": "passed",
+      "evidence": "Used GOTOOLCHAIN=local, GOPROXY=off, GOSUMDB=off and workspace-local GOCACHE=.tools/m6-go-native-cache. All packages passed: dilock, cmd/dilock-go-worker (build), dilock/etcd and dilock/redis. Full transcript summary: validation/implementation/m6-go-native-current.json."
+    },
+    {
+      "command": "Fresh go vet ./...",
+      "status": "passed",
+      "evidence": "Go 1.27.1, GOPROXY=off; exit code 0 without diagnostics. Evidence: validation/implementation/m6-go-native-current.json."
+    },
+    {
+      "command": "Fresh gofmt -l <all SDK Go files>",
+      "status": "passed",
+      "evidence": "No files listed; source is formatted. Evidence: validation/implementation/m6-go-native-current.json."
+    },
+    {
+      "command": "Fresh go test -race ./...",
+      "status": "blocked",
+      "evidence": "The offline Go 1.27.1 race run could not build because the Windows host has no cgo compiler: cgo: C compiler gcc not found. The default CGO_ENABLED=0 attempt also reported that -race requires cgo. Evidence: validation/implementation/m6-go-native-current.json."
+    },
+    {
+      "command": "Fresh native test cache preflight",
+      "status": "blocked then passed",
+      "evidence": "Default Go cache under the user profile returned Access denied before compilation. Redirected GOCACHE to .tools/m6-go-native-cache and reran successfully; the user cache was preserved. Evidence: validation/implementation/m6-go-native-current.json."
+    },
+    {
+      "command": "Fresh Go worker build from source",
+      "status": "passed",
+      "evidence": "Go 1.27.1, GOTOOLCHAIN=local, GOPROXY=off and workspace-local GOCACHE; SHA-256 709592e81124fd875e4e7c1bd5c2d274942a1768fb0969006f55034e6eaa580c. See validation/implementation/m6-go-native-current.json."
+    },
+    {
+      "command": "Fresh native Go integration suite against real Redis and etcd",
+      "status": "passed",
+      "evidence": "go test -count=1 ./... with Redis 8.10.2 at loopback port 16379 and etcd 3.7.2 at loopback port 23479; all packages passed, including both real backend integration packages. Temporary ports were closed and data retained. See validation/implementation/m6-go-native-current.json."
+    },
+    {
+      "command": "Fresh source-built Go worker lost-ACK and cancellation tests",
+      "status": "passed",
+      "evidence": "Real Redis ACK drop and Redis/etcd queued cancellation passed with the current worker built from source: validation/implementation/m6-go-current-redis-lost-ack.json, m6-go-current-cancel-redis.json and m6-go-current-cancel-etcd.json."
+    }
+  ],
+  "artifacts": [
+    "identity.go",
+    "contract.go",
+    "redis/provider.go",
+    "redis/handle.go",
+    "redis/lease.go",
+    "redis/scripts/release.lua",
+    "redis/scripts/renew.lua",
+    "redis/integration_test.go",
+    "etcd/client.go",
+    "etcd/provider.go",
+    "etcd/handle.go",
+    "etcd/lease.go",
+    "etcd/integration_test.go",
+    "etcd/lease_test.go",
+    "cmd/dilock-go-worker/main.go",
+    "cmd/dilock-go-worker/backend.go"
+  ],
+  "reruns": [
+    {
+      "recorded_at": "2026-10-04",
+      "toolchain": "workspace-local Go 1.27.1 Windows amd64",
+      "network": "disabled",
+      "checks": [
+        {
+          "command": "go test -count=1 ./...",
+          "status": "passed",
+          "evidence": "Fresh native unit/package run passed for dilock, dilock/etcd, dilock/redis and worker build. Backend integration tests were not_run because endpoint variables were unset; see prior separate real-backend evidence."
+        },
+        {
+          "command": "go vet ./...",
+          "status": "passed",
+          "output": "exit 0"
+        },
+        {
+          "command": "go test -mod=readonly ./...",
+          "status": "passed",
+          "output": "All packages passed without modifying module files."
+        },
+        {
+          "command": "gofmt -d .",
+          "status": "passed",
+          "output": "empty"
+        },
+        {
+          "command": "go test -mod=readonly -count=1 -v ./... (isolated local-replace consumer)",
+          "status": "passed",
+          "evidence": ".tools/m6-go-consumer imported dilock, dilock/redis and dilock/etcd and passed its consumer test. The unresolved public module path means this is not an external registry/install test."
+        },
+        {
+          "command": "CGO_ENABLED=1 go test -race ./...",
+          "status": "blocked",
+          "evidence": "No GCC-compatible cgo compiler is installed: cgo: C compiler gcc not found. No package was built with race instrumentation."
+        },
+        {
+          "command": "go test ./...",
+          "status": "passed",
+          "packages": [
+            "dilock (cached)",
+            "dilock/etcd",
+            "dilock/redis"
+          ]
+        },
+        {
+          "command": "go vet ./...",
+          "status": "passed",
+          "output": "exit 0"
+        },
+        {
+          "command": "gofmt -d .",
+          "status": "passed",
+          "output": "empty"
+        }
+      ],
+      "go_race": "blocked; GCC is unavailable on this Windows host"
+    }
+  ]
+}

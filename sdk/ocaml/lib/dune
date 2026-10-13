@@ -1,0 +1,24 @@
+(library
+ (name dilock)
+ (public_name dilock)
+ (wrapped false)
+ (libraries redis-lwt lwt digestif yojson mtime.clock findlib dilock_etcd_generated grpc-lwt h2-lwt-unix ocaml-protoc-plugin))
+
+(install
+ (package dilock)
+ (section lib)
+ (files
+  (../data/redis-release.lua as redis-release.lua)
+  (../data/redis-renew.lua as redis-renew.lua)))
+
+
+(install
+ (package dilock)
+ (section share)
+ (files
+  (../etcd/proto/etcd-v3.7.2/kv.proto as etcd-v3.7.2/kv.proto)
+  (../etcd/proto/etcd-v3.7.2/rpc.proto as etcd-v3.7.2/rpc.proto)
+  (../etcd/proto/etcd-v3.7.2/v3lock.proto as etcd-v3.7.2/v3lock.proto)
+  (../etcd/proto/etcd-v3.7.2/UPSTREAM.md as etcd-v3.7.2/UPSTREAM.md)
+  (../etcd/proto/etcd-v3.7.2/LICENSE-etcd-api as etcd-v3.7.2/LICENSE-etcd-api)
+  (../etcd/proto/etcd-v3.7.2/LICENSE-etcd-server as etcd-v3.7.2/LICENSE-etcd-server)))

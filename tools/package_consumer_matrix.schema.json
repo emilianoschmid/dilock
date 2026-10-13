@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dilock.invalid/schemas/package-consumer-matrix.schema.json",
+  "title": "Dilock exact-artifact consumer run",
+  "type": "object",
+  "required": ["schema_version", "overall_status", "scope", "results"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "overall_status": { "enum": ["passed", "failed", "incomplete"] },
+    "scope": { "const": "source-built package artifacts consumed outside the source checkout" },
+    "results": {
+      "type": "object",
+      "required": ["dotnet", "cpp", "python", "typescript", "go", "rust", "java"],
+      "properties": {
+        "dotnet": { "$ref": "#/$defs/cell" },
+        "cpp": { "$ref": "#/$defs/cell" },
+        "python": { "$ref": "#/$defs/cell" },
+        "typescript": { "$ref": "#/$defs/cell" },
+        "go": {
+          "allOf": [
+            { "$ref": "#/$defs/cell" },
+            {
+              "properties": { "status": { "enum": ["blocked", "passed"] } }
+            },
+            {
+              "if": { "properties": { "status": { "const": "blocked" } } },
+              "then": {
+                "properties": { "reason": { "pattern": "owner-qualified Go module identity" } }
+              }
+            }
+          ]
+        },
+        "rust": { "$ref": "#/$defs/cell" },
+        "java": { "$ref": "#/$defs/cell" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": ["filename", "sha256"],
+      "properties": {
+        "filename": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "command": {
+      "type": "object",
+      "required": ["argv", "exit_code"],
+      "properties": {
+        "argv": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "exit_code": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "cell": {
+      "type": "object",
+      "required": ["status", "reason", "artifacts", "commands"],
+      "properties": {
+        "status": { "enum": ["passed", "failed", "skipped", "blocked", "not_run"] },
+        "reason": { "type": "string" },
+        "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } },
+        "commands": { "type": "array", "items": { "$ref": "#/$defs/command" } },
+        "consumer_workspace": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "passed" } } },
+          "then": {
+            "required": ["consumer_workspace"],
+            "properties": { "artifacts": { "minItems": 2 }, "commands": { "minItems": 2 } }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "enum": ["blocked", "not_run", "skipped"] } } },
+          "then": { "properties": { "reason": { "minLength": 1 } } }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "overall_status": { "const": "passed" } } },
+      "then": {
+        "properties": {
+          "results": {
+            "properties": {
+              "dotnet": { "properties": { "status": { "const": "passed" } } },
+              "cpp": { "properties": { "status": { "const": "passed" } } },
+              "python": { "properties": { "status": { "const": "passed" } } },
+              "typescript": { "properties": { "status": { "const": "passed" } } },
+              "go": { "properties": { "status": { "const": "passed" } } },
+              "rust": { "properties": { "status": { "const": "passed" } } },
+              "java": { "properties": { "status": { "const": "passed" } } }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

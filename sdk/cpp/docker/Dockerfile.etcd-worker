@@ -1,0 +1,13 @@
+FROM debian@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        cmake=3.31.6-2 \
+        g++=4:14.2.0-1 \
+        make=4.4.1-2 \
+        pkgconf=1.8.1-4 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace

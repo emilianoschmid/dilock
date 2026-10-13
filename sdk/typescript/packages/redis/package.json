@@ -1,0 +1,17 @@
+{
+  "name": "@dilock/redis",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Redis backend for the Dilock TypeScript SDK",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist/*.js", "dist/*.d.ts", "dist/internal/*.js", "dist/internal/*.d.ts", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": { "build": "tsc -p tsconfig.json", "prepack": "npm run build" },
+  "dependencies": {
+    "@dilock/core": "0.1.0",
+    "redis": "6.3.0"
+  }
+}

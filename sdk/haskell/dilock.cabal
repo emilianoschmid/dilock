@@ -1,0 +1,106 @@
+cabal-version: 3.0
+name: dilock
+version: 0.1.0
+synopsis: Experimental distributed lock client with optional etcd C ABI facade
+description: Experimental Redis client with an optional Haskell facade over Dilock C ABI v1 for etcd.
+category: Concurrency
+license: Apache-2.0
+license-file: LICENSE
+build-type: Simple
+extra-source-files: data/redis-release.lua, data/redis-renew.lua, README.md, LICENSE, cbits/dilock_haskell_ffi.c, cbits/dilock_haskell_ffi.h, examples/redis/README.md, examples/etcd-c-abi/README.md
+data-files: data/redis-release.lua, data/redis-renew.lua
+
+flag strict-test-warnings
+  description: Treat test compiler warnings as errors during development.
+  default: False
+  manual: True
+
+flag strict-example-warnings
+  description: Treat quickstart compiler warnings as errors during development.
+  default: False
+  manual: True
+
+flag etcd-c-abi
+  description: Build the optional experimental etcd adapter through the Dilock C ABI v1 (requires an installed shared Dilock C++/gRPC library)
+  default: False
+  manual: True
+
+library
+  exposed-modules: Dilock.Redis, Dilock.Internal.Backoff, Dilock.Internal.Duration, Dilock.Internal.Exception, Dilock.Internal.Metadata, Dilock.Internal.Renewal, Dilock.Internal.Release
+  other-modules: Dilock.Internal.CancellableResult, Paths_dilock
+  autogen-modules: Paths_dilock
+  hs-source-dirs: src
+  build-depends: base >=4.14 && <5, aeson >=2.0 && <2.4, bytestring >=0.11.5.4 && <0.12, cryptonite >=0.30 && <0.31, hedis ==0.15.2, memory >=0.18 && <0.19, scientific >=0.3.7 && <0.4, text >=2.0.2 && <2.1
+  default-language: Haskell2010
+  ghc-options: -Wall -Wcompat
+  if flag(etcd-c-abi)
+    exposed-modules: Dilock.Etcd.CABI
+    c-sources: cbits/dilock_haskell_ffi.c
+    include-dirs: cbits
+    extra-libraries: dilock_c
+    build-tool-depends: hsc2hs:hsc2hs
+    -- Cabal uses these options for its generated C foreign-library probe as
+    -- well as this package's C source. The probe has unused argc/argv
+    -- parameters, so suppress that one warning while retaining -Werror for
+    -- all other C warnings.
+    cc-options: -std=c17 -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter -Wno-variadic-macros -Wno-overlength-strings
+
+test-suite identity
+  type: exitcode-stdio-1.0
+  main-is: Identity.hs
+  hs-source-dirs: test
+  build-depends: base, aeson, bytestring, dilock, hedis ==0.15.2, text
+  default-language: Haskell2010
+  if flag(strict-test-warnings)
+    ghc-options: -Wall -Werror
+  else
+    ghc-options: -Wall
+
+test-suite etcd_c_abi
+  type: exitcode-stdio-1.0
+  main-is: EtcdCABI.hs
+  hs-source-dirs: test, src
+  other-modules: Dilock.Internal.CancellableResult
+  build-depends: base, dilock, text
+  default-language: Haskell2010
+  if flag(etcd-c-abi)
+    buildable: True
+  else
+    buildable: False
+  if flag(strict-test-warnings)
+    ghc-options: -Wall -Werror
+  else
+    ghc-options: -Wall
+
+executable etcd_c_abi_live
+  main-is: EtcdCABILive.hs
+  hs-source-dirs: test
+  build-depends: base, dilock, text
+  default-language: Haskell2010
+  if flag(etcd-c-abi)
+    buildable: True
+  else
+    buildable: False
+  ghc-options: -Wall -threaded
+
+executable dilock-redis-quickstart
+  main-is: Main.hs
+  hs-source-dirs: examples/redis
+  build-depends: base, dilock, hedis ==0.15.2, text
+  default-language: Haskell2010
+  ghc-options: -Wall
+  if flag(strict-example-warnings)
+    ghc-options: -Werror
+
+executable dilock-etcd-cabi-quickstart
+  main-is: Main.hs
+  hs-source-dirs: examples/etcd-c-abi
+  build-depends: base, dilock, text
+  default-language: Haskell2010
+  if flag(etcd-c-abi)
+    buildable: True
+  else
+    buildable: False
+  ghc-options: -Wall -threaded
+  if flag(strict-example-warnings)
+    ghc-options: -Werror

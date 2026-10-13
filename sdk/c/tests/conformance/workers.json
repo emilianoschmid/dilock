@@ -1,0 +1,7 @@
+{
+  "c": {
+    "argv": [
+      "sdk/c/tests/conformance/launch_worker.py"
+    ]
+  }
+}

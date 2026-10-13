@@ -1,0 +1,21 @@
+(test
+ (name identity)
+ (libraries dilock lwt.unix))
+
+(test
+ (name deadline_test)
+ (libraries dilock mtime.clock))
+
+(test
+ (name etcd_contract)
+ (libraries dilock lwt.unix))
+
+(executable
+ (name live_redis)
+ (modules live_redis)
+ (libraries dilock lwt.unix))
+
+(executable
+ (name live_etcd)
+ (modules live_etcd)
+ (libraries dilock lwt.unix))

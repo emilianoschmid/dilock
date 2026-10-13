@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+ <ItemGroup><ProjectReference Include="../Dilock.Redis/Dilock.Redis.csproj"/><ProjectReference Include="../Dilock.Etcd/Dilock.Etcd.csproj"/></ItemGroup>
+</Project>

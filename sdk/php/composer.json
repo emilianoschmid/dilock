@@ -1,0 +1,50 @@
+{
+  "name": "dilock/sdk-php",
+  "description": "Distributed leases with explicit ownership and bounded failure semantics",
+  "type": "library",
+  "license": "Apache-2.0",
+  "require": {
+    "php": ">=8.1",
+    "ext-json": "*"
+  },
+  "suggest": {
+    "ext-redis": "Required for the Redis backend",
+    "ext-grpc": "Required for the etcd backend",
+    "grpc/grpc": "Required for the etcd backend",
+    "google/protobuf": "Required for the etcd backend"
+  },
+  "require-dev": {
+    "grpc/grpc": "^1.82",
+    "google/protobuf": "^4.33 || ^5.0",
+    "phpunit/phpunit": "^10.5 || ^11.0",
+    "phpstan/phpstan": "^2.0",
+    "friendsofphp/php-cs-fixer": "^3.0"
+  },
+  "autoload": { "psr-4": { "Dilock\\": "src/" }, "classmap": ["src/"] },
+  "autoload-dev": { "psr-4": { "Dilock\\Tests\\": "tests/" }, "classmap": ["tests/"] },
+  "scripts": {
+    "test": "phpunit",
+    "analyse": "phpstan analyse src --level=max",
+    "style": "php-cs-fixer fix --dry-run --diff"
+  },
+  "archive": {
+    "exclude": [
+      "/AGENTS.md",
+      "/VALIDATION.md",
+      "/.tools/",
+      "/.php-cs-fixer.dist.php",
+      "/composer.lock",
+      "/phpunit.xml",
+      "/phpstan.neon",
+      "/phpstan/",
+      "/tests/",
+      "/validation/",
+      "/bin/",
+      "/src/JsonLineWorker.php",
+      "/vendor/",
+      "/.phpunit.result.cache",
+      "/.worker-validation-*/"
+    ]
+  },
+  "extra": { "branch-alias": { "dev-main": "0.1.x-dev" } }
+}

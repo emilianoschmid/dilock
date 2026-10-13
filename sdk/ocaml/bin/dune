@@ -1,0 +1,4 @@
+(executable
+ (name run_basic)
+ (modules basic)
+ (libraries dilock lwt lwt.unix redis-lwt))

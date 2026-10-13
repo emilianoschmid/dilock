@@ -1,0 +1,19 @@
+name: dilock_conformance_worker
+description: Internal JSONL conformance worker for the Dilock Dart SDK.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+dependencies:
+  dilock:
+    path: ../dilock
+  dilock_redis:
+    path: ../redis
+  dilock_etcd:
+    path: ../etcd
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.0
+dependency_overrides:
+  dilock:
+    path: ../dilock

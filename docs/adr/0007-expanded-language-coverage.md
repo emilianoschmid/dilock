@@ -1,0 +1,3 @@
+# ADR 0007 — Broad coverage without cloned engines
+
+Accepted for this bootstrap, 2026-10-03. The initial SDK scope includes .NET, C++, Python, TypeScript, Go, Rust and Java. One monorepo owns protocol, conformance and human-facing documentation. Native SDKs and optional adapters remain independently consumable. JVM/.NET/JavaScript reuse comes before duplicate protocol code. Style samples are not released SDKs and are excluded from every package. Protocol tests are shared, not moved into a separate repository while the protocol is evolving. Additional language candidates remain an internal roadmap until they have an owner-approved scope.

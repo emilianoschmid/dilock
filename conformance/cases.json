@@ -1,0 +1,762 @@
+{
+  "schema_version": 1,
+  "status": "test specifications, not executed tests",
+  "cases": [
+    {
+      "id": "IDN-001",
+      "title": "Golden identity vectors",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "SDK digest/key matches every valid vector; invalid input is rejected before I/O.",
+      "state": "planned"
+    },
+    {
+      "id": "IDN-002",
+      "title": "Unicode and case boundaries",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "No implicit normalization, trimming or locale-dependent casing.",
+      "state": "planned"
+    },
+    {
+      "id": "ACQ-001",
+      "title": "Pairwise same-resource contention",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "A acquires; B try returns busy; B succeeds after acknowledged release.",
+      "state": "planned"
+    },
+    {
+      "id": "ACQ-002",
+      "title": "Different resources progress",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Independent names can be held concurrently without global serialization.",
+      "state": "planned"
+    },
+    {
+      "id": "ACQ-003",
+      "title": "Same-process non-reentrancy",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Two acquisitions of one name are independent, even through the same lock object.",
+      "state": "planned"
+    },
+    {
+      "id": "ACQ-004",
+      "title": "Finite wait timeout",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Timeout is distinct from backend failure and uses one monotonic wait budget.",
+      "state": "planned"
+    },
+    {
+      "id": "ACQ-005",
+      "title": "Try acquisition is not an expired RPC",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "One bounded logical attempt, no contention waiting, network budget still exists.",
+      "state": "planned"
+    },
+    {
+      "id": "ACQ-006",
+      "title": "Unknown acquisition response",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Dropped success reply never authorizes work or returns ordinary busy.",
+      "state": "planned"
+    },
+    {
+      "id": "ACQ-007",
+      "title": "Delayed command after cancellation",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "A late response cannot create a locally live stale lease; cleanup/expiry is tracked.",
+      "state": "planned"
+    },
+    {
+      "id": "CAN-001",
+      "title": "Cancel before send",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "No acquisition is sent and native cancellation is observed.",
+      "state": "planned"
+    },
+    {
+      "id": "CAN-002",
+      "title": "Cancel during wait",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Cancellation proceeds while another command is blocked; no immortal waiter.",
+      "state": "planned"
+    },
+    {
+      "id": "CAN-003",
+      "title": "Cancel after remote commit",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Uncertainty remains visible; bounded owner-specific cleanup uses its own budget.",
+      "state": "planned"
+    },
+    {
+      "id": "LSE-001",
+      "title": "Lease expiry permits successor",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Without renewal, a new owner progresses after actual expiry under the profile.",
+      "state": "planned"
+    },
+    {
+      "id": "LSE-002",
+      "title": "Automatic renewal",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "A healthy renewed acquisition stays contended through multiple original TTLs.",
+      "state": "planned"
+    },
+    {
+      "id": "LSE-003",
+      "title": "Conservative deadline from send",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Delayed acknowledgement does not add a fresh full TTL at response receipt.",
+      "state": "planned"
+    },
+    {
+      "id": "LSE-004",
+      "title": "Terminal lease never resurrects",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Late renewal/acquire replies cannot revive Lost/Released/ReleasedUnknown.",
+      "state": "planned"
+    },
+    {
+      "id": "LSE-005",
+      "title": "Renewal scheduling bounded",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Many leases do not create one thread per lease or untracked perpetual tasks.",
+      "state": "planned"
+    },
+    {
+      "id": "REL-001",
+      "title": "Old-owner release cannot delete successor",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "A expired; B acquired; A release leaves B intact.",
+      "state": "planned"
+    },
+    {
+      "id": "REL-002",
+      "title": "Old-owner renewal cannot extend successor",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "A renewal after B acquisition is rejected or reports loss without mutating B.",
+      "state": "planned"
+    },
+    {
+      "id": "REL-003",
+      "title": "Repeated release",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Idempotent local cleanup and safe remote owner-specific behavior.",
+      "state": "planned"
+    },
+    {
+      "id": "REL-004",
+      "title": "Release acknowledgement lost",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Unknown outcome remains observable; no unconditional delete retry.",
+      "state": "planned"
+    },
+    {
+      "id": "REL-005",
+      "title": "Renew/release race",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Serialized lifecycle and safe handling of delayed/out-of-order responses.",
+      "state": "planned"
+    },
+    {
+      "id": "API-001",
+      "title": "User exception survives cleanup failure",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Scope cleanup does not mask the primary user exception.",
+      "state": "planned"
+    },
+    {
+      "id": "API-002",
+      "title": "Provider shutdown races",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "New attempts rejected, waiters cancelled, leases invalidated, bounded cleanup.",
+      "state": "planned"
+    },
+    {
+      "id": "API-003",
+      "title": "Borrowed client ownership",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Provider shutdown does not dispose a borrowed backend connection.",
+      "state": "planned"
+    },
+    {
+      "id": "ERR-001",
+      "title": "Unavailable vs busy",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Network/auth/backend failures are not ordinary contention.",
+      "state": "planned"
+    },
+    {
+      "id": "ERR-002",
+      "title": "Capability requirement rejected",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Redis rejects strong fencing; unknown profile does not silently downgrade.",
+      "state": "planned"
+    },
+    {
+      "id": "ERR-003",
+      "title": "Protocol metadata mismatch",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Conflicting namespace/profile/version is refused without alternate keyspace.",
+      "state": "planned"
+    },
+    {
+      "id": "FLT-001",
+      "title": "Kill holder",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "After crash and profile expiry, a successor eventually progresses; no finally dependence.",
+      "state": "verified",
+      "evidence": "validation/implementation/m6-process-tree-fault-suites.json"
+    },
+    {
+      "id": "FLT-002",
+      "title": "Pause beyond TTL and resume",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Resumed stale process is not claimed to have been forcibly stopped.",
+      "state": "partial",
+      "evidence": "validation/implementation/m6-flt002-etcd-dotnet-python-20261004.json"
+    },
+    {
+      "id": "FLT-003",
+      "title": "Partition beyond TTL",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "No live lease from unknown renewal; successor behavior matches the profile.",
+      "state": "planned"
+    },
+    {
+      "id": "RDS-001",
+      "title": "Wrong Redis key type",
+      "backends": [
+        "redis"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Protocol/config error is reported; unexpected key is not deleted.",
+      "state": "planned"
+    },
+    {
+      "id": "RDS-002",
+      "title": "Script cache loss",
+      "backends": [
+        "redis"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "After SCRIPT FLUSH, renewal, release and stale-owner release preserve owner/deadline semantics; cached clients reload on NOSCRIPT while inline-EVAL clients are unaffected.",
+      "state": "verified"
+    },
+    {
+      "id": "RDS-003",
+      "title": "Redis failover limitation",
+      "backends": [
+        "redis"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Reproduce/document the unsupported profile counterexample; do not claim prevention.",
+      "state": "verified",
+      "evidence": "validation/implementation/m6-redis-failover-limitation-rds003.json"
+    },
+    {
+      "id": "RDS-004",
+      "title": "Client offline queues and retries",
+      "backends": [
+        "redis"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "No hidden reacquisition or ownership resurrection through delayed client queues.",
+      "state": "planned"
+    },
+    {
+      "id": "ETC-001",
+      "title": "Distinct lease per attempt",
+      "backends": [
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Native same-lease no-op behavior cannot make independent attempts both own.",
+      "state": "planned"
+    },
+    {
+      "id": "ETC-002",
+      "title": "Wait longer than grant TTL",
+      "backends": [
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Managed keepalive preserves a legitimate waiter, bounded by its wait deadline.",
+      "state": "planned"
+    },
+    {
+      "id": "ETC-003",
+      "title": "Native key and create revision",
+      "backends": [
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Returned key is verified against expected lease; fence uses create_revision.",
+      "state": "planned"
+    },
+    {
+      "id": "ETC-004",
+      "title": "Leader change in three-node cluster",
+      "backends": [
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Behavior matches documented native lock/quorum assumptions with trace evidence.",
+      "state": "planned"
+    },
+    {
+      "id": "ETC-005",
+      "title": "Quorum loss",
+      "backends": [
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "No successful acquisition without required authoritative evidence.",
+      "state": "planned"
+    },
+    {
+      "id": "FEN-001",
+      "title": "Protected resource rejects old fence",
+      "backends": [
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "After B registers its new fence, delayed A write is rejected atomically.",
+      "state": "planned"
+    },
+    {
+      "id": "FEN-002",
+      "title": "Epoch change requires approval",
+      "backends": [
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Unknown/reset epoch never auto-resets protected-resource high-watermark.",
+      "state": "planned"
+    },
+    {
+      "id": "PKG-001",
+      "title": "Clean installed-package consumer",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Each claimed package builds/installs and runs sample outside the source tree.",
+      "state": "planned"
+    },
+    {
+      "id": "CMP-001",
+      "title": "Mixed supported SDK versions",
+      "backends": [
+        "redis",
+        "etcd"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": true,
+      "expected": "Current and supported prior SDK versions share identity/lifecycle semantics.",
+      "state": "planned"
+    },
+    {
+      "id": "NAT-001",
+      "title": "Fixed bucket TTL refresh",
+      "backends": [
+        "nats"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": false,
+      "expected": "Conditional update preserves ownership and validated expiry without delete-create.",
+      "state": "planned"
+    },
+    {
+      "id": "NAT-002",
+      "title": "Conditional release and stale reads",
+      "backends": [
+        "nats"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": false,
+      "expected": "Stale revision cannot mutate/delete successor; observations never authorize unconditional writes.",
+      "state": "planned"
+    },
+    {
+      "id": "NAT-003",
+      "title": "Lost publish ack and deduplication",
+      "backends": [
+        "nats"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": false,
+      "expected": "Unknown/retried publish cannot fabricate a successful current renewal.",
+      "state": "planned"
+    },
+    {
+      "id": "NAT-004",
+      "title": "Three-replica failover/limits",
+      "backends": [
+        "nats"
+      ],
+      "sdks": [
+        "dotnet",
+        "python",
+        "cpp"
+      ],
+      "required_for_initial_candidate": false,
+      "expected": "Test actual profile recovery and limits; no silent eviction-based release.",
+      "state": "planned"
+    }
+  ]
+}

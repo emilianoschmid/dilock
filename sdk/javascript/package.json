@@ -1,0 +1,20 @@
+{
+  "name": "dilock-javascript-consumer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:runtime": "npm --prefix ../typescript run build",
+    "test": "npm run build:runtime && node test/consumer.test.mjs",
+    "check:examples": "node --check examples/redis.mjs && node --check examples/etcd.mjs",
+    "test:packed": "npm run build:runtime && node test/packed-consumer.mjs"
+  },
+  "dependencies": {
+    "@dilock/core": "file:../typescript/packages/core",
+    "@dilock/etcd": "file:../typescript/packages/etcd",
+    "@dilock/redis": "file:../typescript/packages/redis"
+  }
+}

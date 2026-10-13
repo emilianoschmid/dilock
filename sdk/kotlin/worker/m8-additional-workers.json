@@ -1,0 +1,14 @@
+{
+  "kotlin": {
+    "argv": ["python", "sdk/kotlin/worker/conformance_launcher.py"]
+  },
+  "scala": {
+    "argv": ["python", "sdk/scala/conformance/worker_launcher.py"]
+  },
+  "elixir": {
+    "argv": ["python", "sdk/elixir/worker_launcher.py"]
+  },
+  "c": {
+    "argv": ["python", "sdk/c/tests/conformance/launch_worker.py"]
+  }
+}

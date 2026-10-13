@@ -1,0 +1,8 @@
+{
+  "scala": {
+    "argv": [
+      "python",
+      "sdk/scala/conformance/worker_launcher.py"
+    ]
+  }
+}

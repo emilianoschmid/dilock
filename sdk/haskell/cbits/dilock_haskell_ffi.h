@@ -1,0 +1,30 @@
+#ifndef DILOCK_HASKELL_FFI_H
+#define DILOCK_HASKELL_FFI_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+int hs_dilock_abi_version(void);
+int hs_dilock_cancellation_create(void **out, char *message);
+void hs_dilock_cancellation_request(void *cancellation);
+void hs_dilock_cancellation_destroy(void *cancellation);
+int hs_dilock_etcd_provider_create(
+    const char *endpoint, const char *name_space, const char *epoch,
+    const char *tls_roots, const char *tls_certificate, const char *tls_key,
+    int64_t rpc_timeout_ms, int64_t cleanup_timeout_ms, int64_t safety_margin_ms,
+    int64_t default_wait_ms, int64_t default_lease_ms, int auto_renew,
+    void **out, char *message);
+void hs_dilock_etcd_provider_destroy(void *provider);
+int hs_dilock_etcd_lock_create(void *provider, const char *resource,
+                               void **out, char *message);
+void hs_dilock_etcd_lock_destroy(void *lock);
+int hs_dilock_etcd_acquire(void *lock, int64_t wait_ms, int64_t lease_ms,
+                           void *cancellation, void **out, char *message);
+int hs_dilock_etcd_lease_valid(void *lease);
+int hs_dilock_etcd_lease_ttl_ms(void *lease, int64_t *ttl_ms, char *message);
+int hs_dilock_etcd_lease_fence(void *lease, int64_t *revision, char *epoch,
+                               size_t epoch_capacity, char *message);
+int hs_dilock_etcd_lease_release(void *lease, int *outcome, char *message);
+void hs_dilock_etcd_lease_destroy(void *lease);
+
+#endif

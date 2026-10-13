@@ -1,0 +1,4163 @@
+{
+  "schema_version": 1,
+  "scope": "34 catalog language/ecosystem delivery recipes; no remote publication",
+  "source_bundle_layout": "Repository-relative paths with shared-engine dependency closure; root LICENSE, NOTICE and spec are supplied by the orchestrator.",
+  "native_version_policy": "Current manifests retain local candidate versions. Final registry prerelease identity/version alignment is a separate gate before publication.",
+  "entries": [
+    {
+      "id": "dotnet",
+      "name": "C# / .NET",
+      "source_roots": [
+        "sdk/dotnet"
+      ],
+      "source_include": [
+        "sdk/dotnet/README.md",
+        "sdk/dotnet/AGENTS.md",
+        "sdk/dotnet/Dilock.Core/**",
+        "sdk/dotnet/Dilock.Redis/**",
+        "sdk/dotnet/Dilock.Etcd/**",
+        "sdk/dotnet/Consumers/**",
+        "sdk/dotnet/Tests/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "nupkg"
+      ],
+      "build": {
+        "image": "sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "image_evidence": "sdk/dotnet/validation/release-expiry-ownership-current-source-docker-20261011.json",
+        "cwd": "sdk/dotnet",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/dotnet"
+          ],
+          [
+            "dotnet",
+            "restore",
+            "Dilock.Core",
+            "--source",
+            "/root/.nuget/packages",
+            "--ignore-failed-sources",
+            "-p:NuGetAudit=false"
+          ],
+          [
+            "dotnet",
+            "pack",
+            "Dilock.Core",
+            "-c",
+            "Release",
+            "--no-restore",
+            "-o",
+            "/out/dotnet"
+          ],
+          [
+            "dotnet",
+            "restore",
+            "Dilock.Redis",
+            "--source",
+            "/root/.nuget/packages",
+            "--ignore-failed-sources",
+            "-p:NuGetAudit=false"
+          ],
+          [
+            "dotnet",
+            "pack",
+            "Dilock.Redis",
+            "-c",
+            "Release",
+            "--no-restore",
+            "-o",
+            "/out/dotnet"
+          ],
+          [
+            "dotnet",
+            "restore",
+            "Dilock.Etcd",
+            "--source",
+            "/root/.nuget/packages",
+            "--ignore-failed-sources",
+            "-p:NuGetAudit=false"
+          ],
+          [
+            "dotnet",
+            "pack",
+            "Dilock.Etcd",
+            "-c",
+            "Release",
+            "--no-restore",
+            "-o",
+            "/out/dotnet"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/dotnet/*.nupkg"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "mcr.microsoft.com/dotnet/sdk:8.0@sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "Dilock.Core.*.nupkg",
+          "Dilock.Redis.*.nupkg",
+          "Dilock.Etcd.*.nupkg"
+        ],
+        "unexecuted_checks": [
+          "Dependency vulnerability-database audit NOT_RUN in this network-isolated packaging recipe; NuGetAudit=false only disables that unavailable online lookup. SDK safety/consumer tests remain independent."
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/dotnet/Consumers/package_consumer.py",
+          "sdk/dotnet/Consumers/PackageConsumer/Program.cs"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source /consumer/app; tar -xzf /packages/dotnet/dilock-dotnet-*-source.tar.gz -C /consumer/source; cp /consumer/source/sdk/dotnet/Consumers/PackageConsumer/Program.cs /consumer/app/; cp /consumer/source/sdk/dotnet/Consumers/PackageConsumer/PackageConsumer.csproj /consumer/app/; cd /consumer/app; dotnet restore --packages /consumer/nuget --source /packages/dotnet --source /root/.nuget/packages --ignore-failed-sources -p:NuGetAudit=false; dotnet run --no-restore -c Release"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "dotnet"
+        ],
+        "unexecuted_checks": [
+          "Dependency vulnerability-database audit NOT_RUN in offline consumer restore."
+        ]
+      },
+      "publication": {
+        "route": "NuGet: Dilock.Core, Dilock.Redis, Dilock.Etcd",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "cpp",
+      "name": "C++",
+      "source_roots": [
+        "sdk/cpp"
+      ],
+      "source_include": [
+        "sdk/cpp/README.md",
+        "sdk/cpp/AGENTS.md",
+        "sdk/cpp/CMakeLists.txt",
+        "sdk/cpp/conanfile.py",
+        "sdk/cpp/worker.cpp",
+        "sdk/cpp/include/**",
+        "sdk/cpp/src/**",
+        "sdk/cpp/resources/**",
+        "sdk/cpp/proto/**",
+        "sdk/cpp/cmake/**",
+        "sdk/cpp/consumer/**",
+        "sdk/cpp/consumers/**",
+        "sdk/cpp/tests/**",
+        "sdk/cpp/docker/**",
+        "sdk/cpp/LICENSE"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "cmake-install-tree",
+        "conan-recipe"
+      ],
+      "build": {
+        "image": "sha256:7e1c8222a8b99adc5c7023cb8c04608053542b8c56c3b434d57aae6d5d096990",
+        "image_evidence": "validation/implementation/api-ergonomics-current-examples-20261012.json",
+        "cwd": "sdk/cpp",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "export PATH=/opt/dilock/grpc-root/usr/bin:$PATH; export LD_LIBRARY_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; export PKG_CONFIG_SYSROOT_DIR=/opt/dilock/grpc-root; export PKG_CONFIG_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/pkgconfig; export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH; mkdir -p /out/cpp; cmake -S . -B /work/.release/build/cpp -DCMAKE_BUILD_TYPE=Release -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=ON -DCMAKE_INSTALL_PREFIX=/out/cpp '-DCMAKE_PREFIX_PATH=/opt/dilock/grpc-root/usr;/opt/dilock/cppinstall;/opt/dilock/cppdeps/usr;/opt/dilock/openssl/usr;/opt/dilock/openssl-runtime/usr' -DOpenSSL_ROOT_DIR=/opt/dilock/openssl/usr -DOpenSSL_INCLUDE_DIR=/opt/dilock/openssl/usr/include -DOPENSSL_CRYPTO_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libcrypto.so.3 -DOPENSSL_SSL_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libssl.so.3 -DOPENSSL_USE_STATIC_LIBS=FALSE -DgRPC_DIR=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/cmake/grpc -DProtobuf_INCLUDE_DIR=/opt/dilock/grpc-root/usr/include -DProtobuf_LIBRARY=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/libprotobuf.so -DProtobuf_PROTOC_EXECUTABLE=/opt/dilock/grpc-root/usr/bin/protoc -Dnlohmann_json_DIR=/opt/dilock/cppdeps/usr/share/cmake/nlohmann_json -Dredis++_DIR=/opt/dilock/cppinstall/share/cmake/redis++ -DHiredis_DIR=/opt/dilock/cppinstall/lib/cmake/hiredis; cmake --build /work/.release/build/cpp --parallel 2; cmake --install /work/.release/build/cpp"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/cpp"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "sha256:baea9b2ca36e8f027d7ef5b60bd86cdf9d00a1e6a491cefa282111690cefbb44",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "cpp-cpp-install.tar.gz"
+        ],
+        "cache_prerequisites": [
+          ".tools/cppinstall",
+          ".tools/grpc-root",
+          ".tools/cppdeps",
+          ".tools/openssl",
+          ".tools/openssl-runtime"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/cpp/consumers/package_consumer.py"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:7e1c8222a8b99adc5c7023cb8c04608053542b8c56c3b434d57aae6d5d096990",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "export PATH=/opt/dilock/grpc-root/usr/bin:$PATH; export LIBRARY_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:${LIBRARY_PATH:-}; export LD_LIBRARY_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; mkdir -p /consumer/source; tar -xzf /packages/cpp/dilock-cpp-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/cpp; tar -xzf /packages/cpp/cpp-cpp-install.tar.gz -C /consumer/prefix/cpp; cmake -S /consumer/source/sdk/cpp/consumers/cmake -B /consumer/build -DCMAKE_PREFIX_PATH='/consumer/prefix/cpp;/opt/dilock/grpc-root/usr;/opt/dilock/cppinstall;/opt/dilock/cppdeps/usr;/opt/dilock/openssl/usr;/opt/dilock/openssl-runtime/usr' -DOpenSSL_ROOT_DIR=/opt/dilock/openssl/usr -DOpenSSL_INCLUDE_DIR=/opt/dilock/openssl/usr/include -DOPENSSL_CRYPTO_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libcrypto.so.3 -DOPENSSL_SSL_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libssl.so.3 -DOPENSSL_USE_STATIC_LIBS=FALSE -DgRPC_DIR=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/cmake/grpc -DProtobuf_INCLUDE_DIR=/opt/dilock/grpc-root/usr/include -DProtobuf_LIBRARY=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/libprotobuf.so -DProtobuf_PROTOC_EXECUTABLE=/opt/dilock/grpc-root/usr/bin/protoc -Dnlohmann_json_DIR=/opt/dilock/cppdeps/usr/share/cmake/nlohmann_json -Dredis++_DIR=/opt/dilock/cppinstall/share/cmake/redis++ -DHiredis_DIR=/opt/dilock/cppinstall/lib/cmake/hiredis; cmake --build /consumer/build"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "cpp"
+        ]
+      },
+      "publication": {
+        "route": "CMake install/export; Conan 2 recipe; vcpkg overlay, later upstream submission",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "source_roots": [
+        "sdk/python"
+      ],
+      "source_include": [
+        "sdk/python/README.md",
+        "sdk/python/AGENTS.md",
+        "sdk/python/pyproject.toml",
+        "sdk/python/LICENSE",
+        "sdk/python/src/**",
+        "sdk/python/consumers/**",
+        "sdk/python/tests/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "wheel",
+        "sdist"
+      ],
+      "build": {
+        "image": "sha256:3dd7cc108ec1493442514f5c2a871af6af0ec31d768ff6e378a93340c3b3db5f",
+        "image_evidence": "sdk/python/validation/etcd-expired-release-classification-docker-20261011.json",
+        "cwd": "sdk/python",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/python"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "PYTHONPATH=/opt/dilock/python-runtime:/opt/dilock/python-build python -m build --no-isolation --outdir /out/python"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/python/*.whl",
+          "/out/python/*.tar.gz"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "python@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock-*.whl",
+          "dilock-*.tar.gz"
+        ],
+        "cache_prerequisites": [
+          ".tools/beta-fix-python-tools-20261012",
+          ".tools/venv/Lib/site-packages (pure build tool modules only)"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/python/consumers/artifact_smoke.py"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:3dd7cc108ec1493442514f5c2a871af6af0ec31d768ff6e378a93340c3b3db5f",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/python/dilock-python-*-source.tar.gz -C /consumer/source; python -m venv /consumer/venv; /consumer/venv/bin/python -m pip install --no-index --find-links=/packages/python --no-deps /packages/python/dilock-*.whl; PYTHONPATH=/opt/dilock/python-runtime /consumer/venv/bin/python /consumer/source/sdk/python/consumers/artifact_smoke.py"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "python"
+        ],
+        "dependency_profile": "Exact candidate wheel installed with --no-deps; pinned Redis/gRPC/Protobuf runtime dependencies supplied by the isolated Linux dependency cache, not Windows Python extensions."
+      },
+      "publication": {
+        "route": "PyPI: dilock, dilock-redis, dilock-etcd",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "typescript",
+      "name": "TypeScript / Node.js",
+      "source_roots": [
+        "sdk/typescript"
+      ],
+      "source_include": [
+        "sdk/typescript/README.md",
+        "sdk/typescript/AGENTS.md",
+        "sdk/typescript/package.json",
+        "sdk/typescript/package-lock.json",
+        "sdk/typescript/tsconfig.json",
+        "sdk/typescript/src/**",
+        "sdk/typescript/packages/**",
+        "sdk/typescript/tools/**",
+        "sdk/typescript/consumers/**",
+        "sdk/typescript/tests/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "npm-tgz"
+      ],
+      "build": {
+        "image": "sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c",
+        "image_evidence": "sdk/typescript/validation/typescript-current-source-gate-20261008.json",
+        "cwd": "sdk/typescript",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/typescript"
+          ],
+          [
+            "npm",
+            "ci",
+            "--offline",
+            "--ignore-scripts"
+          ],
+          [
+            "npm",
+            "run",
+            "build"
+          ],
+          [
+            "npm",
+            "pack",
+            "./packages/core",
+            "--pack-destination",
+            "/out/typescript"
+          ],
+          [
+            "npm",
+            "pack",
+            "./packages/redis",
+            "--pack-destination",
+            "/out/typescript"
+          ],
+          [
+            "npm",
+            "pack",
+            "./packages/etcd",
+            "--pack-destination",
+            "/out/typescript"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/typescript/*.tgz"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "node@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock-core-*.tgz",
+          "dilock-redis-*.tgz",
+          "dilock-etcd-*.tgz"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/typescript/consumers/package_consumer.py"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir /consumer/app; cd /consumer/app; printf '{\"private\":true,\"type\":\"module\"}\\n' > package.json; npm install --offline --ignore-scripts /packages/typescript/*.tgz; node --input-type=module -e 'import {identity} from \"@dilock/core\"; import {RedisProvider} from \"@dilock/redis\"; import {EtcdProvider} from \"@dilock/etcd\"; if(typeof RedisProvider.connect!==\"function\" || typeof EtcdProvider.connect!==\"function\" || identity(\"consumer\",\"r\").length!==64) throw Error(\"public API unavailable\");'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "typescript"
+        ]
+      },
+      "publication": {
+        "route": "npm: @<verified-scope>/core, /redis, /etcd; proposed scope dilock is unreserved",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "go",
+      "name": "Go",
+      "source_roots": [
+        "sdk/go"
+      ],
+      "source_include": [
+        "sdk/go/README.md",
+        "sdk/go/AGENTS.md",
+        "sdk/go/*.go",
+        "sdk/go/go.mod",
+        "sdk/go/go.sum",
+        "sdk/go/go.work",
+        "sdk/go/LICENSE",
+        "sdk/go/redis/**",
+        "sdk/go/etcd/**",
+        "sdk/go/consumers/**",
+        "sdk/go/cmd/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "go-module-source"
+      ],
+      "build": {
+        "image": "sha256:345775a9b624e690c1c0cd0755149bc8353e221d1c282596564e6d025fd294a9",
+        "image_evidence": "sdk/python/validation/etcd-unlock-lost-ack-live-docker-20261010.json",
+        "cwd": "sdk/go",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/go"
+          ],
+          [
+            "go",
+            "test",
+            "./..."
+          ],
+          [
+            "go",
+            "test",
+            "./redis/..."
+          ],
+          [
+            "go",
+            "test",
+            "./etcd/..."
+          ]
+        ],
+        "artifact_globs": [],
+        "output_role": "build-validation",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Owner-qualified module paths and nested module tags required before a public Go module release."
+        ],
+        "recorded_image_reference": "golang:1.26.8-bookworm@sha256:345775a9b624e690c1c0cd0755149bc8353e221d1c282596564e6d025fd294a9",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": []
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/go/consumers/combined/consumer_test.go",
+          "sdk/go/consumers/combined/go.mod",
+          "sdk/go/consumers/combined/go.sum",
+          "sdk/go/consumers/core-only/consumer_test.go"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:345775a9b624e690c1c0cd0755149bc8353e221d1c282596564e6d025fd294a9",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/go/dilock-go-*-source.tar.gz -C /consumer/source; cd /consumer/source/sdk/go/consumers/core-only; GOWORK=off GOPROXY=off go test -count=1 ./...; cd ../redis-only; GOWORK=off GOPROXY=off go test -count=1 ./...; cd ../etcd-only; GOWORK=off GOPROXY=off go test -count=1 ./..."
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-package",
+        "native_artifacts_consumed_from": []
+      },
+      "publication": {
+        "route": "Go modules under the verified GitHub owner; core and independent backend modules",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "rust",
+      "name": "Rust",
+      "source_roots": [
+        "sdk/rust"
+      ],
+      "source_include": [
+        "sdk/rust/README.md",
+        "sdk/rust/AGENTS.md",
+        "sdk/rust/Cargo.toml",
+        "sdk/rust/Cargo.lock",
+        "sdk/rust/LICENSE",
+        "sdk/rust/dilock/**",
+        "sdk/rust/redis/**",
+        "sdk/rust/etcd/**",
+        "sdk/rust/consumers/**",
+        "sdk/rust/tests/**",
+        "sdk/rust/worker/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "crate"
+      ],
+      "build": {
+        "image": "sha256:114c7a4425406451c2866b6aafe69fe29b1b298832db1277d411ac73c82d04d6",
+        "image_evidence": "sdk/rust/validation/rust-etcd-natural-expiry-current-source-live-docker-20261011.json",
+        "cwd": "sdk/rust",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/rust"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "export PROTOC=/opt/dilock/rust-protoc/protoc-wrapper; cargo package --locked --offline -p dilock -p dilock-redis -p dilock-etcd"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/rust/target/package/*.crate"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "rust@sha256:114c7a4425406451c2866b6aafe69fe29b1b298832db1277d411ac73c82d04d6",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock-0.1.0.crate",
+          "dilock-redis-0.1.0.crate",
+          "dilock-etcd-0.1.0.crate"
+        ],
+        "verification_policy": "Cargo archive verification remains enabled. All three interdependent SDK crates are selected in one invocation; no --no-verify, registry source replacement, or invented crates.io index entry.",
+        "primary_reference": "https://doc.rust-lang.org/cargo/commands/cargo-package.html",
+        "cache_prerequisites": [
+          ".tools/cargo/registry",
+          ".tools/grpc-root -> /opt/grpc-root",
+          ".tools/rust-etcd-trixie-docker-20261009/trixie-runtime -> /opt/trixie-runtime",
+          ".tools/rust-etcd-trixie-docker-20261009/protoc-wrapper -> /opt/dilock/rust-protoc/protoc-wrapper"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/rust/consumers/package_consumer.py"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:114c7a4425406451c2866b6aafe69fe29b1b298832db1277d411ac73c82d04d6",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/rust/dilock-rust-*-source.tar.gz -C /consumer/source; python3 /consumer/source/sdk/rust/consumers/package_consumer.py --repo /consumer/source --archives-dir /packages/rust --scratch /consumer/rust-consumer --output /consumer/rust-consumer.json --protoc /opt/dilock/rust-protoc/protoc-wrapper"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "rust"
+        ]
+      },
+      "publication": {
+        "route": "crates.io: dilock, dilock-redis, dilock-etcd (proposed names)",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "java",
+      "name": "Java",
+      "source_roots": [
+        "sdk/java"
+      ],
+      "source_include": [
+        "sdk/java/README.md",
+        "sdk/java/AGENTS.md",
+        "sdk/java/pom.xml",
+        "sdk/java/core/**",
+        "sdk/java/redis/**",
+        "sdk/java/etcd/**",
+        "sdk/java/consumers/**",
+        "sdk/java/tests/**",
+        "sdk/java/LICENSE",
+        "sdk/java/NOTICE"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "jar",
+        "pom"
+      ],
+      "build": {
+        "image": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "image_evidence": "sdk/java/validation/redis-applied-set-interruption-docker-20261010.json",
+        "cwd": "sdk/java",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/java"
+          ],
+          [
+            "mvn",
+            "-o",
+            "-B",
+            "package",
+            "-DskipTests"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /out/java; cp pom.xml /out/java/dilock-java-parent.pom; for unit in core redis etcd; do cp \"$unit/pom.xml\" \"/out/java/dilock-$unit.pom\"; done"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/java/core/target/*.jar",
+          "sdk/java/redis/target/*.jar",
+          "sdk/java/etcd/target/*.jar",
+          "/out/java/*.pom"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock-core-0.1.0.jar",
+          "dilock-core-0.1.0-sources.jar",
+          "dilock-core-0.1.0-javadoc.jar",
+          "dilock-redis-0.1.0.jar",
+          "dilock-redis-0.1.0-sources.jar",
+          "dilock-redis-0.1.0-javadoc.jar",
+          "dilock-etcd-0.1.0.jar",
+          "dilock-etcd-0.1.0-sources.jar",
+          "dilock-etcd-0.1.0-javadoc.jar",
+          "dilock-java-parent.pom",
+          "dilock-core.pom",
+          "dilock-redis.pom",
+          "dilock-etcd.pom"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/java/consumers/package_consumer.py"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/java/dilock-java-*-source.tar.gz -C /consumer/source; mkdir /consumer/classes; javac -cp \"/packages/java/*:$(find /root/.m2/repository -name '*.jar' ! -path '*/org/dilock/*' -printf '%p:')\" -d /consumer/classes /consumer/source/sdk/java/consumers/combined/src/main/java/PackageConsumer.java; java -cp \"/consumer/classes:/packages/java/*:$(find /root/.m2/repository -name '*.jar' ! -path '*/org/dilock/*' -printf '%p:')\" PackageConsumer"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "java"
+        ]
+      },
+      "publication": {
+        "route": "Maven Central: verified groupId, dilock-core/redis/etcd; source and javadoc jars",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "kotlin",
+      "name": "Kotlin",
+      "source_roots": [
+        "sdk/kotlin"
+      ],
+      "source_include": [
+        "sdk/kotlin/README.md",
+        "sdk/kotlin/AGENTS.md",
+        "sdk/kotlin/build.gradle.kts",
+        "sdk/kotlin/settings.gradle.kts",
+        "sdk/kotlin/gradle.properties",
+        "sdk/kotlin/gradlew",
+        "sdk/kotlin/gradlew.bat",
+        "sdk/kotlin/src/**",
+        "sdk/kotlin/gradle/**",
+        "sdk/kotlin/consumer/**",
+        "sdk/kotlin/consumer-redis-only/**",
+        "sdk/kotlin/worker/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "java"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "jar",
+        "pom"
+      ],
+      "build": {
+        "image": "sha256:db12d4789367d4676ef3d8aa672685e0e451705776b53f7d81c953fba3b1d55b",
+        "image_evidence": "sdk/kotlin/validation/exact-artifact-consumer-offline-docker-20261009.json",
+        "cwd": "sdk/kotlin",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/kotlin"
+          ],
+          [
+            "mvn",
+            "-o",
+            "-B",
+            "-f",
+            "/work/sdk/java/pom.xml",
+            "install",
+            "-DskipTests"
+          ],
+          [
+            "./gradlew",
+            "--offline",
+            "jar",
+            "sourcesJar",
+            "generatePomFileForMavenJavaPublication",
+            "-PdilockLocalMavenRepo=/root/.m2/repository"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/kotlin/build/libs/*.jar",
+          "sdk/kotlin/build/publications/mavenJava/pom-default.xml"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: java."
+        ],
+        "required_artifact_patterns": [
+          "dilock-kotlin-*.jar",
+          "*-sources.jar",
+          "pom-default.xml"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/kotlin/consumer/.gitignore",
+          "sdk/kotlin/consumer/build.gradle.kts",
+          "sdk/kotlin/consumer/gradle.properties",
+          "sdk/kotlin/consumer/settings.gradle.kts"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:db12d4789367d4676ef3d8aa672685e0e451705776b53f7d81c953fba3b1d55b",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/kotlin/dilock-kotlin-*-source.tar.gz -C /consumer/source; mkdir /consumer/classes; kotlinc -classpath \"$(find /packages/java /packages/kotlin -name '*.jar' -printf '%p:'):$(find /root/.m2/repository -name '*.jar' ! -path '*/org/dilock/*' -printf '%p:')\" /consumer/source/sdk/kotlin/consumer/src/main/kotlin -d /consumer/classes"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "kotlin"
+        ]
+      },
+      "publication": {
+        "route": "Maven Central: dilock-kotlin; JVM first, not a claim of Kotlin Multiplatform",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "php",
+      "name": "PHP",
+      "source_roots": [
+        "sdk/php"
+      ],
+      "source_include": [
+        "sdk/php/README.md",
+        "sdk/php/AGENTS.md",
+        "sdk/php/composer.json",
+        "sdk/php/composer.lock",
+        "sdk/php/LICENSE",
+        "sdk/php/phpunit.xml",
+        "sdk/php/src/**",
+        "sdk/php/proto/**",
+        "sdk/php/examples/**",
+        "sdk/php/tests/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "composer-zip"
+      ],
+      "build": {
+        "image": "sha256:a933423111912bc83f5a9e24cd221db41eb87ddf322b4a2f0e933ceaa5694441",
+        "image_evidence": "sdk/php/validation/php-timeout-contract-exact-archive-live-consumer-docker-20261010.json",
+        "cwd": "sdk/php",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/php"
+          ],
+          [
+            "composer",
+            "validate",
+            "--strict"
+          ],
+          [
+            "composer",
+            "archive",
+            "--format=zip",
+            "--dir=/out/php"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/php/*.zip"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "required_artifact_patterns": [
+          "*.zip"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/php/tests/EtcdLiveIntegrationTest.php",
+          "sdk/php/tests/EtcdProtocolTest.php",
+          "sdk/php/tests/IdentityTest.php",
+          "sdk/php/tests/JsonLineWorkerEtcdLiveTest.php"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:a933423111912bc83f5a9e24cd221db41eb87ddf322b4a2f0e933ceaa5694441",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir /consumer/php; unzip /packages/php/*.zip -d /consumer/php; cd /consumer/php; composer install --no-dev --no-scripts --no-interaction --prefer-dist; php -r 'require \"vendor/autoload.php\"; if (!class_exists(\"Dilock\\RedisProvider\") || !class_exists(\"Dilock\\EtcdProvider\")) { throw new Exception(\"adapter API missing\"); }'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "php"
+        ]
+      },
+      "publication": {
+        "route": "Composer / Packagist: <verified-vendor>/dilock and backend packages",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "ruby",
+      "name": "Ruby",
+      "source_roots": [
+        "sdk/ruby"
+      ],
+      "source_include": [
+        "sdk/ruby/README.md",
+        "sdk/ruby/AGENTS.md",
+        "sdk/ruby/Gemfile",
+        "sdk/ruby/Gemfile.lock",
+        "sdk/ruby/dilock.gemspec",
+        "sdk/ruby/Rakefile",
+        "sdk/ruby/LICENSE",
+        "sdk/ruby/lib/**",
+        "sdk/ruby/bin/**",
+        "sdk/ruby/examples/**",
+        "sdk/ruby/test/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "gem"
+      ],
+      "build": {
+        "image": "ruby@sha256:342bfeb04d3660045ceba063197d22baafec6b163f019714ddf8fc83c59aabee",
+        "image_evidence": "sdk/ruby/validation/ruby-quality-gate-current-source-docker-20261009.json",
+        "cwd": "sdk/ruby",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/ruby"
+          ],
+          [
+            "gem",
+            "build",
+            "dilock.gemspec",
+            "--output",
+            "/out/ruby/dilock.gem"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/ruby/*.gem"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "required_artifact_patterns": [
+          "dilock.gem"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/ruby/test/packaged_consumer.rb"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "ruby@sha256:342bfeb04d3660045ceba063197d22baafec6b163f019714ddf8fc83c59aabee",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "gem install --local --no-document --install-dir /consumer/gems /packages/ruby/*.gem; GEM_HOME=/consumer/gems GEM_PATH=/consumer/gems ruby -e 'require \"dilock\"; abort \"wrong installation\" unless Gem.loaded_specs.fetch(\"dilock\").full_gem_path.start_with?(\"/consumer/gems/\");'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "ruby"
+        ]
+      },
+      "publication": {
+        "route": "RubyGems: dilock plus optional adapter gems",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "swift",
+      "name": "Swift",
+      "source_roots": [
+        "sdk/swift",
+        "Package.swift"
+      ],
+      "source_include": [
+        "sdk/swift/README.md",
+        "sdk/swift/AGENTS.md",
+        "sdk/swift/Package.swift",
+        "sdk/swift/Package.resolved",
+        "sdk/swift/Sources/**",
+        "sdk/swift/Tests/**",
+        "Package.swift"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "spm-source"
+      ],
+      "build": {
+        "image": "swift@sha256:eccc7a97f9b9881d9659e2e788081fd7675f86d39793b51200bfb178398b3784",
+        "image_evidence": "sdk/swift/validation/current-source-archive-consumer-docker-20261009.json",
+        "cwd": "sdk/swift",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/swift"
+          ],
+          [
+            "swift",
+            "build",
+            "--skip-update"
+          ]
+        ],
+        "artifact_globs": [],
+        "output_role": "build-validation",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "required_artifact_patterns": []
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/swift/tests/DilockCoreTests/IdentityTests.swift",
+          "sdk/swift/tests/DilockCoreTests/WithLeaseTests.swift",
+          "sdk/swift/tests/DilockCoreTests/Fixtures/identity.json",
+          "sdk/swift/tests/DilockEtcdTests/EtcdLiveIntegrationTests.swift"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "swift@sha256:eccc7a97f9b9881d9659e2e788081fd7675f86d39793b51200bfb178398b3784",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/swift/dilock-swift-*-source.tar.gz -C /consumer/source; cd /consumer/source; swift test --skip-update"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-package",
+        "native_artifacts_consumed_from": []
+      },
+      "publication": {
+        "route": "Swift Package Manager via repository tags/subpackage strategy; optional adapter products",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "dart",
+      "name": "Dart",
+      "source_roots": [
+        "sdk/dart"
+      ],
+      "source_include": [
+        "sdk/dart/README.md",
+        "sdk/dart/AGENTS.md",
+        "sdk/dart/dilock/**",
+        "sdk/dart/redis/**",
+        "sdk/dart/etcd/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "pub-source"
+      ],
+      "build": {
+        "image": "dart@sha256:5ac89dbcae4327278b257920e2786df0f22c87adc630017266b67cfcceef8348",
+        "image_evidence": "sdk/dart/validation/current-source-artifact-consumer-docker-20261010.json",
+        "cwd": "sdk/dart",
+        "argv": [
+          [
+            "/bin/sh",
+            "-c",
+            "for package in dilock redis etcd; do (cd \"$package\" && dart pub get --offline && dart analyze); done"
+          ]
+        ],
+        "artifact_globs": [],
+        "output_role": "build-validation",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "required_artifact_patterns": []
+      },
+      "consumer": {
+        "entrypoints": [],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "dart@sha256:5ac89dbcae4327278b257920e2786df0f22c87adc630017266b67cfcceef8348",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/dart/dilock-dart-*-source.tar.gz -C /consumer/source; for package in dilock redis etcd; do (cd /consumer/source/sdk/dart/$package && dart pub get --offline && dart test); done"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-package",
+        "native_artifacts_consumed_from": []
+      },
+      "publication": {
+        "route": "pub.dev: dilock, dilock_redis, dilock_etcd; server/CLI first",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "elixir",
+      "name": "Elixir",
+      "source_roots": [
+        "sdk/elixir"
+      ],
+      "source_include": [
+        "sdk/elixir/README.md",
+        "sdk/elixir/AGENTS.md",
+        "sdk/elixir/mix.exs",
+        "sdk/elixir/mix.lock",
+        "sdk/elixir/LICENSE",
+        "sdk/elixir/.formatter.exs",
+        "sdk/elixir/lib/**",
+        "sdk/elixir/priv/**",
+        "sdk/elixir/proto/**",
+        "sdk/elixir/config/**",
+        "sdk/elixir/examples/**",
+        "sdk/elixir/test/**",
+        "sdk/elixir/test_support/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "hex-tar"
+      ],
+      "build": {
+        "image": "sha256:7b0b369edb2f780f3776cfae85fb60f97d6f7c4aada7a1345ec1f0d1d041cb2c",
+        "image_evidence": "sdk/elixir/validation/already-not-owned-scope-live-current-source-docker-20261010.json",
+        "cwd": "sdk/elixir",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/elixir"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /root/.mix/archives; tar -xf /opt/dilock/elixir-tools/hex-2.5.1-installed.tar -C /root/.mix/archives; export MIX_REBAR3=/opt/dilock/elixir-tools/rebar3; mkdir -p config deps; cp -R /opt/dilock/elixir-deps/. deps/; HEX_OFFLINE=1 mix hex.build --output /out/elixir/dilock.tar"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/elixir/*.tar"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "elixir:1.18.4-otp-27-alpine@sha256:7b0b369edb2f780f3776cfae85fb60f97d6f7c4aada7a1345ec1f0d1d041cb2c",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock.tar"
+        ],
+        "cache_prerequisites": [
+          "Pinned Hex2.5.1 installedarchive and rebar3 -> /opt/dilock/elixir-tools",
+          "Thirdparty dependency source cache only -> /opt/dilock/elixir-deps; no cached Dilock BEAM application."
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/elixir/test/conformance_worker_test.exs",
+          "sdk/elixir/test/dilock_erlang_live_test.exs",
+          "sdk/elixir/test/dilock_identity_test.exs",
+          "sdk/elixir/test/etcd_cleanup_budget_test.exs"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:7b0b369edb2f780f3776cfae85fb60f97d6f7c4aada7a1345ec1f0d1d041cb2c",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /root/.mix/archives; tar -xf /opt/dilock/elixir-tools/hex-2.5.1-installed.tar -C /root/.mix/archives; export MIX_REBAR3=/opt/dilock/elixir-tools/rebar3; mkdir -p /consumer/source; tar -xzf /packages/elixir/dilock-elixir-*-source.tar.gz -C /consumer/source; mkdir /consumer/hex; tar -xf /packages/elixir/*.tar -C /consumer/hex; mkdir /consumer/installed; tar -xzf /consumer/hex/contents.tar.gz -C /consumer/installed; cp /consumer/source/sdk/elixir/mix.lock /consumer/installed/mix.lock; mkdir -p /consumer/installed/deps; cp -R /opt/dilock/elixir-deps/. /consumer/installed/deps/; cd /consumer/installed; HEX_OFFLINE=1 MIX_ENV=test mix deps.compile; HEX_OFFLINE=1 MIX_ENV=test mix compile; HEX_OFFLINE=1 MIX_ENV=test mix run --no-compile -e 'unless Code.ensure_loaded?(Dilock.Redis) and Code.ensure_loaded?(Dilock.Etcd), do: raise(\"installed backend API missing\")'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "elixir"
+        ]
+      },
+      "publication": {
+        "route": "Hex.pm: dilock and optional adapters",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "scala",
+      "name": "Scala",
+      "source_roots": [
+        "sdk/scala"
+      ],
+      "source_include": [
+        "sdk/scala/README.md",
+        "sdk/scala/AGENTS.md",
+        "sdk/scala/build.sbt",
+        "sdk/scala/src/**",
+        "sdk/scala/project/**",
+        "sdk/scala/consumers/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "java"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "cross-version-jar"
+      ],
+      "build": {
+        "image": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "image_evidence": "sdk/java/validation/redis-applied-set-interruption-docker-20261010.json",
+        "cwd": "sdk/scala",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/scala"
+          ],
+          [
+            "mvn",
+            "-o",
+            "-B",
+            "-f",
+            "/work/sdk/java/pom.xml",
+            "install",
+            "-DskipTests"
+          ],
+          [
+            "sbt",
+            "-offline",
+            "+package",
+            "+packageSrc"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/scala/target/scala-*/*.jar"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: java."
+        ],
+        "recorded_image_reference": "maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock-scala3_3-*.jar",
+          "dilock-scala213_2.13-*.jar"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/scala/consumers/LiveQuickstart.scala",
+          "sdk/scala/consumers/Quickstart.scala",
+          "sdk/scala/consumers/scala213/ArtifactConsumer.scala",
+          "sdk/scala/consumers/scala3/ArtifactConsumer.scala"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/scala/dilock-scala-*-source.tar.gz -C /consumer/source; mkdir /consumer/classes; java -cp \"$(find /packages/java /packages/scala -name '*.jar' -printf '%p:'):$(find /root/.m2/repository -name '*.jar' ! -path '*/org/dilock/*' -printf '%p:')\" dotty.tools.dotc.Main -classpath \"$(find /packages/java /packages/scala -name '*.jar' -printf '%p:'):$(find /root/.m2/repository -name '*.jar' ! -path '*/org/dilock/*' -printf '%p:')\" -d /consumer/classes /consumer/source/sdk/scala/consumers/Quickstart.scala"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "scala"
+        ]
+      },
+      "publication": {
+        "route": "Maven Central: Scala-binary-versioned facade; core Java artifact remains shared",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "c",
+      "name": "C",
+      "source_roots": [
+        "sdk/c"
+      ],
+      "source_include": [
+        "sdk/c/README.md",
+        "sdk/c/AGENTS.md",
+        "sdk/c/include/**",
+        "sdk/c/src/**",
+        "sdk/c/examples/**",
+        "sdk/c/tests/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "cpp"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "cmake-install-tree"
+      ],
+      "build": {
+        "image": "sha256:7e1c8222a8b99adc5c7023cb8c04608053542b8c56c3b434d57aae6d5d096990",
+        "image_evidence": "validation/implementation/api-ergonomics-current-examples-20261012.json",
+        "cwd": "sdk/cpp",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "export PATH=/opt/dilock/grpc-root/usr/bin:$PATH; export LD_LIBRARY_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; export PKG_CONFIG_SYSROOT_DIR=/opt/dilock/grpc-root; export PKG_CONFIG_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/pkgconfig; export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH; mkdir -p /out/c; cmake -S . -B /work/.release/build/c -DCMAKE_BUILD_TYPE=Release -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_C_API=ON -DCMAKE_INSTALL_PREFIX=/out/c '-DCMAKE_PREFIX_PATH=/opt/dilock/grpc-root/usr;/opt/dilock/cppinstall;/opt/dilock/cppdeps/usr;/opt/dilock/openssl/usr;/opt/dilock/openssl-runtime/usr' -DOpenSSL_ROOT_DIR=/opt/dilock/openssl/usr -DOpenSSL_INCLUDE_DIR=/opt/dilock/openssl/usr/include -DOPENSSL_CRYPTO_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libcrypto.so.3 -DOPENSSL_SSL_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libssl.so.3 -DOPENSSL_USE_STATIC_LIBS=FALSE -DgRPC_DIR=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/cmake/grpc -DProtobuf_INCLUDE_DIR=/opt/dilock/grpc-root/usr/include -DProtobuf_LIBRARY=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/libprotobuf.so -DProtobuf_PROTOC_EXECUTABLE=/opt/dilock/grpc-root/usr/bin/protoc -Dnlohmann_json_DIR=/opt/dilock/cppdeps/usr/share/cmake/nlohmann_json -Dredis++_DIR=/opt/dilock/cppinstall/share/cmake/redis++ -DHiredis_DIR=/opt/dilock/cppinstall/lib/cmake/hiredis; cmake --build /work/.release/build/c --parallel 2; cmake --install /work/.release/build/c"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/c"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: cpp."
+        ],
+        "recorded_image_reference": "sha256:baea9b2ca36e8f027d7ef5b60bd86cdf9d00a1e6a491cefa282111690cefbb44",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "c-c-install.tar.gz"
+        ],
+        "cache_prerequisites": [
+          ".tools/cppinstall",
+          ".tools/grpc-root",
+          ".tools/cppdeps",
+          ".tools/openssl",
+          ".tools/openssl-runtime"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/c/tests/installed_consumer/run-docker.sh"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:7e1c8222a8b99adc5c7023cb8c04608053542b8c56c3b434d57aae6d5d096990",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "export PATH=/opt/dilock/grpc-root/usr/bin:$PATH; export LIBRARY_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:${LIBRARY_PATH:-}; export LD_LIBRARY_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; mkdir -p /consumer/source; tar -xzf /packages/c/dilock-c-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; cmake -S /consumer/source/sdk/c/tests/installed_consumer -B /consumer/build -DCMAKE_PREFIX_PATH='/consumer/prefix/c;/opt/dilock/grpc-root/usr;/opt/dilock/cppinstall;/opt/dilock/cppdeps/usr;/opt/dilock/openssl/usr;/opt/dilock/openssl-runtime/usr' -DOpenSSL_ROOT_DIR=/opt/dilock/openssl/usr -DOpenSSL_INCLUDE_DIR=/opt/dilock/openssl/usr/include -DOPENSSL_CRYPTO_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libcrypto.so.3 -DOPENSSL_SSL_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libssl.so.3 -DOPENSSL_USE_STATIC_LIBS=FALSE -DgRPC_DIR=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/cmake/grpc -DProtobuf_INCLUDE_DIR=/opt/dilock/grpc-root/usr/include -DProtobuf_LIBRARY=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/libprotobuf.so -DProtobuf_PROTOC_EXECUTABLE=/opt/dilock/grpc-root/usr/bin/protoc -Dnlohmann_json_DIR=/opt/dilock/cppdeps/usr/share/cmake/nlohmann_json -Dredis++_DIR=/opt/dilock/cppinstall/share/cmake/redis++ -DHiredis_DIR=/opt/dilock/cppinstall/lib/cmake/hiredis; cmake --build /consumer/build"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "c"
+        ]
+      },
+      "publication": {
+        "route": "CMake/pkg-config; Conan/vcpkg; release source, selective native binaries",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "javascript",
+      "name": "JavaScript",
+      "source_roots": [
+        "sdk/javascript"
+      ],
+      "source_include": [
+        "sdk/javascript/README.md",
+        "sdk/javascript/AGENTS.md",
+        "sdk/javascript/package.json",
+        "sdk/javascript/package-lock.json",
+        "sdk/javascript/examples/**",
+        "sdk/javascript/test/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "shared",
+      "dependencies": [
+        "typescript"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "shared-engine-consumer-source"
+      ],
+      "build": {
+        "image": "sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c",
+        "image_evidence": "sdk/typescript/validation/typescript-current-source-gate-20261008.json",
+        "cwd": "sdk/javascript",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/javascript"
+          ],
+          [
+            "npm",
+            "run",
+            "check:examples"
+          ]
+        ],
+        "artifact_globs": [],
+        "output_role": "build-validation",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: typescript."
+        ],
+        "recorded_image_reference": "node@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": []
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/javascript/test/packed-consumer.mjs"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/javascript/dilock-javascript-*-source.tar.gz -C /consumer/source; mkdir /consumer/app; cp /consumer/source/sdk/javascript/examples/*.mjs /consumer/app/; cd /consumer/app; printf '{\"private\":true,\"type\":\"module\"}\\n' > package.json; npm install --offline --ignore-scripts /packages/typescript/*.tgz; node --input-type=module -e 'import {RedisProvider} from \"@dilock/redis\"; import {EtcdProvider} from \"@dilock/etcd\"; if(typeof RedisProvider.connect!==\"function\" || typeof EtcdProvider.connect!==\"function\") throw Error(\"adapter API missing\");'; node --check redis.mjs; node --check etcd.mjs"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-facade",
+        "native_artifacts_consumed_from": [
+          "typescript"
+        ]
+      },
+      "publication": {
+        "route": "npm; same runtime package",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "fsharp",
+      "name": "F#",
+      "source_roots": [
+        "sdk/dotnet/reuse/fsharp"
+      ],
+      "source_include": [
+        "sdk/dotnet/reuse/fsharp/README.md",
+        "sdk/dotnet/reuse/fsharp/AGENTS.md",
+        "sdk/dotnet/reuse/fsharp/*.fs",
+        "sdk/dotnet/reuse/fsharp/*.fsproj"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "shared",
+      "dependencies": [
+        "dotnet"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "shared-engine-consumer-source"
+      ],
+      "build": {
+        "image": "sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "image_evidence": "sdk/dotnet/validation/release-expiry-ownership-current-source-docker-20261011.json",
+        "cwd": "sdk/dotnet/reuse/fsharp",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/fsharp"
+          ],
+          [
+            "dotnet",
+            "restore",
+            "Dilock.FSharp.Consumer.fsproj",
+            "--source",
+            "/root/.nuget/packages",
+            "--ignore-failed-sources",
+            "-p:NuGetAudit=false"
+          ],
+          [
+            "dotnet",
+            "publish",
+            "Dilock.FSharp.Consumer.fsproj",
+            "-c",
+            "Release",
+            "--no-restore",
+            "-o",
+            "/out/fsharp"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/fsharp"
+        ],
+        "output_role": "shared-engine-consumer-bundle",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: dotnet."
+        ],
+        "recorded_image_reference": "mcr.microsoft.com/dotnet/sdk:8.0@sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "fsharp-fsharp-install.tar.gz"
+        ],
+        "unexecuted_checks": [
+          "Dependency vulnerability-database audit NOT_RUN in this network-isolated packaging recipe; NuGetAudit=false only disables that unavailable online lookup. SDK safety/consumer tests remain independent."
+        ]
+      },
+      "consumer": {
+        "entrypoints": [],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/fsharp/dilock-fsharp-*-source.tar.gz -C /consumer/source; mkdir /consumer/app; cp /consumer/source/sdk/dotnet/reuse/fsharp/* /consumer/app/; sed -i 's#<ProjectReference Include=\"../../Dilock.Redis/Dilock.Redis.csproj\" />#<PackageReference Include=\"Dilock.Redis\" Version=\"0.1.0-dev.1\" />#; s#<ProjectReference Include=\"../../Dilock.Etcd/Dilock.Etcd.csproj\" />#<PackageReference Include=\"Dilock.Etcd\" Version=\"0.1.0-dev.1\" />#' /consumer/app/Dilock.FSharp.Consumer.fsproj; cd /consumer/app; dotnet restore --packages /consumer/nuget --source /packages/dotnet --source /root/.nuget/packages --ignore-failed-sources -p:NuGetAudit=false; dotnet build --no-restore -c Release"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-facade",
+        "native_artifacts_consumed_from": [
+          "dotnet"
+        ],
+        "unexecuted_checks": [
+          "Dependency vulnerability-database audit NOT_RUN in offline consumer restore."
+        ]
+      },
+      "publication": {
+        "route": "NuGet; shared .NET binaries",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "vbnet",
+      "name": "Visual Basic .NET",
+      "source_roots": [
+        "sdk/dotnet/reuse/vb"
+      ],
+      "source_include": [
+        "sdk/dotnet/reuse/vb/README.md",
+        "sdk/dotnet/reuse/vb/AGENTS.md",
+        "sdk/dotnet/reuse/vb/*.vb",
+        "sdk/dotnet/reuse/vb/*.vbproj"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "shared",
+      "dependencies": [
+        "dotnet"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "shared-engine-consumer-source"
+      ],
+      "build": {
+        "image": "sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "image_evidence": "sdk/dotnet/validation/release-expiry-ownership-current-source-docker-20261011.json",
+        "cwd": "sdk/dotnet/reuse/vb",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/vbnet"
+          ],
+          [
+            "dotnet",
+            "restore",
+            "Dilock.VisualBasic.Consumer.vbproj",
+            "--source",
+            "/root/.nuget/packages",
+            "--ignore-failed-sources",
+            "-p:NuGetAudit=false"
+          ],
+          [
+            "dotnet",
+            "publish",
+            "Dilock.VisualBasic.Consumer.vbproj",
+            "-c",
+            "Release",
+            "--no-restore",
+            "-o",
+            "/out/vbnet"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/vbnet"
+        ],
+        "output_role": "shared-engine-consumer-bundle",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: dotnet."
+        ],
+        "recorded_image_reference": "mcr.microsoft.com/dotnet/sdk:8.0@sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "vbnet-vbnet-install.tar.gz"
+        ],
+        "unexecuted_checks": [
+          "Dependency vulnerability-database audit NOT_RUN in this network-isolated packaging recipe; NuGetAudit=false only disables that unavailable online lookup. SDK safety/consumer tests remain independent."
+        ]
+      },
+      "consumer": {
+        "entrypoints": [],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/vbnet/dilock-vbnet-*-source.tar.gz -C /consumer/source; mkdir /consumer/app; cp /consumer/source/sdk/dotnet/reuse/vb/* /consumer/app/; sed -i 's#<ProjectReference Include=\"../../Dilock.Redis/Dilock.Redis.csproj\" />#<PackageReference Include=\"Dilock.Redis\" Version=\"0.1.0-dev.1\" />#; s#<ProjectReference Include=\"../../Dilock.Etcd/Dilock.Etcd.csproj\" />#<PackageReference Include=\"Dilock.Etcd\" Version=\"0.1.0-dev.1\" />#' /consumer/app/Dilock.VisualBasic.Consumer.vbproj; cd /consumer/app; dotnet restore --packages /consumer/nuget --source /packages/dotnet --source /root/.nuget/packages --ignore-failed-sources -p:NuGetAudit=false; dotnet build --no-restore -c Release"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-facade",
+        "native_artifacts_consumed_from": [
+          "dotnet"
+        ],
+        "unexecuted_checks": [
+          "Dependency vulnerability-database audit NOT_RUN in offline consumer restore."
+        ]
+      },
+      "publication": {
+        "route": "NuGet; shared .NET binaries",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "powershell",
+      "name": "PowerShell",
+      "source_roots": [
+        "sdk/dotnet/reuse/powershell"
+      ],
+      "source_include": [
+        "sdk/dotnet/reuse/powershell/README.md",
+        "sdk/dotnet/reuse/powershell/AGENTS.md",
+        "sdk/dotnet/reuse/powershell/Build-DilockModule.ps1",
+        "sdk/dotnet/reuse/powershell/Invoke-DilockExample.ps1",
+        "sdk/dotnet/reuse/powershell/module/**",
+        "sdk/dotnet/reuse/powershell/consumers/**",
+        "sdk/dotnet/reuse/powershell/tests/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "dotnet"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "powershell-module-zip"
+      ],
+      "build": {
+        "image": "sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "image_evidence": "sdk/dotnet/validation/release-expiry-ownership-current-source-docker-20261011.json",
+        "cwd": "sdk/dotnet/reuse/powershell",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/powershell"
+          ],
+          [
+            "pwsh",
+            "-NoProfile",
+            "-File",
+            "Build-DilockModule.ps1",
+            "-OutputDirectory",
+            "/out/powershell"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/powershell/*.zip"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: dotnet.",
+          "pwsh executable plus offline NuGet cache required; Build-DilockModule performs dotnet publish locally, not registry publication."
+        ],
+        "recorded_image_reference": "mcr.microsoft.com/dotnet/sdk:8.0@sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "Dilock.PowerShell-*.zip"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/dotnet/reuse/powershell/consumers/Run-ModuleConsumer.ps1"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:ec9c0a0dc5f60adc2065762050638dd5ed5facfc53716d4580a42d86027c8e80",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/module; pwsh -NoLogo -NoProfile -Command '$ErrorActionPreference=\"Stop\"; Add-Type -AssemblyName System.IO.Compression.FileSystem; $archive=Get-ChildItem /packages/powershell/*.zip | Select-Object -First 1; [System.IO.Compression.ZipFile]::ExtractToDirectory($archive.FullName,\"/consumer/module\"); Import-Module /consumer/module/Dilock.psd1; Get-Command -Module Dilock | Out-Null'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "powershell"
+        ]
+      },
+      "publication": {
+        "route": "PowerShell Gallery only for a real module",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "clojure",
+      "name": "Clojure",
+      "source_roots": [
+        "sdk/clojure"
+      ],
+      "source_include": [
+        "sdk/clojure/README.md",
+        "sdk/clojure/AGENTS.md",
+        "sdk/clojure/deps.edn",
+        "sdk/clojure/build.clj",
+        "sdk/clojure/src/**",
+        "sdk/clojure/test/**",
+        "sdk/clojure/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "java"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "jar"
+      ],
+      "build": {
+        "image": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "image_evidence": "sdk/java/validation/redis-applied-set-interruption-docker-20261010.json",
+        "cwd": "sdk/clojure",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/clojure"
+          ],
+          [
+            "mvn",
+            "-o",
+            "-B",
+            "-f",
+            "/work/sdk/java/pom.xml",
+            "install",
+            "-DskipTests"
+          ],
+          [
+            "clojure",
+            "-T:build",
+            "jar"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/clojure/target/*.jar"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: java."
+        ],
+        "recorded_image_reference": "maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock-clojure-*.jar"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/clojure/test/dilock/clojure/core_test.clj",
+          "sdk/clojure/test/dilock/clojure/live_test.clj",
+          "sdk/clojure/test/dilock/clojure/test_config.clj",
+          "sdk/clojure/test/dilock/clojure/test_runner.clj"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "java -cp \"/packages/clojure/*:/packages/java/*:$(find /root/.m2/repository -name '*.jar' ! -path '*/org/dilock/*' -printf '%p:')\" clojure.main -e '(require (quote dilock.clojure.core))'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "clojure"
+        ]
+      },
+      "publication": {
+        "route": "Clojars or Maven Central facade",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "groovy",
+      "name": "Groovy",
+      "source_roots": [
+        "sdk/groovy"
+      ],
+      "source_include": [
+        "sdk/groovy/README.md",
+        "sdk/groovy/AGENTS.md",
+        "sdk/groovy/pom.xml",
+        "sdk/groovy/src/**",
+        "sdk/groovy/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "java"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "jar"
+      ],
+      "build": {
+        "image": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "image_evidence": "sdk/java/validation/redis-applied-set-interruption-docker-20261010.json",
+        "cwd": "sdk/groovy",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/groovy"
+          ],
+          [
+            "mvn",
+            "-o",
+            "-B",
+            "-f",
+            "/work/sdk/java/pom.xml",
+            "install",
+            "-DskipTests"
+          ],
+          [
+            "mvn",
+            "-o",
+            "-B",
+            "package",
+            "-DskipTests"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/groovy/target/*.jar"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: java."
+        ],
+        "recorded_image_reference": "maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock-groovy-*.jar"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/groovy/examples/EtcdExample.groovy",
+          "sdk/groovy/examples/RedisExample.groovy"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "java -cp \"/packages/groovy/*:/packages/java/*:$(find /root/.m2/repository -name '*.jar' ! -path '*/org/dilock/*' -printf '%p:')\" groovy.ui.GroovyMain -e 'assert Class.forName(\"org.dilock.groovy.Dilock\") != null'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "groovy"
+        ]
+      },
+      "publication": {
+        "route": "Maven Central facade/examples",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "erlang",
+      "name": "Erlang",
+      "source_roots": [
+        "sdk/erlang"
+      ],
+      "source_include": [
+        "sdk/erlang/README.md",
+        "sdk/erlang/AGENTS.md",
+        "sdk/erlang/src/**",
+        "sdk/erlang/test/**",
+        "sdk/erlang/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "elixir"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "beam-facade-source"
+      ],
+      "build": {
+        "image": "sha256:7b0b369edb2f780f3776cfae85fb60f97d6f7c4aada7a1345ec1f0d1d041cb2c",
+        "image_evidence": "sdk/elixir/validation/already-not-owned-scope-live-current-source-docker-20261010.json",
+        "cwd": "sdk/erlang",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/erlang"
+          ],
+          [
+            "/bin/sh",
+            "-c",
+            "mkdir -p /out/erlang && erlc -o /out/erlang src/dilock_erlang.erl"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/erlang/*.beam"
+        ],
+        "output_role": "facade-component",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: elixir."
+        ],
+        "recorded_image_reference": "elixir:1.18.4-otp-27-alpine@sha256:7b0b369edb2f780f3776cfae85fb60f97d6f7c4aada7a1345ec1f0d1d041cb2c",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock_erlang.beam"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/erlang/test/dilock_erlang_tests.erl",
+          "sdk/erlang/examples/dilock_erlang_etcd_example.erl",
+          "sdk/erlang/examples/dilock_erlang_redis_example.erl"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:7b0b369edb2f780f3776cfae85fb60f97d6f7c4aada7a1345ec1f0d1d041cb2c",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /root/.mix/archives; tar -xf /opt/dilock/elixir-tools/hex-2.5.1-installed.tar -C /root/.mix/archives; export MIX_REBAR3=/opt/dilock/elixir-tools/rebar3; mkdir -p /consumer/source; tar -xzf /packages/erlang/dilock-erlang-*-source.tar.gz -C /consumer/source; mkdir /consumer/hex /consumer/elixir /consumer/beam; tar -xf /packages/elixir/*.tar -C /consumer/hex; tar -xzf /consumer/hex/contents.tar.gz -C /consumer/elixir; cp /consumer/source/sdk/elixir/mix.lock /consumer/elixir/mix.lock; mkdir -p /consumer/elixir/deps; cp -R /opt/dilock/elixir-deps/. /consumer/elixir/deps/; (cd /consumer/elixir && HEX_OFFLINE=1 MIX_ENV=test mix deps.compile && HEX_OFFLINE=1 MIX_ENV=test mix compile); erlc -o /consumer/beam /consumer/source/sdk/erlang/test/dilock_erlang_tests.erl; cd /consumer/elixir; HEX_OFFLINE=1 MIX_ENV=test mix run --no-compile -e 'Code.append_path(~c\"/packages/erlang\"); Code.append_path(~c\"/consumer/beam\"); eunit_ebin = :code.root_dir() |> List.to_string() |> Path.join(\"lib/eunit-*/ebin\") |> Path.wildcard() |> List.first() || raise(\"OTP EUnit files unavailable\"); String.to_charlist(eunit_ebin) |> :code.add_pathz(); case :eunit.test(:dilock_erlang_tests, [:verbose]) do :ok -> :ok; _ -> System.halt(1) end'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "erlang"
+        ]
+      },
+      "publication": {
+        "route": "Hex.pm / rebar3",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "objectivec",
+      "name": "Objective-C",
+      "source_roots": [
+        "sdk/objc"
+      ],
+      "source_include": [
+        "sdk/objc/README.md",
+        "sdk/objc/AGENTS.md",
+        "sdk/objc/CMakeLists.txt",
+        "sdk/objc/src/**",
+        "sdk/objc/include/**",
+        "sdk/objc/cmake/**",
+        "sdk/objc/consumers/**",
+        "sdk/objc/tests/**",
+        "sdk/objc/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "cmake-install-tree"
+      ],
+      "build": {
+        "image": null,
+        "image_evidence": null,
+        "cwd": "sdk/objc",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/objectivec"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /out/c; tar -xzf /packages/c/c-c-install.tar.gz -C /out/c"
+          ],
+          [
+            "cmake",
+            "-S",
+            ".",
+            "-B",
+            "/work/.release/build/objectivec",
+            "-DCMAKE_PREFIX_PATH=/out/c",
+            "-DCMAKE_INSTALL_PREFIX=/out/objectivec"
+          ],
+          [
+            "cmake",
+            "--build",
+            "/work/.release/build/objectivec"
+          ],
+          [
+            "cmake",
+            "--install",
+            "/work/.release/build/objectivec"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/objectivec"
+        ],
+        "output_role": "package",
+        "execution_state": "blocked_platform",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: c.",
+          "Apple Foundation and ARC toolchain required; Linux Docker cannot execute the checked-in Apple CMake package recipe."
+        ],
+        "required_artifact_patterns": [
+          "objectivec-objectivec-install.tar.gz"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/objc/consumers/scoped-lease/main.m",
+          "sdk/objc/tests/DILockConsumerTests.m",
+          "sdk/objc/examples/etcd_quickstart.m",
+          "sdk/objc/examples/redis_quickstart.m"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": null,
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/objectivec/dilock-objectivec-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/objectivec; tar -xzf /packages/objectivec/objectivec-objectivec-install.tar.gz -C /consumer/prefix/objectivec; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; clang -fobjc-arc -framework Foundation -I/consumer/prefix/objectivec/include -I/consumer/prefix/c/include -L/consumer/prefix/objectivec/lib -L/consumer/prefix/c/lib -lDilockObjC -ldilock_c -c /consumer/source/sdk/objc/consumers/scoped-lease/main.m -o /consumer/objc-consumer.o"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "objectivec"
+        ]
+      },
+      "publication": {
+        "route": "C package or Apple package integration",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "zig",
+      "name": "Zig",
+      "source_roots": [
+        "sdk/zig"
+      ],
+      "source_include": [
+        "sdk/zig/README.md",
+        "sdk/zig/AGENTS.md",
+        "sdk/zig/build.zig",
+        "sdk/zig/build.zig.zon",
+        "sdk/zig/src/**",
+        "sdk/zig/tests/**",
+        "sdk/zig/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "zig-package-source"
+      ],
+      "build": {
+        "image": "sha256:7e1c8222a8b99adc5c7023cb8c04608053542b8c56c3b434d57aae6d5d096990",
+        "image_evidence": "sdk/cpp/validation/etcd-expired-release-classification-docker-20261011.json",
+        "cwd": "sdk/zig",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/zig"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /out/c; tar -xzf /packages/c/c-c-install.tar.gz -C /out/c"
+          ],
+          [
+            "zig",
+            "build",
+            "-Doptimize=ReleaseSafe",
+            "-Dc-include=/out/c/include",
+            "-Dc-lib=/out/c/lib",
+            "--prefix",
+            "/out/zig"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/zig"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: c."
+        ],
+        "recorded_image_reference": "sha256:baea9b2ca36e8f027d7ef5b60bd86cdf9d00a1e6a491cefa282111690cefbb44",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "zig-zig-install.tar.gz"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/zig/tests/contract.zig",
+          "sdk/zig/examples/etcd_quickstart.zig",
+          "sdk/zig/examples/redis_quickstart.zig"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:7e1c8222a8b99adc5c7023cb8c04608053542b8c56c3b434d57aae6d5d096990",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/zig/dilock-zig-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; cd /consumer/source/sdk/zig; zig build test -Dc-include=/consumer/prefix/c/include -Dc-lib=/consumer/prefix/c/lib"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-facade",
+        "native_artifacts_consumed_from": [
+          "c"
+        ]
+      },
+      "publication": {
+        "route": "Repository package manifest/tag; assess registry tooling",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "nim",
+      "name": "Nim",
+      "source_roots": [
+        "sdk/nim"
+      ],
+      "source_include": [
+        "sdk/nim/README.md",
+        "sdk/nim/AGENTS.md",
+        "sdk/nim/dilock.nimble",
+        "sdk/nim/src/**",
+        "sdk/nim/tests/**",
+        "sdk/nim/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "nimble-source"
+      ],
+      "build": {
+        "image": "sha256:ae6ef469a2b1919106f9f78c1782467c7c24043c709cdf7b472aa6f9ab6bcf86",
+        "image_evidence": "sdk/nim/validation/current-nimble-install-live-consumer-docker-20261010.json",
+        "cwd": "sdk/nim",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/nim"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /out/c; tar -xzf /packages/c/c-c-install.tar.gz -C /out/c"
+          ],
+          [
+            "nim",
+            "c",
+            "--app:lib",
+            "--path:src",
+            "--passC:-I/out/c/include",
+            "--passL:-L/out/c/lib",
+            "--passL:-ldilock_c",
+            "--out:/out/nim/libdilock.so",
+            "src/dilock.nim"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/nim/*.so"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: c."
+        ],
+        "required_artifact_patterns": [
+          "libdilock.so"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/nim/tests/test_dilock.nim",
+          "sdk/nim/tests/test_etcd_auto_renew.nim",
+          "sdk/nim/tests/test_redis_auth_database.nim",
+          "sdk/nim/tests/test_redis_renewal.nim"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:ae6ef469a2b1919106f9f78c1782467c7c24043c709cdf7b472aa6f9ab6bcf86",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/nim/dilock-nim-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; cd /consumer/source/sdk/nim; nim c -r --path:src --passC:-I/consumer/prefix/c/include --passL:-L/consumer/prefix/c/lib --passL:-ldilock_c tests/test_dilock.nim"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-facade",
+        "native_artifacts_consumed_from": [
+          "c"
+        ]
+      },
+      "publication": {
+        "route": "Nimble",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "d",
+      "name": "D",
+      "source_roots": [
+        "sdk/d"
+      ],
+      "source_include": [
+        "sdk/d/README.md",
+        "sdk/d/AGENTS.md",
+        "sdk/d/dub.sdl",
+        "sdk/d/source/**",
+        "sdk/d/tests/**",
+        "sdk/d/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "dub-source"
+      ],
+      "build": {
+        "image": "sha256:6eb569fc5aa532b65384c2fa090b1ab122f52c3d4e95c4f012cadd081df9a5e1",
+        "image_evidence": "sdk/d/validation/m9-current-source-linked-live-docker-20261010.json",
+        "cwd": "sdk/d",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/d"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /out/c; tar -xzf /packages/c/c-c-install.tar.gz -C /out/c"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "LIBRARY_PATH=/out/c/lib LD_LIBRARY_PATH=/out/c/lib dub build --build=release"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/d/*.a",
+          "sdk/d/*.so"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: c."
+        ],
+        "required_artifact_patterns": [
+          "libdilock.a"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/d/tests/live_cabi_consumer.d",
+          "sdk/d/examples/etcd_quickstart.d",
+          "sdk/d/examples/redis_quickstart.d",
+          "sdk/d/examples/redis_try_quickstart.d"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:6eb569fc5aa532b65384c2fa090b1ab122f52c3d4e95c4f012cadd081df9a5e1",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/d/dilock-d-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; cd /consumer/source/sdk/d; LIBRARY_PATH=/consumer/prefix/c/lib LD_LIBRARY_PATH=/consumer/prefix/c/lib dub test --build=release"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-facade",
+        "native_artifacts_consumed_from": [
+          "c"
+        ]
+      },
+      "publication": {
+        "route": "DUB",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "crystal",
+      "name": "Crystal",
+      "source_roots": [
+        "sdk/crystal"
+      ],
+      "source_include": [
+        "sdk/crystal/README.md",
+        "sdk/crystal/AGENTS.md",
+        "sdk/crystal/shard.yml",
+        "sdk/crystal/shard.lock",
+        "sdk/crystal/src/**",
+        "sdk/crystal/spec/**",
+        "sdk/crystal/etcd_spec/**",
+        "sdk/crystal/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "shard-source"
+      ],
+      "build": {
+        "image": "crystallang/crystal@sha256:32b7b908a8c3625ebd629053daf48b6f469deaf74aeb71ad101895096b1665fa",
+        "image_evidence": "sdk/crystal/validation/lease-scope-ergonomics-current-source-docker-20261010.json",
+        "cwd": "sdk/crystal",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/crystal"
+          ],
+          [
+            "shards",
+            "check"
+          ],
+          [
+            "crystal",
+            "build",
+            "examples/basic.cr",
+            "-o",
+            "/out/crystal/redis-quickstart"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/crystal/*"
+        ],
+        "output_role": "build-validation",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: c."
+        ],
+        "required_artifact_patterns": []
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/crystal/examples/basic.cr",
+          "sdk/crystal/examples/etcd_basic.cr"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "crystallang/crystal@sha256:32b7b908a8c3625ebd629053daf48b6f469deaf74aeb71ad101895096b1665fa",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/crystal/dilock-crystal-*-source.tar.gz -C /consumer/source; cd /consumer/source/sdk/crystal; shards check; crystal spec spec"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-package",
+        "native_artifacts_consumed_from": []
+      },
+      "publication": {
+        "route": "Shards",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "lua",
+      "name": "Lua / LuaJIT",
+      "source_roots": [
+        "sdk/lua"
+      ],
+      "source_include": [
+        "sdk/lua/README.md",
+        "sdk/lua/AGENTS.md",
+        "sdk/lua/example.lua",
+        "sdk/lua/example_etcd.lua",
+        "sdk/lua/generic/*.rockspec",
+        "sdk/lua/generic/LICENSE",
+        "sdk/lua/generic/README.md",
+        "sdk/lua/generic/VALIDATION.md",
+        "sdk/lua/luajit-etcd/*.rockspec",
+        "sdk/lua/luajit-etcd/LICENSE",
+        "sdk/lua/luajit-etcd/README.md",
+        "sdk/lua/lib/**",
+        "sdk/lua/test/**",
+        "sdk/lua/generic/lib/**",
+        "sdk/lua/generic/test/**",
+        "sdk/lua/luajit-etcd/lib/**",
+        "sdk/lua/luajit-etcd/test/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "luarocks-source-rock",
+        "luajit-etcd-module-source",
+        "openresty-source"
+      ],
+      "build": {
+        "image": "openresty/openresty:1.27.1.2-alpine@sha256:761047d688bb91fe4eb42c42a05c794c54f274ee769ad54802b2c06247e8c38c",
+        "image_evidence": "sdk/lua/validation/redis-contract-current-source-docker-20261009.json",
+        "cwd": "sdk/lua",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/lua"
+          ],
+          [
+            "/bin/sh",
+            "-c",
+            "DILOCK_LUA_PACKAGE_ROOT=/work/sdk/lua/generic sh generic/test/create-source-rock.sh /out/lua/dilock-0.1.0-1.src.rock"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/lua/*.src.rock"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: c.",
+          "OpenResty, generic Lua 5.1 Redis rock, and LuaJIT C-ABI etcd module are separate runtime profiles; generic Lua does not offer etcd."
+        ],
+        "required_artifact_patterns": [
+          "dilock-*.src.rock"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/lua/generic/test/run-consumer.sh"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "openresty/openresty:1.27.1.2-alpine@sha256:761047d688bb91fe4eb42c42a05c794c54f274ee769ad54802b2c06247e8c38c",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/lua/dilock-lua-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; luarocks --lua-version=5.1 --tree=/consumer/rocks install --deps-mode=none /packages/lua/*.src.rock; eval \"$(luarocks --lua-version=5.1 --tree=/consumer/rocks path)\"; DILOCK_VECTOR_PATH=/consumer/source/spec/vectors/identity.json lua5.1 /consumer/source/sdk/lua/generic/test/unit.lua; LUA_PATH=\"/consumer/source/sdk/lua/luajit-etcd/lib/?.lua;;\" LD_LIBRARY_PATH=/consumer/prefix/c/lib luajit /consumer/source/sdk/lua/luajit-etcd/test/core_spec.lua"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "lua"
+        ]
+      },
+      "publication": {
+        "route": "LuaRocks; separately qualified OpenResty integration",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "haskell",
+      "name": "Haskell",
+      "source_roots": [
+        "sdk/haskell"
+      ],
+      "source_include": [
+        "sdk/haskell/README.md",
+        "sdk/haskell/AGENTS.md",
+        "sdk/haskell/dilock.cabal",
+        "sdk/haskell/LICENSE",
+        "sdk/haskell/src/**",
+        "sdk/haskell/cbits/**",
+        "sdk/haskell/data/**",
+        "sdk/haskell/test/**",
+        "sdk/haskell/examples/**",
+        "sdk/haskell/app/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "cabal-sdist"
+      ],
+      "build": {
+        "image": "haskell:9.6.7@sha256:adba20678db75a4ef90b943bc05520cb20d30837e81f7446e20817f9dcca09a7",
+        "image_evidence": "sdk/haskell/validation/release-outcome-quickstarts-current-source-docker-20261011.json",
+        "cwd": "sdk/haskell",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/haskell"
+          ],
+          [
+            "cabal",
+            "sdist",
+            "--output-directory=/out/haskell"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/haskell/*.tar.gz"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: c."
+        ],
+        "required_artifact_patterns": [
+          "dilock-*.tar.gz"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/haskell/test/EtcdCABI.hs",
+          "sdk/haskell/test/EtcdCABILive.hs",
+          "sdk/haskell/test/Identity.hs",
+          "sdk/haskell/examples/etcd-c-abi/Main.hs"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "haskell:9.6.7@sha256:adba20678db75a4ef90b943bc05520cb20d30837e81f7446e20817f9dcca09a7",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir /consumer/cabal; tar -xzf /packages/haskell/dilock-[0-9]*.tar.gz -C /consumer/cabal; cd /consumer/cabal/dilock-*; cabal test --offline"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "haskell"
+        ]
+      },
+      "publication": {
+        "route": "Hackage / Cabal",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "ocaml",
+      "name": "OCaml",
+      "source_roots": [
+        "sdk/ocaml"
+      ],
+      "source_include": [
+        "sdk/ocaml/README.md",
+        "sdk/ocaml/AGENTS.md",
+        "sdk/ocaml/dilock.opam",
+        "sdk/ocaml/dune-project",
+        "sdk/ocaml/lib/**",
+        "sdk/ocaml/data/**",
+        "sdk/ocaml/etcd/**",
+        "sdk/ocaml/test/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "opam-source"
+      ],
+      "build": {
+        "image": "ocaml/opam@sha256:bbaac53e502f6602013d8967c3a54cfcb898b556f453ab72e8e23966c3c681df",
+        "image_evidence": "sdk/ocaml/validation/scope-cleanup-cancellation-docker-20261010.json",
+        "cwd": "sdk/ocaml",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/ocaml"
+          ],
+          [
+            "opam",
+            "exec",
+            "--",
+            "dune",
+            "build",
+            "-p",
+            "dilock"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/ocaml/_build/default/*.install"
+        ],
+        "output_role": "build-validation",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "required_artifact_patterns": []
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/ocaml/test/deadline_test.ml",
+          "sdk/ocaml/test/dune",
+          "sdk/ocaml/test/etcd_contract.ml",
+          "sdk/ocaml/test/identity.ml"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "ocaml/opam@sha256:bbaac53e502f6602013d8967c3a54cfcb898b556f453ab72e8e23966c3c681df",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/ocaml/dilock-ocaml-*-source.tar.gz -C /consumer/source; cd /consumer/source/sdk/ocaml; opam exec -- dune build -p dilock; opam exec -- dune exec test/identity.exe; opam exec -- dune exec test/deadline_test.exe; opam exec -- dune exec test/etcd_contract.exe"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-package",
+        "native_artifacts_consumed_from": []
+      },
+      "publication": {
+        "route": "opam",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "perl",
+      "name": "Perl",
+      "source_roots": [
+        "sdk/perl"
+      ],
+      "source_include": [
+        "sdk/perl/README.md",
+        "sdk/perl/AGENTS.md",
+        "sdk/perl/Makefile.PL",
+        "sdk/perl/MANIFEST",
+        "sdk/perl/cpanfile",
+        "sdk/perl/lib/**",
+        "sdk/perl/t/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "cpan-source-tar"
+      ],
+      "build": {
+        "image": "sha256:ae6ef469a2b1919106f9f78c1782467c7c24043c709cdf7b472aa6f9ab6bcf86",
+        "image_evidence": "sdk/nim/validation/current-nimble-install-live-consumer-docker-20261010.json",
+        "cwd": "sdk/perl",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/perl"
+          ],
+          [
+            "perl",
+            "Makefile.PL"
+          ],
+          [
+            "make",
+            "dist"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/perl/*.tar.gz"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "required_artifact_patterns": [
+          "Dilock-*.tar.gz"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:ae6ef469a2b1919106f9f78c1782467c7c24043c709cdf7b472aa6f9ab6bcf86",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir /consumer/perl; tar -xzf /packages/perl/Dilock-[0-9]*.tar.gz -C /consumer/perl; cd /consumer/perl/Dilock-*; perl Makefile.PL INSTALL_BASE=/consumer/installed; make; make install; PERL5LIB=/consumer/installed/lib/perl5 perl -MDilock -e 'print \"$Dilock::VERSION\\n\"'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "perl"
+        ]
+      },
+      "publication": {
+        "route": "CPAN",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "julia",
+      "name": "Julia",
+      "source_roots": [
+        "sdk/julia"
+      ],
+      "source_include": [
+        "sdk/julia/README.md",
+        "sdk/julia/AGENTS.md",
+        "sdk/julia/Project.toml",
+        "sdk/julia/src/**",
+        "sdk/julia/test/**",
+        "sdk/julia/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "julia-project-source"
+      ],
+      "build": {
+        "image": "sha256:2323a3445e7701cf8f7190293e360e4f67c7e43de24480183f178aa1062dc99b",
+        "image_evidence": "sdk/julia/validation/scoped-release-outcome-current-source-docker-20261010.json",
+        "cwd": "sdk/julia",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/julia"
+          ],
+          [
+            "julia",
+            "--project=.",
+            "-e",
+            "using Pkg; Pkg.offline(true); Pkg.instantiate(); using Dilock"
+          ]
+        ],
+        "artifact_globs": [],
+        "output_role": "build-validation",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "julia@sha256:2323a3445e7701cf8f7190293e360e4f67c7e43de24480183f178aa1062dc99b",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [],
+        "cache_prerequisites": [
+          ".tmp/julia-scope-release-20261010/depot -> /root/.julia (copy thirdparty dependencies; remove cached Dilock package/module)."
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/julia/test/runtests.jl",
+          "sdk/julia/examples/basic.jl",
+          "sdk/julia/examples/etcd.jl"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:2323a3445e7701cf8f7190293e360e4f67c7e43de24480183f178aa1062dc99b",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/julia/dilock-julia-*-source.tar.gz -C /consumer/source; julia --project=/consumer/source/sdk/julia -e 'using Pkg; Pkg.offline(true); Pkg.test()'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "source-package native compiler/test consumer",
+        "requires_native_artifacts": false,
+        "kind": "frozen-source-package",
+        "native_artifacts_consumed_from": []
+      },
+      "publication": {
+        "route": "Julia registry/Pkg",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "r",
+      "name": "R",
+      "source_roots": [
+        "sdk/r"
+      ],
+      "source_include": [
+        "sdk/r/README.md",
+        "sdk/r/AGENTS.md",
+        "sdk/r/DESCRIPTION",
+        "sdk/r/NAMESPACE",
+        "sdk/r/LICENSE",
+        "sdk/r/.Rbuildignore",
+        "sdk/r/R/**",
+        "sdk/r/src/**",
+        "sdk/r/inst/**",
+        "sdk/r/man/**",
+        "sdk/r/tests/**",
+        "sdk/r/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "native",
+      "dependencies": [],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "r-source-tar"
+      ],
+      "build": {
+        "image": "sha256:3dae5d2eeddf74f10e0a81fb6b7ae350295e288000304f438b844b2c1e00fe2c",
+        "image_evidence": "sdk/r/validation/r-exact-current-tarball-check-docker-20261010.json",
+        "cwd": "sdk/r",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/r"
+          ],
+          [
+            "R",
+            "CMD",
+            "build",
+            ".",
+            "--no-build-vignettes",
+            "--no-manual"
+          ]
+        ],
+        "artifact_globs": [
+          "sdk/r/*.tar.gz"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+        ],
+        "recorded_image_reference": "rocker/r-ver:4.4.3@sha256:3dae5d2eeddf74f10e0a81fb6b7ae350295e288000304f438b844b2c1e00fe2c",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "dilock_*.tar.gz"
+        ],
+        "cache_prerequisites": [
+          ".tmp/r-current-source-20261010/r-lib -> /opt/dilock/r-lib, excluding cached dilock SDK",
+          "Compatible Ubuntu Noble rgrpc/Abseil20220623/Protobuf3.21/Hiredis runtime libraries; old in-container apt installation is not present in the immutable base image."
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/r/tests/testthat.R",
+          "sdk/r/tests/testthat/test-etcd-live.R",
+          "sdk/r/tests/testthat/test-etcd-wire.R",
+          "sdk/r/tests/testthat/test-identity.R"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:3dae5d2eeddf74f10e0a81fb6b7ae350295e288000304f438b844b2c1e00fe2c",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir /consumer/Rlib; R_LIBS=/opt/dilock/r-lib R CMD INSTALL --library=/consumer/Rlib /packages/r/dilock_[0-9]*.tar.gz; R_LIBS=/consumer/Rlib:/opt/dilock/r-lib Rscript -e 'library(dilock); stopifnot(grepl(\"/consumer/Rlib\", find.package(\"dilock\")))'"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "r"
+        ]
+      },
+      "publication": {
+        "route": "CRAN only after policy/maintainer review",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    },
+    {
+      "id": "fortran",
+      "name": "Fortran",
+      "source_roots": [
+        "sdk/fortran"
+      ],
+      "source_include": [
+        "sdk/fortran/README.md",
+        "sdk/fortran/AGENTS.md",
+        "sdk/fortran/CMakeLists.txt",
+        "sdk/fortran/dilock_fortran.f90",
+        "sdk/fortran/cmake/**",
+        "sdk/fortran/consumers/**",
+        "sdk/fortran/tests/**",
+        "sdk/fortran/examples/**"
+      ],
+      "source_exclude": [
+        "**/validation/**",
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/deps/**",
+        "**/bin/Debug/**",
+        "**/bin/Release/**",
+        "**/obj/**",
+        "**/target/**",
+        "**/build/**",
+        "**/.build/**",
+        "**/_build/**",
+        "**/dist/**",
+        "**/dist-newstyle/**",
+        "**/__pycache__/**",
+        "**/.tools/**",
+        "**/.gradle/**",
+        "**/.kotlin/**",
+        "**/.dart_tool/**",
+        "**/.zig-cache/**",
+        "**/.git/**",
+        "**/*.pyc",
+        "**/*.class",
+        "**/*.dll",
+        "**/*.pdb",
+        "**/*.so",
+        "**/*.o",
+        "**/*.a"
+      ],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
+      "package_formats": [
+        "source-bundle-tar.gz",
+        "cmake-install-tree"
+      ],
+      "build": {
+        "image": "sha256:3dae5d2eeddf74f10e0a81fb6b7ae350295e288000304f438b844b2c1e00fe2c",
+        "image_evidence": "sdk/r/validation/r-exact-current-tarball-check-docker-20261010.json",
+        "cwd": "sdk/fortran",
+        "argv": [
+          [
+            "mkdir",
+            "-p",
+            "/out/fortran"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /out/c; tar -xzf /packages/c/c-c-install.tar.gz -C /out/c"
+          ],
+          [
+            "cmake",
+            "-S",
+            ".",
+            "-B",
+            "/work/.release/build/fortran",
+            "-DCMAKE_PREFIX_PATH=/out/c",
+            "-DCMAKE_INSTALL_PREFIX=/out/fortran"
+          ],
+          [
+            "cmake",
+            "--build",
+            "/work/.release/build/fortran"
+          ],
+          [
+            "cmake",
+            "--install",
+            "/work/.release/build/fortran"
+          ]
+        ],
+        "artifact_globs": [
+          "/out/fortran"
+        ],
+        "output_role": "package",
+        "execution_state": "not_run",
+        "prerequisites": [
+          "Immutable image must be locally cached; no image pulls or network dependency installation.",
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "Install dependency outputs or configure ecosystem-local repositories for: c.",
+          "Rocker supplies GNU Fortran but may lack CMake and C ABI runtime dependencies; no ABI-compatible client substitution is attempted."
+        ],
+        "recorded_image_reference": "rocker/r-ver:4.4.3@sha256:3dae5d2eeddf74f10e0a81fb6b7ae350295e288000304f438b844b2c1e00fe2c",
+        "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
+        "required_artifact_patterns": [
+          "fortran-fortran-install.tar.gz"
+        ]
+      },
+      "consumer": {
+        "entrypoints": [
+          "sdk/fortran/tests/installed_package_live_consumer_current_docker.py"
+        ],
+        "execution_state": "not_run",
+        "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
+        "cwd": "/consumer",
+        "image": "sha256:3dae5d2eeddf74f10e0a81fb6b7ae350295e288000304f438b844b2c1e00fe2c",
+        "argv": [
+          [
+            "/bin/sh",
+            "-ec",
+            "mkdir -p /consumer/source; tar -xzf /packages/fortran/dilock-fortran-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/fortran; tar -xzf /packages/fortran/fortran-fortran-install.tar.gz -C /consumer/prefix/fortran; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; cmake -S /consumer/source/sdk/fortran/consumers/cmake -B /consumer/build -DCMAKE_PREFIX_PATH=\"/consumer/prefix/fortran;/consumer/prefix/c\"; cmake --build /consumer/build; /consumer/build/dilock_fortran_installed_consumer"
+          ]
+        ],
+        "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
+        "delivery_profile": "installed native package or shared-engine facade consumer",
+        "requires_native_artifacts": true,
+        "kind": "installed-native-package",
+        "native_artifacts_consumed_from": [
+          "fortran"
+        ]
+      },
+      "publication": {
+        "route": "fpm / C bridge",
+        "identity_state": "unverified",
+        "enabled": false
+      }
+    }
+  ]
+}

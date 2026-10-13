@@ -1,0 +1,15 @@
+[package]
+name = "dilock-etcd"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+license-file = "../LICENSE"
+description = "etcd native lock adapter for Dilock"
+
+[dependencies]
+dilock = { path = "../dilock", version = "0.1.0" }
+etcd-client.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true

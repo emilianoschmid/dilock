@@ -1,0 +1,5 @@
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.2
+  Exclude:
+    - lib/dilock/etcd/proto/**/*.rb

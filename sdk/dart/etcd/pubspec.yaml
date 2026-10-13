@@ -1,0 +1,16 @@
+name: dilock_etcd
+description: Native etcd v3 lease and Lock service adapter for Dilock.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+dependencies:
+  dilock:
+    ^0.1.0
+  fixnum: ^1.1.1
+  grpc: ^4.0.1
+  protobuf: ^4.1.0
+dev_dependencies:
+  lints: ^6.1.0
+  protoc_plugin: ^22.0.0
+  test: ^1.31.0

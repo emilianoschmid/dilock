@@ -1,0 +1,41 @@
+<?php
+
+namespace Grpc;
+
+/** Type the dynamic surface documented by grpc/grpc's generated-client API. */
+class BaseStub
+{
+    /**
+     * @template T of object
+     * @param string $method
+     * @param mixed $argument
+     * @param array{class-string<T>, string} $deserialize
+     * @param array<string, list<string>> $metadata
+     * @param array<string, mixed> $options
+     * @return object
+     */
+    protected function _simpleRequest($method, $argument, $deserialize, array $metadata = [], array $options = []) {}
+
+    /**
+     * @template T of object
+     * @param string $method
+     * @param array{class-string<T>, string} $deserialize
+     * @param array<string, list<string>> $metadata
+     * @param array<string, mixed> $options
+     * @return BidiStreamingCall<T>
+     */
+    protected function _bidiRequest($method, $deserialize, array $metadata = [], array $options = []) {}
+}
+
+/** @template T */
+class BidiStreamingCall
+{
+    /** @return T|null */
+    public function read(): mixed {}
+    /**
+     * @param object $data
+     * @param array<string, mixed> $options
+     */
+    public function write($data, array $options = []): void {}
+    public function writesDone(): void {}
+}

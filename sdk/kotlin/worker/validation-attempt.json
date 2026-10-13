@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "sdk": "kotlin",
+  "scope": "test-only JSONL worker source, parser tests, and Redis/etcd process integration",
+  "status": "partial",
+  "checks": [
+    {
+      "name": "Shared worker schema operation and renew requirement",
+      "status": "pass_coordinator_reported",
+      "result": "The coordinator added renew to the operation enum and lease_id to the conditional required fields, and reports both focused schema tests pass. This resolves the earlier protocol/schema discrepancy; it does not register the Kotlin worker."
+    },
+    {
+      "name": "Docker Kotlin compile and tests",
+      "status": "pass",
+      "result": "The bounded online build in the pinned Gradle image completed :compileKotlin, :worker:compileKotlin, and :worker:test successfully. It includes three parser tests and two Redis process tests. Detailed image and source evidence is in validation/implementation/kotlin-conformance-worker-redis-process-docker-20261007.json."
+    },
+    {
+      "name": "Redis reader responsiveness and cancellation",
+      "status": "pass",
+      "result": "While a competing owner held the resource, hello returned before owner release. A local Redis CLIENT PAUSE delayed the acquisition reply; cancel_request was accepted and the acquisition response reported cancelled with remote_outcome_unknown=true. A successor acquired after the owner's TTL expired."
+    },
+    {
+      "name": "Worker capacity and shutdown cleanup",
+      "status": "pass",
+      "result": "The process rejected an extra request after 16 active acquires and after 16 reserved lease slots. All active acquisitions were cancelled. Shutdown attempted one held-lease cleanup, reported outstanding_cleanup_attempts=0, and exited within five seconds."
+    },
+    {
+      "name": "First Docker test attempt",
+      "status": "fail_superseded",
+      "result": "The first integration run found that clientPause was unavailable at runtime in the resolved Jedis API. The fixture now sends CLIENT PAUSE through a local RESP socket; the full test suite then passed."
+    },
+    {
+      "name": "etcd worker integration",
+      "status": "pass",
+      "result": "Against a local etcd 3.7.2 Docker member, two worker process tests passed cancellation and reader responsiveness, acquisition after cancellation, unsupported capability reporting, queued acquisition after TTL expiry, inspect/fences, idempotent release, and bounded shutdown. After a stale predecessor release, a third acquire still timed out while the successor held the resource. Detailed evidence is in validation/implementation/kotlin-conformance-worker-etcd-process-docker-20261007.json."
+    },
+    {
+      "name": "Initial etcd process run",
+      "status": "fail_superseded",
+      "result": "The first run expected already_not_owned after TTL expiry, but etcd confirmed cleanup as released. The fixture now verifies inspect=lost, accepts either confirmed cleanup outcome, and requires repeat release to preserve the returned status; the bounded rerun passed."
+    },
+    {
+      "name": "Shared conformance registration",
+      "status": "not_run",
+      "result": "The shared worker manifest remains unchanged pending wider protocol review and pairwise interoperability evidence."
+    }
+  ],
+  "publication": "not_run"
+}

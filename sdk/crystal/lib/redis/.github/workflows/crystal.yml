@@ -1,0 +1,50 @@
+name: Crystal CI
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        crystal:
+        - "1.17"
+        - "1.18"
+        - "1.19"
+        - "1.20"
+        - latest
+        - nightly
+        redis:
+        - "6.0"
+        - "6.2"
+        - "7.0"
+        - "7.2"
+        - "8.0"
+        - "8.2"
+        - "8.4"
+        - "8.6"
+        - "8.8"
+    container:
+      image: crystallang/crystal:${{ matrix.crystal }}
+
+    services:
+      redis:
+        image: redis:${{ matrix.redis }}
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 1s
+          --health-timeout 5s
+          --health-retries 60
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install dependencies
+      run: shards install
+    - name: Run tests
+      run: crystal spec --profile
+      env:
+        REDIS_URL: redis://redis/

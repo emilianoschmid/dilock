@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(DilockCpp CONFIG REQUIRED)
+
+include("${CMAKE_CURRENT_LIST_DIR}/DilockFortranTargets.cmake")
+check_required_components(DilockFortran)

@@ -1,0 +1,228 @@
+name: Complete SDK Nightly
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: complete-sdk-nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  all-sdk-backend-conformance:
+    name: Seven SDKs against Redis and etcd
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    services:
+      redis:
+        image: redis@sha256:6f81e8915c60b065a524e6967e0ad1c639ba6efa84d669f823683ea04d9150ee
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out Dilock
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '8.0.416'
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.9'
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.20.0'
+          cache: npm
+          cache-dependency-path: sdk/typescript/package-lock.json
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.8'
+          cache: false
+      - name: Set up Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21.0.12+7'
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install 1.99.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.99.0
+      - name: Install pinned protoc for Rust etcd-client
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=31.1
+          archive="protoc-${version}-linux-x86_64.zip"
+          download="$RUNNER_TEMP/$archive"
+          install_dir="$RUNNER_TEMP/protoc-${version}"
+          curl --fail --location --retry 0 \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v${version}/${archive}" \
+            --output "$download"
+          echo "96553041f1a91ea0efee963cb16f462f5985b4d65365f3907414c360044d8065  $download" | sha256sum --check --status
+          mkdir -p "$install_dir"
+          unzip -q "$download" -d "$install_dir"
+          test -x "$install_dir/bin/protoc"
+          "$install_dir/bin/protoc" --version | grep -Fx "libprotoc $version"
+          echo "PROTOC=$install_dir/bin/protoc" >> "$GITHUB_ENV"
+          echo "$install_dir/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned C++ build tools and optional etcd dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes protobuf-compiler libprotobuf-dev libgrpc++-dev protobuf-compiler-grpc
+          python -m pip install --disable-pip-version-check 'cmake==4.2.3' 'conan==2.22.2'
+      - name: Prepare isolated SDK environments
+        run: |
+          python -m venv .tools/venv
+          .tools/venv/bin/python -m pip install --disable-pip-version-check 'sdk/python[redis,etcd]' 'pytest==9.0.2' 'pytest-asyncio==1.3.0'
+          conan profile detect --force
+          conan install sdk/cpp/conanfile.py --output-folder .tools/ci/cpp-deps --build=missing -s build_type=Release -o "&:with_etcd=True"
+      - name: Install TypeScript dependencies
+        working-directory: sdk/typescript
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Build the etcd server from its pinned release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: etcd-io/etcd
+          ref: 68c065e562994b89e333e77b039ad066f933c586
+          path: .tools/ci/etcd-source
+          persist-credentials: false
+      - name: Compile and start single-member etcd 3.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/etcd-data"
+          pushd .tools/ci/etcd-source
+          go build -mod=readonly -o "$RUNNER_TEMP/etcd" ./server
+          popd
+          "$RUNNER_TEMP/etcd" \
+            --name s1 \
+            --data-dir "$RUNNER_TEMP/etcd-data" \
+            --listen-client-urls http://127.0.0.1:22379 \
+            --advertise-client-urls http://127.0.0.1:22379 \
+            --listen-peer-urls http://127.0.0.1:22380 \
+            --initial-advertise-peer-urls http://127.0.0.1:22380 \
+            --initial-cluster s1=http://127.0.0.1:22380 \
+            --initial-cluster-token dilock-nightly \
+            --initial-cluster-state new \
+            > "$RUNNER_TEMP/etcd.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/etcd.pid"
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:22379/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/etcd.log"
+          exit 1
+
+      - name: Build and test .NET SDK
+        run: |
+          dotnet test sdk/dotnet/Tests/Dilock.Tests.csproj --configuration Release
+          dotnet build sdk/dotnet/Worker/Worker.csproj --configuration Release
+      - name: Build and test C++ SDK with both profiles
+        run: |
+          cmake -S sdk/cpp -B build/cpp -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/cpp --parallel 2
+          ctest --test-dir build/cpp --output-on-failure
+          cmake -S sdk/cpp -B .tools/dilock-cpp-etcd -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build .tools/dilock-cpp-etcd --parallel 2
+      - name: Test Python SDK
+        run: .tools/venv/bin/python -m pytest -p no:cacheprovider -q sdk/python/tests
+      - name: Build and test TypeScript SDK
+        working-directory: sdk/typescript
+        run: npm test
+      - name: Build and test Go SDK
+        working-directory: sdk/go
+        env:
+          GOTOOLCHAIN: local
+        run: go test -mod=readonly ./...
+      - name: Build and test Rust SDK and conformance worker
+        working-directory: sdk/rust
+        run: cargo +1.99.0 test --locked --workspace && cargo +1.99.0 build --locked --release -p dilock-redis-worker
+      - name: Build and test Java SDK
+        run: mvn --batch-mode --no-transfer-progress --file sdk/java/pom.xml test package
+
+      - name: Build C++ worker with Redis dependencies
+        run: |
+          cmake -S sdk/cpp -B build/cpp-redis -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/cpp-redis --parallel 2
+      - name: Build all native JSON Lines workers
+        env:
+          GOTOOLCHAIN: local
+        run: |
+          dotnet build sdk/dotnet/Worker/Worker.csproj --configuration Release
+          cmake --build build/cpp --parallel 2 --target dilock_cpp_worker
+          .tools/venv/bin/python -m compileall -q sdk/python
+          npm --prefix sdk/typescript run build
+          go -C sdk/go/cmd/dilock-go-worker build -mod=readonly .
+          cargo +1.99.0 build --locked --release -p dilock-redis-worker
+          mvn --batch-mode --no-transfer-progress --file sdk/java/pom.xml package dependency:build-classpath -DincludeScope=runtime -Dmdep.outputFile=target/runtime-classpath.txt
+
+      - name: Run native integration tests against each real backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          for backend in redis etcd; do
+            case "$backend" in
+              redis) endpoint='redis://127.0.0.1:6379' ;;
+              etcd) endpoint='http://127.0.0.1:22379' ;;
+            esac
+            for sdk in dotnet cpp python typescript go rust; do
+              .tools/venv/bin/python tools/dev.py integration --sdk "$sdk" --backend "$backend" --endpoint "$endpoint"
+            done
+            if [[ "$backend" == etcd ]]; then
+              .tools/venv/bin/python tools/dev.py integration --sdk java --backend etcd --endpoint "$endpoint"
+            fi
+          done
+
+      - name: Run every ordered SDK pair for Redis
+        run: .tools/venv/bin/python conformance/run.py --backend redis --endpoint redis://127.0.0.1:6379 --output validation/implementation/m6-nightly-redis-pairs.json
+      - name: Run every ordered SDK pair for etcd
+        run: .tools/venv/bin/python conformance/run.py --backend etcd --endpoint http://127.0.0.1:22379 --output validation/implementation/m6-nightly-etcd-pairs.json
+      - name: Run n-way, killed-owner and renewed-owner faults against Redis
+        run: .tools/venv/bin/python conformance/nway.py --backend redis --endpoint redis://127.0.0.1:6379 --output validation/implementation/m6-nightly-redis-faults.json
+      - name: Run n-way, killed-owner and renewed-owner faults against etcd
+        run: .tools/venv/bin/python conformance/nway.py --backend etcd --endpoint http://127.0.0.1:22379 --output validation/implementation/m6-nightly-etcd-faults.json
+      - name: Run all-SDK pause-beyond-TTL and resume against Redis
+        run: .tools/venv/bin/python conformance/nway.py --backend redis --endpoint redis://127.0.0.1:6379 --only-pause-owner --output validation/implementation/m6-nightly-redis-pause-resume.json
+      - name: Run all-SDK pause-beyond-TTL and resume against etcd
+        run: .tools/venv/bin/python conformance/nway.py --backend etcd --endpoint http://127.0.0.1:22379 --only-pause-owner --output validation/implementation/m6-nightly-etcd-pause-resume.json
+
+      - name: Publish machine-readable run summary to the job log
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          for path in sorted(Path('validation/implementation').glob('m6-nightly-*.json')):
+              try:
+                  report = json.loads(path.read_text(encoding='utf-8'))
+              except (OSError, json.JSONDecodeError):
+                  continue
+              states = [entry.get('status', 'unknown') for entry in report.get('results', [])]
+              passed = sum(state == 'passed' for state in states)
+              failed = sum(state == 'failed' for state in states)
+              print(f'- `{path}`: {report.get("status", "completed")}; passed={passed}; failed={failed}')
+          PY
+      - name: Stop the temporary etcd process
+        if: always()
+        run: if [ -f "$RUNNER_TEMP/etcd.pid" ]; then kill "$(cat "$RUNNER_TEMP/etcd.pid")" || true; fi

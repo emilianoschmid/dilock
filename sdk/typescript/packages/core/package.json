@@ -1,0 +1,13 @@
+{
+  "name": "@dilock/core",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Backend-independent identity and error types for Dilock",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist/*.js", "dist/*.d.ts", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": { "build": "tsc -p tsconfig.json", "prepack": "npm run build" }
+}

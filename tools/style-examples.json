@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "examples": [
+    {
+      "id": "dotnet",
+      "path": "examples/style/dotnet"
+    },
+    {
+      "id": "cpp",
+      "path": "examples/style/cpp"
+    },
+    {
+      "id": "python",
+      "path": "examples/style/python"
+    },
+    {
+      "id": "typescript",
+      "path": "examples/style/typescript"
+    },
+    {
+      "id": "go",
+      "path": "examples/style/go"
+    },
+    {
+      "id": "rust",
+      "path": "examples/style/rust"
+    },
+    {
+      "id": "java",
+      "path": "examples/style/java"
+    },
+    {
+      "id": "kotlin",
+      "path": "examples/style/kotlin"
+    },
+    {
+      "id": "php",
+      "path": "examples/style/php"
+    },
+    {
+      "id": "ruby",
+      "path": "examples/style/ruby"
+    },
+    {
+      "id": "swift",
+      "path": "examples/style/swift"
+    },
+    {
+      "id": "dart",
+      "path": "examples/style/dart"
+    },
+    {
+      "id": "elixir",
+      "path": "examples/style/elixir"
+    },
+    {
+      "id": "scala",
+      "path": "examples/style/scala"
+    },
+    {
+      "id": "c",
+      "path": "examples/style/c"
+    }
+  ]
+}

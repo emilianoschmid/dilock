@@ -1,0 +1,17 @@
+name: Design or feature proposal
+description: Propose a capability with a concrete use case.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and use case
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and compatibility impact
+  - type: textarea
+    id: validation
+    attributes:
+      label: Proposed tests and maintenance scope

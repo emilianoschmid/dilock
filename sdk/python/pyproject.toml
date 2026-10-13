@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dilock"
+version = "0.1.0.dev1"
+description = "Named distributed leases with explicit ownership and failure semantics"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+readme = "README.md"
+dependencies = []
+
+[project.optional-dependencies]
+redis = ["redis==8.1.0"]
+etcd = ["grpcio==1.84.0", "protobuf==7.36.2"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dilock"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+exclude = ["src/dilock/_etcd_proto"]
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["dilock._etcd_proto.*"]
+ignore_errors = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = ["dilock.etcd"]
+disable_error_code = ["no-untyped-call", "attr-defined", "import-untyped"]

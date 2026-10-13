@@ -1,0 +1,64 @@
+{
+  "display_name": "Dilock",
+  "slug": "dilock",
+  "status": "blueprint-with-style-samples",
+  "snapshot_date": "2026-10-03",
+  "github_owner": null,
+  "github_repository": "dilock",
+  "name_reserved": false,
+  "license_proposal": "Apache-2.0",
+  "protocol_draft": 1,
+  "candidate_version": "0.1.0-alpha.1",
+  "python_candidate_version": "0.1.0a1",
+  "initial_sdks": [
+    "dotnet",
+    "cpp",
+    "python",
+    "typescript",
+    "go",
+    "rust",
+    "java"
+  ],
+  "initial_backends": [
+    "redis",
+    "etcd"
+  ],
+  "experimental_backends": [
+    "nats"
+  ],
+  "later_sdks": [
+    "javascript",
+    "fsharp",
+    "vbnet",
+    "powershell",
+    "clojure",
+    "groovy",
+    "erlang",
+    "objectivec",
+    "zig",
+    "nim",
+    "d",
+    "crystal",
+    "lua",
+    "haskell",
+    "ocaml",
+    "perl",
+    "julia",
+    "r",
+    "fortran"
+  ],
+  "remote_writes_authorized": false,
+  "name_choice": "owner-confirmed",
+  "extended_sdks": [
+    "kotlin",
+    "php",
+    "ruby",
+    "swift",
+    "dart",
+    "elixir",
+    "scala",
+    "c"
+  ],
+  "sample_count": 15,
+  "language_catalog_count": 34
+}

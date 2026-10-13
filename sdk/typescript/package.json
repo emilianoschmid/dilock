@@ -1,0 +1,23 @@
+{
+  "name": "dilock-typescript-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/redis",
+    "packages/etcd"
+  ],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "npm run build --workspace=@dilock/core && npm run build --workspace=@dilock/redis && npm run build --workspace=@dilock/etcd && tsc -p tsconfig.json",
+    "test": "npm run build && node tools/run-tests.mjs",
+    "test:packages": "npm run build && python consumers/package_consumer.py --output .tools/optional-package-consumer-report.json",
+    "worker": "node target/src/worker.js",
+    "pack:check": "npm run build && npm pack --workspaces --dry-run"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "7.0.2"
+  }
+}

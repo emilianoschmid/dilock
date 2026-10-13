@@ -1,0 +1,84 @@
+{
+  "status": "PASS",
+  "cleanup": "PASS: ephemeral etcd, proxy and internal network removed; Maven/metrics containers auto-removed; no published ports or volumes",
+  "sdk": "Java",
+  "backend": "etcd",
+  "etcd_version": "3.7.2",
+  "maven_summary": [
+    "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.790 s -- in org.dilock.etcd.EtcdAppliedDoubleLostAckLiveTest"
+  ],
+  "outcome": "ALREADY_NOT_OWNED",
+  "repeat_outcome": "ALREADY_NOT_OWNED",
+  "owner_state": "RELEASED",
+  "reason": "both cleanup ACKs were withheld, then exact opaque-key Range confirmed absence",
+  "proxy": {
+    "range_applied": 4,
+    "range_requests": 4,
+    "revoke_acknowledged": 1,
+    "revoke_applied": 2,
+    "revoke_requests": 2,
+    "revoke_withheld": 1,
+    "unlock_applied": 2,
+    "unlock_requests": 2,
+    "unlock_withheld": 1
+  },
+  "owner_lock_keys": [],
+  "successor_acquired": true,
+  "successor_revision_greater": true,
+  "successor_release": "RELEASED",
+  "namespace": "m6-java-etcd-ack-4272f9aba208",
+  "images": {
+    "quay.io/coreos/etcd:v3.7.2": "sha256:e9afa62b1e914f02db62e5c46a7a140d8cdf026f2ed888cab4e5a142ec4d06fd",
+    "golang:1.26.8-bookworm": "sha256:345775a9b624e690c1c0cd0755149bc8353e221d1c282596564e6d025fd294a9",
+    "maven:3.9.9-eclipse-temurin-21": "sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+    "python:3.12-slim": "sha256:05cda9777409a9c3ffddd94a4c476b79f0769a0b4857f0c7ed9226b6800b0d6f"
+  },
+  "proxy_sha256": "ed4a994ee6203aa37825825915fe4cb182fb60298126a2387db2bf57899efb06",
+  "sha256": {
+    "sdk/java/etcd/src/test/java/org/dilock/etcd/EtcdAppliedDoubleLostAckLiveTest.java": "2e5c2909f45d3bdab7f71f89b2a8377d12e2ad22559ab71df115b100d20771d4",
+    "sdk/java/etcd/src/main/java/org/dilock/etcd/EtcdProvider.java": "5c4ccd0bc5f971c7fd824be1fcf1960737333a15846cace2a96f2911a26e3c30",
+    "sdk/java/etcd/src/main/java/org/dilock/etcd/EtcdLease.java": "251fd532a15b55165bcc1f6b75d09dcded6d619bba090b23c36128245279bd72",
+    "sdk/cpp/tests/fault/etcd_unlock_ack_proxy/main.go": "53b78dc4d439367585f816d2f7f43c83ab13c6d719a00bc3ccec1ad5750bf249",
+    "sdk/java/tests/fault/etcd_double_lost_ack_integration.py": "fd1075d253b46aeecf9cac115b828e214c594bdbc15096ae2f246b7d7706c513",
+    "sdk/cpp/tests/fault/etcd_unlock_ack_proxy/go.mod": "4a5d340086798d663ede756a73fcde78fcbd7cb67276729a73b7db040f633295",
+    "sdk/cpp/tests/fault/etcd_unlock_ack_proxy/go.sum": "645ebe3e58f2070e5831a17f5fde304c720e68a1d02b57c08f3f8554f074853a",
+    ".tools/etcd-unlock-ack-proxy": "ed4a994ee6203aa37825825915fe4cb182fb60298126a2387db2bf57899efb06"
+  },
+  "current_reactor": {
+    "status": "PASS",
+    "image": "maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e",
+    "command": "docker run --rm --pull=never --network none --mount type=bind,source=${PWD},target=/repo,readonly --mount type=bind,source=${PWD}/.tools/m2repo,target=/m2,readonly maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e /bin/sh -c 'set -eu; mkdir -p /tmp/workspace/sdk /tmp/workspace/spec; cp -a /repo/sdk/java /tmp/workspace/sdk/java; cp -a /repo/spec/. /tmp/workspace/spec/; cp -a /m2 /tmp/m2; mvn -o -B -ntp -Dmaven.repo.local=/tmp/m2 -f /tmp/workspace/sdk/java/pom.xml -pl core,redis,etcd -am test'",
+    "tests": [
+      {
+        "module": "core",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "module": "redis",
+        "passed": 6,
+        "failed": 0,
+        "skipped": 1
+      },
+      {
+        "module": "etcd",
+        "passed": 6,
+        "failed": 0,
+        "skipped": 2
+      }
+    ],
+    "totals": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 3,
+      "run": 19
+    },
+    "warnings": [
+      "Missing optional com.google.j2objc.annotations.ReflectionSupport.Level class during etcd test compilation."
+    ],
+    "not_run": "Three live-endpoint tests skipped in full reactor; the focused applied double-lost-ACK test passed with its own disposable etcd fixture.",
+    "initial_harness_failure": "First offline reactor copy used /tmp/workspace/sdk-java instead of /tmp/workspace/sdk/java and failed before Maven found the POM. Corrected copy-layout invocation passed."
+  },
+  "publication": "NOT_ATTEMPTED"
+}

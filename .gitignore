@@ -1,0 +1,37 @@
+# Local workspace material
+/.local-review/
+/planning/
+/artifacts/
+/validation/
+**/validation/
+**/.tools/
+**/.tmp/
+/.cargo/
+
+# Generated builds, dependencies, and caches
+**/build*/
+**/target/
+**/dist/
+**/coverage/
+**/obj*/
+**/node_modules/
+**/vendor/
+**/deps/
+**/__pycache__/
+**/.cache*/
+**/.*cache*
+**/.dart_tool/
+**/.gradle/
+**/.build/
+**/.venv/
+**/venv/
+
+# Local environment files
+.env*
+!.env.example
+.DS_Store
+Thumbs.db
+**/_build/
+**/dist-newstyle/
+**/*.tar
+sdk/elixir/doc/

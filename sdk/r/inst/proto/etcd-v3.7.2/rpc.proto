@@ -1,0 +1,67 @@
+syntax = "proto3";
+package etcdserverpb;
+
+import "kv.proto";
+
+// Thin native gRPC bindings for the etcd v3.7.2 RPCs Dilock uses. Message
+// names, field names, field numbers and wire types are copied from the pinned
+// upstream API definitions; unused fields are intentionally omitted.
+service KV {
+  rpc Range(RangeRequest) returns (RangeResponse);
+  rpc Put(PutRequest) returns (PutResponse);
+}
+
+service Lease {
+  rpc LeaseGrant(LeaseGrantRequest) returns (LeaseGrantResponse);
+  rpc LeaseRevoke(LeaseRevokeRequest) returns (LeaseRevokeResponse);
+  rpc LeaseKeepAlive(stream LeaseKeepAliveRequest) returns (stream LeaseKeepAliveResponse);
+}
+
+message ResponseHeader {
+  uint64 cluster_id = 1;
+  uint64 member_id = 2;
+  int64 revision = 3;
+  uint64 raft_term = 4;
+}
+
+message RangeRequest {
+  enum SortOrder { NONE = 0; ASCEND = 1; DESCEND = 2; }
+  enum SortTarget { KEY = 0; VERSION = 1; CREATE = 2; MOD = 3; VALUE = 4; }
+  bytes key = 1;
+  bytes range_end = 2;
+  int64 limit = 3;
+  int64 revision = 4;
+  SortOrder sort_order = 5;
+  SortTarget sort_target = 6;
+  bool serializable = 7;
+  bool keys_only = 8;
+  bool count_only = 9;
+  int64 min_mod_revision = 10;
+  int64 max_mod_revision = 11;
+  int64 min_create_revision = 12;
+  int64 max_create_revision = 13;
+}
+
+message RangeResponse {
+  ResponseHeader header = 1;
+  repeated mvccpb.KeyValue kvs = 2;
+  bool more = 3;
+  int64 count = 4;
+}
+
+message PutRequest {
+  bytes key = 1;
+  bytes value = 2;
+  int64 lease = 3;
+  bool prev_kv = 4;
+  bool ignore_value = 5;
+  bool ignore_lease = 6;
+}
+message PutResponse { ResponseHeader header = 1; mvccpb.KeyValue prev_kv = 2; }
+
+message LeaseGrantRequest { int64 TTL = 1; int64 ID = 2; }
+message LeaseGrantResponse { ResponseHeader header = 1; int64 ID = 2; int64 TTL = 3; string error = 4; }
+message LeaseRevokeRequest { int64 ID = 1; }
+message LeaseRevokeResponse { ResponseHeader header = 1; }
+message LeaseKeepAliveRequest { int64 ID = 1; }
+message LeaseKeepAliveResponse { ResponseHeader header = 1; int64 ID = 2; int64 TTL = 3; }

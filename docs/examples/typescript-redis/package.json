@@ -1,0 +1,10 @@
+{
+  "name": "dilock-typescript-redis-consumer-example",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "check": "node ../../../sdk/typescript/node_modules/typescript/bin/tsc --noEmit --strict --noUncheckedIndexedAccess --exactOptionalPropertyTypes --target ES2022 --module NodeNext --moduleResolution NodeNext --types node --typeRoots ../../../sdk/typescript/node_modules/@types consumer.ts",
+    "start": "node consumer.ts"
+  }
+}

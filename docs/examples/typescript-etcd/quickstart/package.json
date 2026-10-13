@@ -1,0 +1,11 @@
+{
+  "name": "dilock-etcd-quickstart",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node quickstart.mjs", "configured": "node quickstart.mjs --configured" },
+  "dependencies": {
+    "@dilock/core": "file:../../../../sdk/typescript/packages/core",
+    "@dilock/etcd": "file:../../../../sdk/typescript/packages/etcd"
+  }
+}
