@@ -76,7 +76,7 @@ jobs:
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
-          java-version: '21.0.12+7'
+          java-version: '21.0.12+8.0.LTS'
 
       - name: Install Conan and resolve C++ SDK dependencies
         if: matrix.sdk == 'cpp'
@@ -124,7 +124,7 @@ jobs:
         id: test_cpp
         if: matrix.sdk == 'cpp'
         run: |
-          cmake -S sdk/cpp -B .tools/ci/cpp-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/.tools/ci/cpp-deps/build/generators/conan_toolchain.cmake" -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=OFF
+          cmake -S sdk/cpp -B .tools/ci/cpp-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/.tools/ci/cpp-deps/build/Release/generators/conan_toolchain.cmake" -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=OFF
           cmake --build .tools/ci/cpp-build --parallel 2
           ctest --test-dir .tools/ci/cpp-build --output-on-failure
       - name: Test Python SDK

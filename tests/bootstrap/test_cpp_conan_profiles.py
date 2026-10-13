@@ -20,7 +20,7 @@ class CppConanProfileWorkflowTests(unittest.TestCase):
     def test_pr_keeps_the_default_redis_only_conan_profile(self):
         recipe = (ROOT / "sdk/cpp/conanfile.py").read_text(encoding="utf-8")
         pr = (ROOT / ".github/workflows/pr.yml").read_text(encoding="utf-8")
-        self.assertIn('default_options = {"with_etcd": False}', recipe)
+        self.assertIn('default_options = {"with_etcd": False, "shared": False}', recipe)
         self.assertIn("conan install conanfile.py --output-folder ../../.tools/ci/cpp-deps --build=missing -s build_type=Release", pr)
         self.assertIn("-DDILOCK_BUILD_ETCD=OFF", pr)
 

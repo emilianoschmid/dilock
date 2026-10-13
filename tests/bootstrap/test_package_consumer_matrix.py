@@ -173,10 +173,15 @@ class PackageConsumerMatrixTests(unittest.TestCase):
             self.assertEqual(package_build_python(Path("repo"), configured), configured.resolve())
 
     def test_python_sdist_uses_the_configured_build_environment(self):
-        configured = Path("C:/external/venv/Scripts/python.exe")
+        if sys.platform == "win32":
+            configured = Path("C:/external/venv/Scripts/python.exe")
+            expected = Path("C:/external/venv/Lib/site-packages")
+        else:
+            configured = Path("/external/venv/bin/python")
+            expected = Path("/external/venv/lib/site-packages")
         self.assertEqual(
             package_build_site_packages(Path("repo"), configured),
-            Path("C:/external/venv/Lib/site-packages"),
+            expected,
         )
 
     def test_host_permission_and_missing_offline_wheel_are_blocked_not_failed(self):

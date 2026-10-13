@@ -16,6 +16,7 @@ import tomllib
 import uuid
 import zipfile
 from pathlib import Path
+from pathlib import PurePosixPath
 from typing import Any
 
 
@@ -147,11 +148,15 @@ def check_archive_contents(wheel: Path, sdist: Path) -> None:
 
 
 def safe_sdist_target(destination: Path, member_name: str) -> Path:
-    relative = Path(member_name)
-    if relative.is_absolute() or ".." in relative.parts:
+    # Tar member names use POSIX separators even when the archive is built on
+    # Windows. Reject Windows drive/UNC syntax explicitly so this check has
+    # identical behavior on every host platform.
+    relative = PurePosixPath(member_name)
+    if (not member_name or relative.is_absolute() or ".." in relative.parts
+            or "\\" in member_name or ":" in member_name):
         raise DriverError(f"sdist contains an unsafe path: {member_name}")
     root = destination.resolve()
-    target = (destination / relative).resolve()
+    target = destination.joinpath(*relative.parts).resolve()
     if root not in target.parents and target != root:
         raise DriverError(f"sdist member escapes its extraction directory: {member_name}")
     return target
