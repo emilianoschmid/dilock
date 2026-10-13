@@ -58,7 +58,7 @@ jobs:
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
-          java-version: '21.0.12+7'
+          java-version: '21.0.12+8.0.LTS'
       - name: Install Rust toolchain
         run: |
           rustup toolchain install 1.99.0 --profile minimal --component rustfmt --component clippy

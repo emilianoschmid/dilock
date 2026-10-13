@@ -8,8 +8,8 @@ class DilockCppConan(ConanFile):
     license = "Apache-2.0"
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
-    options = {"with_etcd": [True, False]}
-    default_options = {"with_etcd": False}
+    options = {"with_etcd": [True, False], "shared": [True, False]}
+    default_options = {"with_etcd": False, "shared": False}
     exports_sources = "LICENSE", "CMakeLists.txt", "cmake/*", "consumer/*", "include/**", "proto/**", "resources/*", "src/*", "tests/*", "worker.cpp"
 
     def requirements(self):

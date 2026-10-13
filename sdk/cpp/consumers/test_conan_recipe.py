@@ -52,8 +52,8 @@ def test_conan_redis_profile_omits_etcd_dependencies() -> None:
         and node not in ast.walk(etcd_branch)
     ]
 
-    assert options == {"with_etcd": [True, False]}
-    assert defaults == {"with_etcd": False}
+    assert options == {"with_etcd": [True, False], "shared": [True, False]}
+    assert defaults == {"with_etcd": False, "shared": False}
     assert always_required == [
         "redis-plus-plus/1.3.15", "openssl/3.5.8", "nlohmann_json/3.12.0",
     ]
