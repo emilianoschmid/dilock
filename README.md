@@ -1,10 +1,12 @@
 # Dilock
 
-Distributed locks with native APIs and explicit guarantees.
+One distributed-lock contract, carried across 33 language ecosystems.
 
-**Status: experimental and under active development; not production-ready.** This repository contains native SDK implementations for multiple languages and Redis/etcd adapters, but the project has no published release. Support varies by SDK/backend; do not infer production readiness, failover guarantees, or package availability from the presence of source code.
+Dilock is an AI-assisted polyglot engineering experiment: it explores how one carefully specified distributed-lock contract can be implemented with idiomatic APIs across a broad set of languages. The repository has 33 language/ecosystem implementations or facades, backed today by Redis and etcd profiles. Some languages own their backend adapters; others reuse a shared Java, .NET, Elixir, TypeScript, or C ABI engine. This breadth is the point of the project, not a claim that every route has equal maturity.
 
-Dilock is being built to coordinate cooperating services written in different languages using infrastructure they already run. The shared contract specifies resource identity, ownership, lifecycle and failure outcomes; each SDK exposes that contract in its language's native style. Backend adapters are optional dependencies, not a mandatory stack.
+The design keeps language APIs separate from coordination-backend profiles, so additional synchronization technologies can be explored as new adapters without changing the project's polyglot goal. Redis and etcd are the current backends; they do not coordinate with each other. The contract specifies resource identity, ownership, lifecycle and failure outcomes, and each SDK exposes it in its language's native style.
+
+**Status: experimental and under active development; not production-ready.** There is no published release. Support and validation vary by SDK/backend; source code and examples do not imply production readiness, failover guarantees, or package availability.
 
 ## Documentation
 
@@ -14,11 +16,52 @@ This README is the human-facing project entry point. The [documentation index](d
 
 Start with [semantics](spec/SEMANTICS.md), [language API guidance](docs/api/LANGUAGE-DESIGN.md), and [backend profiles](docs/architecture/BACKENDS.md). The [small style examples](examples/style/README.md) illustrate idioms only; the [distributed Redis and etcd examples](docs/examples/README.md) exercise the SDK backends. A separate [Redis command-boundary example](examples/redis_python/README.md) demonstrates owner-checked commands; it is not a distributed SDK implementation.
 
-## Initial SDK scope
+## Languages and distributed-lock technologies
 
-The initial implementation scope is C#/.NET, C++, Python, TypeScript/Node.js, Go, Rust and Java, with Redis and etcd adapters. Each SDK/backend pair has its own maturity and limitations; source presence alone is not a support claim.
+The table below makes the current breadth visible. It lists the SDK implementation route and the technology used to coordinate through each backend. Objective-C remains a catalog placeholder without SDK source, so it is not counted among the 33 implementations. A resource is coordinated only by clients using the same backend, namespace, and protocol profile. See each linked guide for limitations and validation status.
 
-Python Redis install from this checkout: `python -m pip install 'sdk/python[redis]'`. Use only after explicitly provisioning matching namespace metadata. Style samples under `examples/style/` demonstrate syntax and lifetime; they do not implement distributed locks. Publication identifiers remain unverified.
+| Language / ecosystem | Redis lock route | etcd lock route | Usage and examples |
+|---|---|---|---|
+| C# / .NET | .NET SDK + StackExchange.Redis | .NET SDK + native etcd gRPC | [SDK guide](sdk/dotnet/README.md) · [examples](docs/examples/README.md) |
+| C++ | C++ SDK + redis-plus-plus / hiredis | C++ SDK + native etcd gRPC / Protobuf | [SDK guide](sdk/cpp/README.md) · [example](sdk/cpp/README.md) |
+| Python | Python SDK + redis-py | Python SDK + native etcd gRPC / Protobuf | [SDK guide](sdk/python/README.md) · [examples](docs/examples/README.md) |
+| TypeScript / Node.js | TypeScript SDK + node-redis | TypeScript SDK + native etcd gRPC-js / Protobuf | [SDK guide](sdk/typescript/README.md) · [examples](docs/examples/README.md) |
+| Go | Go SDK + go-redis | Go SDK + etcd v3 client | [SDK guide](sdk/go/README.md) · [examples](docs/examples/README.md) |
+| Rust | Rust SDK + redis crate | Rust SDK + etcd-client | [SDK guide](sdk/rust/README.md) · [examples](docs/examples/README.md) |
+| Java | Java SDK + Jedis | Java SDK + Jetcd | [SDK guide](sdk/java/README.md) · [examples](docs/examples/README.md) |
+| Dart | Dart Redis adapter | Dart etcd v3 gRPC adapter | [SDK guide](sdk/dart/README.md) · [guide examples](sdk/dart/README.md) |
+| Elixir | Elixir adapter + Redix | Elixir adapter + generated etcd v3 gRPC stubs | [SDK guide](sdk/elixir/README.md) · [examples](sdk/elixir/examples/) |
+| PHP | PHP adapter + ext-redis | PHP adapter + native etcd gRPC | [SDK guide](sdk/php/README.md) · [examples](sdk/php/examples/) |
+| Ruby | Ruby adapter + redis gem | Ruby adapter + native etcd gRPC | [SDK guide](sdk/ruby/README.md) · [examples](sdk/ruby/examples/) |
+| Swift | Swift adapter + RediStack | Swift adapter + grpc-swift / Protobuf | [SDK guide](sdk/swift/README.md) · [guide examples](sdk/swift/README.md) |
+| OCaml | OCaml/Lwt adapter + Redis-Lwt | Experimental native etcd gRPC adapter | [SDK guide](sdk/ocaml/README.md) · [guide examples](sdk/ocaml/README.md) |
+| Perl | Perl Redis adapter | Perl/EV adapter + native etcd gRPC | [SDK guide](sdk/perl/README.md) · [guide examples](sdk/perl/README.md) |
+| Julia | Experimental adapter + Redis.jl | Experimental adapter + gRPCClient | [SDK guide](sdk/julia/README.md) · [examples](sdk/julia/examples/) |
+| R | Experimental adapter + redux/hiredis | Experimental native etcd gRPC adapter | [SDK guide](sdk/r/README.md) · [examples](sdk/r/examples/) |
+| JavaScript | TypeScript SDK runtime + node-redis | TypeScript SDK runtime + etcd gRPC-js | [SDK guide](sdk/javascript/README.md) · [examples](sdk/javascript/examples/) |
+| Kotlin | Java backend engine + Kotlin facade | Java backend engine + Kotlin facade | [SDK guide and examples](sdk/kotlin/README.md) |
+| Scala | Java backend engine + Scala facade | Java backend engine + Scala facade | [SDK guide and examples](sdk/scala/README.md) |
+| Groovy | Java backend engine + Groovy facade | Java backend engine + Groovy facade | [SDK guide](sdk/groovy/README.md) · [examples](sdk/groovy/examples/) |
+| Clojure | Java backend engine + Clojure facade | Java backend engine + Clojure facade | [SDK guide](sdk/clojure/README.md) · [examples](sdk/clojure/examples/) |
+| F# | .NET backend engine + F# facade | .NET backend engine + F# facade | [SDK guide and examples](sdk/dotnet/reuse/fsharp/README.md) |
+| Visual Basic .NET | .NET backend engine + VB facade | .NET backend engine + VB facade | [SDK guide and examples](sdk/dotnet/reuse/vb/README.md) |
+| PowerShell | .NET backend engine + PowerShell module | .NET backend engine + PowerShell module | [SDK guide and examples](sdk/dotnet/reuse/powershell/README.md) |
+| Erlang | Elixir backend engine + Erlang facade | Elixir backend engine + Erlang facade | [SDK guide](sdk/erlang/README.md) · [examples](sdk/erlang/examples/) |
+| C | C ABI over the C++ Redis engine | C ABI over the C++ etcd engine | [SDK guide](sdk/c/README.md) · [examples](sdk/c/examples/) |
+| Objective-C | Not implemented | Not implemented | [Status and examples index](docs/examples/README.md) |
+| Nim | C ABI over the C++ Redis engine | C ABI over the C++ etcd engine | [SDK guide](sdk/nim/README.md) · [examples](sdk/nim/examples/) |
+| D | C ABI over the C++ Redis engine | C ABI over the C++ etcd engine | [SDK guide](sdk/d/README.md) · [examples](sdk/d/examples/) |
+| Crystal | Crystal Redis adapter | Experimental C ABI / C++ etcd facade | [SDK guide](sdk/crystal/README.md) · [examples](sdk/crystal/examples/) |
+| Fortran | ISO_C_BINDING to the C ABI / C++ Redis engine | ISO_C_BINDING to the C ABI / C++ etcd engine | [SDK guide](sdk/fortran/README.md) · [examples](sdk/fortran/examples/) |
+| Zig | C ABI / C++ Redis engine | C ABI / C++ etcd engine | [SDK guide](sdk/zig/README.md) · [examples](sdk/zig/examples/) |
+| Haskell | Haskell adapter + hedis | Experimental C ABI / C++ etcd facade | [SDK guide](sdk/haskell/README.md) · [examples](sdk/haskell/examples/) |
+| Lua / LuaJIT | OpenResty `lua-resty-redis` adapter; standalone Lua Redis candidate | Experimental LuaJIT C ABI facade | [SDK guide](sdk/lua/README.md) · [examples](sdk/lua/) |
+
+The [distributed examples index](docs/examples/README.md) links the backend quickstarts and per-language samples. Some links point to a runnable source file; others point to a guide whose example is embedded in the README. The [style examples](examples/style/README.md) remain syntax references only and are not distributed-lock implementations.
+
+The listed gRPC and Protobuf components are client-side etcd transport dependencies; they do not require installing Dilock or a separate service beside etcd. Redis owner-check scripts are bundled by the SDK and executed by Redis's built-in Lua engine; operators do not install a Lua service or load Dilock scripts manually.
+
+For example, install the Python Redis adapter from this checkout with `python -m pip install 'sdk/python[redis]'`. Provision matching namespace metadata before connecting. Package identifiers and publication ownership remain unverified.
 
 ## One repository, native packages
 
