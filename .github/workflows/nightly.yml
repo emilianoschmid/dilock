@@ -139,10 +139,10 @@ jobs:
           dotnet build sdk/dotnet/Worker/Worker.csproj --configuration Release
       - name: Build and test C++ SDK with both profiles
         run: |
-          cmake -S sdk/cpp -B build/cpp -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=ON -DCMAKE_BUILD_TYPE=Release
+          cmake -S sdk/cpp -B build/cpp -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/Release/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build build/cpp --parallel 2
           ctest --test-dir build/cpp --output-on-failure
-          cmake -S sdk/cpp -B .tools/dilock-cpp-etcd -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=ON -DCMAKE_BUILD_TYPE=Release
+          cmake -S sdk/cpp -B .tools/dilock-cpp-etcd -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/Release/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build .tools/dilock-cpp-etcd --parallel 2
       - name: Test Python SDK
         run: .tools/venv/bin/python -m pytest -p no:cacheprovider -q sdk/python/tests
@@ -162,7 +162,7 @@ jobs:
 
       - name: Build C++ worker with Redis dependencies
         run: |
-          cmake -S sdk/cpp -B build/cpp-redis -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake -S sdk/cpp -B build/cpp-redis -DCMAKE_TOOLCHAIN_FILE=.tools/ci/cpp-deps/build/Release/generators/conan_toolchain.cmake -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=OFF -DCMAKE_BUILD_TYPE=Release
           cmake --build build/cpp-redis --parallel 2
       - name: Build all native JSON Lines workers
         env:
