@@ -52,16 +52,15 @@ public sealed class ContractTests
     public void RedisAcquisitionRpcBudgetsShareTheTotalWaitDeadline()
     {
         var wait = TimeSpan.FromSeconds(1);
-        var started = Stopwatch.GetTimestamp() - Stopwatch.Frequency / 4;
         var method = typeof(Dilock.Redis.RedisProvider).Assembly
             .GetType("Dilock.Redis.RedisHandle")!
-            .GetMethod("AttemptBudget", BindingFlags.Static | BindingFlags.NonPublic)!;
+            .GetMethod("AttemptBudgetAfter", BindingFlags.Static | BindingFlags.NonPublic)!;
 
-        var budget = (TimeSpan)method.Invoke(null, new object[] { TimeSpan.FromSeconds(2), (TimeSpan?)wait, started })!;
+        var budget = (TimeSpan)method.Invoke(null, new object[] { TimeSpan.FromSeconds(2), (TimeSpan?)wait, TimeSpan.FromMilliseconds(250) })!;
 
-        Assert.InRange(budget, TimeSpan.FromMilliseconds(700), TimeSpan.FromMilliseconds(800));
+        Assert.Equal(TimeSpan.FromMilliseconds(750), budget);
         Assert.Equal(TimeSpan.Zero, (TimeSpan)method.Invoke(null,
-            new object[] { TimeSpan.FromSeconds(2), (TimeSpan?)wait, started - Stopwatch.Frequency })!);
+            new object[] { TimeSpan.FromSeconds(2), (TimeSpan?)wait, TimeSpan.FromSeconds(2) })!);
     }
 
     [Theory]

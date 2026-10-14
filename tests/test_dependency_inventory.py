@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import sys
 import unittest
+import tomllib
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
@@ -16,7 +18,7 @@ class DependencyInventoryTests(unittest.TestCase):
         path = inventory.ROOT / "sdk/dotnet/Dilock.Redis/packages.lock.json"
         rows = inventory.parse_nuget_lock(path)
         row = next(row for row in rows if row["name"] == "StackExchange.Redis")
-        self.assertEqual(row["version"], "3.3.1")
+        self.assertEqual(row["purl"], f"pkg:nuget/StackExchange.Redis@{row['version']}")
         self.assertEqual(row["hashes"][0]["alg"], "SHA-512")
         props = {p["name"]: p["value"] for p in row["properties"]}
         self.assertEqual(props["dilock:source-file-sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
@@ -26,7 +28,7 @@ class DependencyInventoryTests(unittest.TestCase):
         path = inventory.ROOT / "sdk/typescript/package-lock.json"
         rows = inventory.parse_npm_lock(path)
         row = next(row for row in rows if row["name"] == "@grpc/grpc-js")
-        self.assertEqual(row["purl"], "pkg:npm/@grpc/grpc-js@1.14.5")
+        self.assertEqual(row["purl"], f"pkg:npm/@grpc/grpc-js@{row['version']}")
         self.assertEqual(row["hashes"][0]["alg"], "SHA-512")
 
     def test_cargo_and_go_keep_only_resolved_registry_evidence(self) -> None:
@@ -44,17 +46,40 @@ class DependencyInventoryTests(unittest.TestCase):
     def test_python_requires_exact_pin_and_java_resolves_local_property(self) -> None:
         py = inventory.ROOT / "sdk/python/pyproject.toml"
         py_rows = inventory.parse_python_project(py)
-        self.assertEqual([(r["name"], r["version"]) for r in py_rows], [("hatchling", "1.29.0"), ("redis", "8.1.0"), ("grpcio", "1.84.0"), ("protobuf", "7.36.2")])
+        pyproject = tomllib.loads(py.read_text(encoding="utf-8"))
+        declarations = list(pyproject["build-system"]["requires"])
+        project = pyproject["project"]
+        declarations.extend(project.get("dependencies", []))
+        for optional in project.get("optional-dependencies", {}).values():
+            declarations.extend(optional)
+        self.assertEqual(
+            {row["name"] for row in py_rows},
+            {declaration.split("==", maxsplit=1)[0].strip() for declaration in declarations},
+        )
+        for row in py_rows:
+            requirement = next(
+                prop["value"] for prop in row["properties"]
+                if prop["name"] == "dilock:declared-requirement"
+            )
+            self.assertEqual(requirement, f"{row['name']}=={row['version']}")
         self.assertTrue(all(any(p["name"] == "dilock:evidence-quality" and "no-transitive-lock" in p["value"] for p in r["properties"]) for r in py_rows))
 
         pom = inventory.ROOT / "sdk/java/redis/pom.xml"
         java_rows = inventory.parse_java_pom(pom)
         jedis = next(row for row in java_rows if row["name"] == "redis.clients:jedis")
-        self.assertEqual(jedis["version"], "8.0.1")
-        self.assertEqual(jedis["purl"], "pkg:maven/redis.clients/jedis@8.0.1")
+        namespace = {"m": "http://maven.apache.org/POM/4.0.0"}
+        parent_pom = ET.parse(inventory.ROOT / "sdk/java/pom.xml").getroot()
+        self.assertEqual(
+            jedis["version"],
+            parent_pom.findtext("m:properties/m:jedis.version", namespaces=namespace),
+        )
+        self.assertEqual(jedis["purl"], f"pkg:maven/redis.clients/jedis@{jedis['version']}")
         etcd_rows = inventory.parse_java_pom(inventory.ROOT / "sdk/java/etcd/pom.xml")
         jetcd = next(row for row in etcd_rows if row["name"] == "io.etcd:jetcd-grpc")
-        self.assertEqual(jetcd["version"], "0.8.7")
+        self.assertEqual(
+            jetcd["version"],
+            parent_pom.findtext("m:properties/m:jetcd.version", namespaces=namespace),
+        )
 
     def test_inventory_marks_missing_transitive_evidence_and_go_owner(self) -> None:
         bom, report = inventory.inventory(inventory.ROOT)
