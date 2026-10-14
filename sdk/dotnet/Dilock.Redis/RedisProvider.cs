@@ -320,8 +320,15 @@ internal sealed class RedisHandle(RedisProvider provider, string key) : ILockHan
 
     internal static TimeSpan AttemptBudget(TimeSpan rpcTimeout, TimeSpan? wait, long started)
     {
+        var elapsed = Stopwatch.GetElapsedTime(started);
+        return AttemptBudgetAfter(rpcTimeout, wait, elapsed);
+    }
+
+    internal static TimeSpan AttemptBudgetAfter(TimeSpan rpcTimeout, TimeSpan? wait, TimeSpan elapsed)
+    {
         if (wait is null) return rpcTimeout;
-        var remaining = RemainingWait(wait.Value, started);
+        var remaining = wait.Value - elapsed;
+        if (remaining <= TimeSpan.Zero) return TimeSpan.Zero;
         return remaining < rpcTimeout ? remaining : rpcTimeout;
     }
 
