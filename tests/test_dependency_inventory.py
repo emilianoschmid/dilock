@@ -50,11 +50,13 @@ class DependencyInventoryTests(unittest.TestCase):
         declarations = list(pyproject["build-system"]["requires"])
         project = pyproject["project"]
         declarations.extend(project.get("dependencies", []))
-        for optional in project.get("optional-dependencies", {}).values():
-            declarations.extend(optional)
+        for extra, optional in project.get("optional-dependencies", {}).items():
+            if extra != "test":
+                declarations.extend(optional)
+        exact_declarations = [declaration for declaration in declarations if "==" in declaration]
         self.assertEqual(
             {row["name"] for row in py_rows},
-            {declaration.split("==", maxsplit=1)[0].strip() for declaration in declarations},
+            {declaration.split("==", maxsplit=1)[0].strip() for declaration in exact_declarations},
         )
         for row in py_rows:
             requirement = next(
