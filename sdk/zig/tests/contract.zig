@@ -10,12 +10,17 @@ test "C ABI version and default policies match the public contract" {
     try std.testing.expectEqual(c.DILOCK_C_ABI_VERSION, c.dilock_c_abi_version());
     var redis: c.dilock_redis_options = undefined;
     var etcd: c.dilock_etcd_options = undefined;
+    var consul: c.dilock_consul_options = undefined;
     c.dilock_redis_options_init(&redis);
     c.dilock_etcd_options_init(&etcd);
+    c.dilock_consul_options_init(&consul);
     try std.testing.expectEqual(@as(i64, 5000), redis.default_wait_ms);
     try std.testing.expectEqual(@as(i64, 30000), redis.default_lease_ms);
     try std.testing.expectEqual(@as(i64, 5000), etcd.default_wait_ms);
     try std.testing.expectEqual(@as(i64, 30000), etcd.default_lease_ms);
+    try std.testing.expectEqual(@as(i64, 5000), consul.default_wait_ms);
+    try std.testing.expectEqual(@as(i64, 30000), consul.default_lease_ms);
+    try std.testing.expectEqualStrings("http://127.0.0.1:8500", std.mem.span(consul.endpoint));
 }
 
 test "ABI status values remain the checked local version 1 mapping" {
@@ -63,6 +68,26 @@ test "facade methods reject null handles before crossing the C ABI" {
     try std.testing.expectError(error.InvalidArgument, etcd_lease.fence(std.testing.allocator));
     try std.testing.expectError(error.InvalidArgument, etcd_lease.release());
     etcd_lease.deinit();
+
+    var consul_provider = dilock.ConsulProvider{ .raw = null };
+    defer consul_provider.deinit();
+    try std.testing.expectError(error.InvalidArgument, consul_provider.lock("resource"));
+
+    var consul_lock = dilock.ConsulLock{ .raw = null };
+    try std.testing.expectError(error.InvalidArgument, consul_lock.acquireDefault());
+    try std.testing.expectError(error.InvalidArgument, consul_lock.acquire(1, 1));
+    try std.testing.expectError(error.InvalidArgument, consul_lock.acquireCancellable(1, 1, &cancellation));
+    try std.testing.expectError(error.InvalidArgument, consul_lock.acquireDefaultCancellable(&cancellation));
+    try std.testing.expectError(error.InvalidArgument, consul_lock.tryAcquire(1));
+    consul_lock.deinit();
+
+    var consul_lease = dilock.ConsulLease{ .raw = null };
+    try std.testing.expect(!consul_lease.isValid());
+    try std.testing.expectError(error.InvalidArgument, consul_lease.effectiveTtlMs());
+    try std.testing.expectError(error.InvalidArgument, consul_lease.fence(std.testing.allocator));
+    try std.testing.expectError(error.InvalidArgument, consul_lease.renew());
+    try std.testing.expectError(error.InvalidArgument, consul_lease.release());
+    consul_lease.deinit();
 
     try std.testing.expectError(error.InvalidArgument, cancellation.request());
     cancellation.deinit();

@@ -1,8 +1,8 @@
 # Dilock Java SDK
 
-This Java 21 SDK implements the draft 1 Redis single-authority and etcd native-lock profiles. The Maven reactor builds `dilock-core`, `dilock-redis`, and `dilock-etcd` separately. The Redis adapter uses Jedis; the etcd adapter uses Jetcd's official generated protobuf and gRPC stubs. Installing one adapter does not install the other backend client. Neither backend stops a paused process after its lease expires. Redis does not provide strong fencing and cannot guarantee ownership across state loss, asynchronous replica promotion, eviction or manual deletion.
+This Java 21 SDK implements the draft 1 Redis single-authority, etcd native-lock, and Consul HTTP/KV session profiles. The Maven reactor builds `dilock-core` and each backend adapter separately. Redis uses Jedis; etcd uses official generated protobuf/gRPC stubs; Consul uses the JDK HTTP client and Jackson. Installing one adapter does not install the other backend client. A Consul fence is the configured epoch plus the retained KV key's `LockIndex`; deleting and recreating that key can reset the fence. No backend stops a paused process after its lease expires.
 
-The Maven reactor builds `dilock-core`, `dilock-redis`, and `dilock-etcd` separately. Run `mvn test` from this directory to build and test the modules. Dependency and Maven plugin versions are pinned in the reactor POM. The JSONL conformance worker is local test tooling, enabled only by `-Pconformance-worker`; the Python launcher is `python sdk/java/worker_launcher.py <config.json>`.
+Run `mvn test` from this directory to build and test the modules. Dependency and Maven plugin versions are pinned in the reactor POM. Consul is an optional module and does not add a Consul SDK dependency. The JSONL conformance worker is local test tooling, enabled only by `-Pconformance-worker`; the Python launcher is `python sdk/java/worker_launcher.py <config.json>`.
 
 ## Redis
 

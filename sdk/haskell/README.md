@@ -2,12 +2,14 @@
 
 This package is an experimental client for the shared Dilock draft 1 contract. Its Redis module borrows a `hedis` connection; the caller owns connection lifecycle and must not concurrently use one connection in ways forbidden by `hedis`. Redis `withLease` returns the work value together with its `ReleaseOutcome`; cleanup is best effort and does not stop work after lease expiry. When the work throws or is cancelled, the supplied cleanup observer receives the release outcome (`ReleaseUnknown` when cleanup itself throws), and the original work exception or cancellation is rethrown. Observer exceptions are suppressed on this exceptional path so they cannot mask the original error; keep observers prompt and non-blocking. Backend errors and uncertain writes raise typed exceptions; only Redis's null bulk reply to `SET NX` is reported as contention (the `hedis` constructor is `Bulk Nothing`). `renew` is explicit and owner-checked.
 
-The namespace must already have compatible metadata provisioned. The default package build remains Redis-only. An optional `etcd-c-abi` flag adds an experimental Haskell facade over Dilock C ABI v1 and the existing C++ gRPC etcd backend; this is neither a standalone Haskell gRPC implementation nor Haskell cross-SDK conformance evidence. Both backend previews remain experimental and are not production-readiness claims.
+The namespace must already have compatible metadata provisioned. The default package build remains Redis-only. Optional `etcd-c-abi` and `consul-c-abi` flags add experimental Haskell facades over Dilock C ABI v1 and the shared C++ backends; these are neither standalone Haskell transport implementations nor cross-SDK conformance evidence. The previews are not production-readiness claims.
 
 Executable quickstarts are available for the caller-owned Redis connection
 ([Redis example and instructions](examples/redis/README.md)) and, when the
 optional C ABI is installed, the etcd facade
 ([etcd C ABI example and instructions](examples/etcd-c-abi/README.md)).
+The optional Consul facade also has a quickstart
+([Consul C ABI example and instructions](examples/consul-c-abi/README.md)).
 
 ```haskell
 import Control.Exception (bracket)
@@ -93,6 +95,7 @@ Build and install the native facade first:
 cmake -S sdk/cpp -B build/dilock-haskell-etcd \
   -DBUILD_SHARED_LIBS=ON \
   -DDILOCK_BUILD_ETCD=ON \
+  -DDILOCK_BUILD_CONSUL=ON \
   -DDILOCK_BUILD_C_API=ON \
   -DDILOCK_BUILD_TESTS=ON
 cmake --build build/dilock-haskell-etcd
@@ -156,3 +159,45 @@ The C ABI facade is optional and versioned ABI v1; installing it is a native
 system prerequisite at build and runtime. A successful Haskell source build or
 local etcd test does not make this component standalone, portable across all
 toolchains, conformant across SDKs, or production ready.
+
+## Optional Consul facade over the Dilock C ABI
+
+Build with `--flags=+consul-c-abi` after installing the Consul-enabled shared
+Dilock C ABI and its runtime dependencies. `provisionConsulNamespace` is an
+explicit setup operation; ordinary `withConsulProvider` calls only validate
+metadata. The optional ACL token is passed to the native provider and is not
+part of the endpoint.
+
+The facade includes cancellable acquisition, nonblocking `tryAcquireConsul`,
+explicit renewal, effective TTL, awaited release, and the `(epoch, LockIndex)`
+fence. `withConsulLease` releases and destroys its native lease on normal and
+exceptional exits. Call `destroyConsulLease` after observing the result when
+managing an acquired lease manually. Retain lock KV keys so Consul cannot reset
+their LockIndex.
+
+```haskell
+{-# LANGUAGE OverloadedStrings #-}
+
+import Control.Monad (unless)
+import Dilock.Consul.CABI
+
+main :: IO ()
+main = do
+  let options = (defaultConsulOptions "billing-epoch-1") { nameSpace = "billing" }
+  -- Provision once through a controlled setup operation; not on each worker startup.
+  provisionConsulNamespace options
+  withConsulProvider options $ \provider ->
+    withConsulLock provider "invoice/8391" $ \handle -> do
+      (value, releaseOutcome) <- withConsulLease handle
+        (defaultConsulAcquireOptions options) (\_ -> pure ()) $ \lease -> do
+          (epoch, lockIndex) <- consulLeaseFence lease
+          unless (epoch == coordinationEpoch options && lockIndex > 0) $
+            fail "invalid Consul fence"
+          pure "protected result"
+      print (value, releaseOutcome)
+```
+
+The opt-in single-node live test uses `DILOCK_TEST_CONSUL_ENDPOINT`,
+`DILOCK_TEST_CONSUL_NAMESPACE`, `DILOCK_TEST_CONSUL_EPOCH`, and optional
+`DILOCK_TEST_CONSUL_TOKEN`. It requires pre-provisioned metadata and does not
+create or repair the namespace record.

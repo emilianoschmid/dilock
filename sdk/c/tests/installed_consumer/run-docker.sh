@@ -24,7 +24,7 @@ cmake -S /workspace/sdk/cpp -B /tmp/c-current-build -G 'Unix Makefiles' \
   "-DCMAKE_PREFIX_PATH=$prefixes" \
   -DCMAKE_INSTALL_PREFIX=/tmp/c-current-prefix \
   -DBUILD_SHARED_LIBS=ON -DDILOCK_BUILD_TESTS=OFF \
-  -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_C_API=ON \
+  -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_CONSUL=ON -DDILOCK_BUILD_C_API=ON \
   -DOPENSSL_ROOT_DIR="$openssl_prefix" \
   -DOPENSSL_INCLUDE_DIR="$openssl_prefix/include" \
   -DOPENSSL_CRYPTO_LIBRARY="$openssl_runtime/lib/x86_64-linux-gnu/libcrypto.so.3" \
@@ -83,6 +83,7 @@ sha256sum \
   /workspace/sdk/c/include/dilock/dilock.h \
   /workspace/sdk/c/tests/installed_consumer/main.c \
   /workspace/sdk/c/tests/installed_consumer/etcd_main.c \
+  /workspace/sdk/c/tests/installed_consumer/consul_main.c \
   /workspace/sdk/c/tests/installed_consumer/CMakeLists.txt \
   /workspace/sdk/cpp/CMakeLists.txt \
   /workspace/sdk/c/tests/installed_consumer/run-docker.sh

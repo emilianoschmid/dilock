@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Dilock;
 using Dilock.Etcd;
+using Dilock.Consul;
 using Dilock.Redis;
 
 using var config = JsonDocument.Parse(File.ReadAllText(args[0]));
@@ -11,7 +12,12 @@ ILockProvider provider = backend switch
 {
     "redis" => await RedisProvider.ConnectAsync(c.GetProperty("endpoint").GetString()!, c.GetProperty("namespace").GetString()!, c.GetProperty("epoch").GetString()!),
     "etcd" => await EtcdProvider.ConnectAsync(c.GetProperty("endpoint").GetString()!, c.GetProperty("namespace").GetString()!, c.GetProperty("epoch").GetString()!),
-    _ => throw new ArgumentException("backend must be redis or etcd", nameof(backend))
+    "consul" => await ConsulProvider.ConnectAsync(new ConsulProviderOptions
+    {
+        Endpoint = c.GetProperty("endpoint").GetString()!, Namespace = c.GetProperty("namespace").GetString()!,
+        ExpectedEpoch = c.GetProperty("epoch").GetString()!, Token = Environment.GetEnvironmentVariable("CONSUL_HTTP_TOKEN")
+    }),
+    _ => throw new ArgumentException("backend must be redis, etcd or consul", nameof(backend))
 };
 await using var ownedProvider = provider;
 var leases = new ConcurrentDictionary<string, ILease>();
@@ -25,7 +31,7 @@ async Task Process(string line, string id, CancellationTokenSource ct)
     try
     {
         using var doc = JsonDocument.Parse(line); var r = doc.RootElement; var op = r.GetProperty("op").GetString();
-        if (op == "hello") { await Write(new { id, status = "ok", sdk = "dotnet", version = "0.1.0-dev.1", protocol = 1, capabilities = backend == "etcd" ? new[] { "etcd", "renewal", "auto_renew", "fencing" } : new[] { "redis", "renewal", "auto_renew" } }); return; }
+        if (op == "hello") { await Write(new { id, status = "ok", sdk = "dotnet", version = "0.1.0-dev.1", protocol = 1, capabilities = backend switch { "etcd" => new[] { "etcd", "renewal", "auto_renew", "fencing" }, "consul" => new[] { "consul", "renewal", "auto_renew", "fencing" }, _ => new[] { "redis", "renewal", "auto_renew" } } }); return; }
         if (op is "try_acquire" or "acquire")
         {
             var o = new LeaseOptions { LeaseDuration = TimeSpan.FromMilliseconds(r.TryGetProperty("lease_ms", out var ttl) ? ttl.GetInt64() : 30000), RpcTimeout = TimeSpan.FromMilliseconds(r.TryGetProperty("rpc_ms", out var rpc) ? rpc.GetInt64() : 200), AutoRenew = r.TryGetProperty("auto_renew", out var auto) && auto.GetBoolean() };
@@ -39,6 +45,10 @@ async Task Process(string line, string id, CancellationTokenSource ct)
                     await Write(new { id, status = "acquired", lease_id = local,
                         effective_lease_ms = lease.EffectiveLeaseMilliseconds,
                         fence = new { epoch = etcdLease.Epoch, value = etcdLease.CreateRevision.ToString() } });
+                else if (lease is IConsulLease consulLease)
+                    await Write(new { id, status = "acquired", lease_id = local,
+                        effective_lease_ms = lease.EffectiveLeaseMilliseconds,
+                        fence = new { epoch = consulLease.Epoch, value = consulLease.LockIndex.ToString() } });
                 else
                     await Write(new { id, status = "acquired", lease_id = local,
                         effective_lease_ms = lease.EffectiveLeaseMilliseconds });

@@ -16,7 +16,7 @@ type
     released = 0, alreadyNotOwned = 1, releaseUnknown = 2
 
   CBackend {.importc: "dilock_backend", header: "dilock/dilock.h", size: sizeof(cint).} = enum
-    cBackendRedis = 0, cBackendEtcd = 1
+    cBackendRedis = 0, cBackendEtcd = 1, cBackendConsul = 2
   CReleaseOutcome {.importc: "dilock_release_outcome", header: "dilock/dilock.h", size: sizeof(cint).} = enum
     cReleased = 0, cAlreadyNotOwned = 1, cReleaseUnknown = 2
 
@@ -59,15 +59,34 @@ type
     default_lease_ms: int64
     auto_renew: int32
 
+  CConsulOptions {.importc: "dilock_consul_options", header: "dilock/dilock.h", bycopy.} = object
+    endpoint: cstring
+    name_space: cstring
+    coordination_epoch: cstring
+    acl_token: cstring
+    cleanup_callback: CleanupCallback
+    cleanup_user_data: pointer
+    rpc_timeout_ms: int64
+    cleanup_timeout_ms: int64
+    poll_interval_ms: int64
+    default_wait_ms: int64
+    default_lease_ms: int64
+
   CRedisProvider {.importc: "dilock_redis_provider", header: "dilock/dilock.h", incompleteStruct.} = object
   CRedisLock {.importc: "dilock_redis_lock", header: "dilock/dilock.h", incompleteStruct.} = object
   CRedisLease {.importc: "dilock_redis_lease", header: "dilock/dilock.h", incompleteStruct.} = object
   CEtcdProvider {.importc: "dilock_etcd_provider", header: "dilock/dilock.h", incompleteStruct.} = object
   CEtcdLock {.importc: "dilock_etcd_lock", header: "dilock/dilock.h", incompleteStruct.} = object
   CEtcdLease {.importc: "dilock_etcd_lease", header: "dilock/dilock.h", incompleteStruct.} = object
+  CConsulProvider {.importc: "dilock_consul_provider", header: "dilock/dilock.h", incompleteStruct.} = object
+  CConsulLock {.importc: "dilock_consul_lock", header: "dilock/dilock.h", incompleteStruct.} = object
+  CConsulLease {.importc: "dilock_consul_lease", header: "dilock/dilock.h", incompleteStruct.} = object
   CCancellation {.importc: "dilock_cancellation", header: "dilock/dilock.h", incompleteStruct.} = object
   CEtcdFence {.importc: "dilock_etcd_fence", header: "dilock/dilock.h", bycopy.} = object
     create_revision: int64
+    coordination_epoch_bytes: csize_t
+  CConsulFence {.importc: "dilock_consul_fence", header: "dilock/dilock.h", bycopy.} = object
+    lock_index: uint64
     coordination_epoch_bytes: csize_t
 
   RedisProvider* = ref object
@@ -82,44 +101,70 @@ type
     raw: ptr CEtcdLock
   EtcdLease* = ref object
     raw: ptr CEtcdLease
+  ConsulProvider* = ref object
+    raw: ptr CConsulProvider
+  ConsulLock* = ref object
+    raw: ptr CConsulLock
+  ConsulLease* = ref object
+    raw: ptr CConsulLease
   Cancellation* = ref object
     raw: ptr CCancellation
   EtcdFence* = object
     epoch*: string
     createRevision*: int64
+  ConsulFence* = object
+    epoch*: string
+    lockIndex*: uint64
 
 proc abiVersion*(): uint32 {.importc: "dilock_c_abi_version", header: "dilock/dilock.h", cdecl.}
 proc cRedisOptionsInit(options: ptr CRedisOptions) {.importc: "dilock_redis_options_init", header: "dilock/dilock.h", cdecl.}
 proc cEtcdOptionsInit(options: ptr CEtcdOptions) {.importc: "dilock_etcd_options_init", header: "dilock/dilock.h", cdecl.}
+proc cConsulOptionsInit(options: ptr CConsulOptions) {.importc: "dilock_consul_options_init", header: "dilock/dilock.h", cdecl.}
 proc cRedisProviderCreate(options: ptr CRedisOptions, output: ptr ptr CRedisProvider, error: ptr CError): cint {.importc: "dilock_redis_provider_create", header: "dilock/dilock.h", cdecl.}
 proc cEtcdProviderCreate(options: ptr CEtcdOptions, output: ptr ptr CEtcdProvider, error: ptr CError): cint {.importc: "dilock_etcd_provider_create", header: "dilock/dilock.h", cdecl.}
+proc cConsulProviderCreate(options: ptr CConsulOptions, output: ptr ptr CConsulProvider, error: ptr CError): cint {.importc: "dilock_consul_provider_create", header: "dilock/dilock.h", cdecl.}
 proc cRedisProviderDestroy(provider: ptr CRedisProvider) {.importc: "dilock_redis_provider_destroy", header: "dilock/dilock.h", cdecl.}
 proc cEtcdProviderDestroy(provider: ptr CEtcdProvider) {.importc: "dilock_etcd_provider_destroy", header: "dilock/dilock.h", cdecl.}
+proc cConsulProviderDestroy(provider: ptr CConsulProvider) {.importc: "dilock_consul_provider_destroy", header: "dilock/dilock.h", cdecl.}
 proc cRedisLockCreate(provider: ptr CRedisProvider, resource: cstring, output: ptr ptr CRedisLock, error: ptr CError): cint {.importc: "dilock_redis_lock_create", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLockCreate(provider: ptr CEtcdProvider, resource: cstring, output: ptr ptr CEtcdLock, error: ptr CError): cint {.importc: "dilock_etcd_lock_create", header: "dilock/dilock.h", cdecl.}
+proc cConsulLockCreate(provider: ptr CConsulProvider, resource: cstring, output: ptr ptr CConsulLock, error: ptr CError): cint {.importc: "dilock_consul_lock_create", header: "dilock/dilock.h", cdecl.}
 proc cRedisLockDestroy(lock: ptr CRedisLock) {.importc: "dilock_redis_lock_destroy", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLockDestroy(lock: ptr CEtcdLock) {.importc: "dilock_etcd_lock_destroy", header: "dilock/dilock.h", cdecl.}
+proc cConsulLockDestroy(lock: ptr CConsulLock) {.importc: "dilock_consul_lock_destroy", header: "dilock/dilock.h", cdecl.}
 proc cRedisAcquireDefault(lock: ptr CRedisLock, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_acquire_default", header: "dilock/dilock.h", cdecl.}
 proc cRedisAcquireDefaultCancel(lock: ptr CRedisLock, cancellation: ptr CCancellation, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_acquire_default_with_cancellation", header: "dilock/dilock.h", cdecl.}
 proc cRedisAcquire(lock: ptr CRedisLock, waitMs, leaseMs: int64, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_acquire", header: "dilock/dilock.h", cdecl.}
 proc cEtcdAcquireDefault(lock: ptr CEtcdLock, output: ptr ptr CEtcdLease, error: ptr CError): cint {.importc: "dilock_etcd_acquire_default", header: "dilock/dilock.h", cdecl.}
 proc cEtcdAcquireDefaultCancel(lock: ptr CEtcdLock, cancellation: ptr CCancellation, output: ptr ptr CEtcdLease, error: ptr CError): cint {.importc: "dilock_etcd_acquire_default_with_cancellation", header: "dilock/dilock.h", cdecl.}
 proc cEtcdAcquire(lock: ptr CEtcdLock, waitMs, leaseMs: int64, output: ptr ptr CEtcdLease, error: ptr CError): cint {.importc: "dilock_etcd_acquire", header: "dilock/dilock.h", cdecl.}
+proc cConsulAcquireDefault(lock: ptr CConsulLock, output: ptr ptr CConsulLease, error: ptr CError): cint {.importc: "dilock_consul_acquire_default", header: "dilock/dilock.h", cdecl.}
+proc cConsulAcquire(lock: ptr CConsulLock, waitMs, leaseMs: int64, output: ptr ptr CConsulLease, error: ptr CError): cint {.importc: "dilock_consul_acquire", header: "dilock/dilock.h", cdecl.}
 proc cRedisTryAcquire(lock: ptr CRedisLock, leaseMs: int64, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_try_acquire", header: "dilock/dilock.h", cdecl.}
 proc cEtcdTryAcquire(lock: ptr CEtcdLock, leaseMs: int64, output: ptr ptr CEtcdLease, error: ptr CError): cint {.importc: "dilock_etcd_try_acquire", header: "dilock/dilock.h", cdecl.}
+proc cConsulTryAcquire(lock: ptr CConsulLock, leaseMs: int64, output: ptr ptr CConsulLease, error: ptr CError): cint {.importc: "dilock_consul_try_acquire", header: "dilock/dilock.h", cdecl.}
 proc cRedisLeaseValid(lease: ptr CRedisLease): int32 {.importc: "dilock_redis_lease_is_valid", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLeaseValid(lease: ptr CEtcdLease): int32 {.importc: "dilock_etcd_lease_is_valid", header: "dilock/dilock.h", cdecl.}
+proc cConsulLeaseValid(lease: ptr CConsulLease): int32 {.importc: "dilock_consul_lease_is_valid", header: "dilock/dilock.h", cdecl.}
 proc cRedisLeaseRelease(lease: ptr CRedisLease, outcome: ptr CReleaseOutcome, error: ptr CError): cint {.importc: "dilock_redis_lease_release", header: "dilock/dilock.h", cdecl.}
 proc cRedisLeaseRenew(lease: ptr CRedisLease, leaseMs: int64, renewed: ptr int32, error: ptr CError): cint {.importc: "dilock_redis_lease_renew", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLeaseRelease(lease: ptr CEtcdLease, outcome: ptr CReleaseOutcome, error: ptr CError): cint {.importc: "dilock_etcd_lease_release", header: "dilock/dilock.h", cdecl.}
+proc cConsulLeaseRelease(lease: ptr CConsulLease, outcome: ptr CReleaseOutcome, error: ptr CError): cint {.importc: "dilock_consul_lease_release", header: "dilock/dilock.h", cdecl.}
 proc cRedisLeaseDestroy(lease: ptr CRedisLease) {.importc: "dilock_redis_lease_destroy", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLeaseDestroy(lease: ptr CEtcdLease) {.importc: "dilock_etcd_lease_destroy", header: "dilock/dilock.h", cdecl.}
+proc cConsulLeaseDestroy(lease: ptr CConsulLease) {.importc: "dilock_consul_lease_destroy", header: "dilock/dilock.h", cdecl.}
 proc cCancellationCreate(error: ptr CError): ptr CCancellation {.importc: "dilock_cancellation_create", header: "dilock/dilock.h", cdecl.}
 proc cCancellationRequest(value: ptr CCancellation) {.importc: "dilock_cancellation_request", header: "dilock/dilock.h", cdecl.}
 proc cCancellationDestroy(value: ptr CCancellation) {.importc: "dilock_cancellation_destroy", header: "dilock/dilock.h", cdecl.}
 proc cRedisAcquireCancel(lock: ptr CRedisLock, waitMs, leaseMs: int64, cancellation: ptr CCancellation, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_acquire_with_cancellation", header: "dilock/dilock.h", cdecl.}
 proc cEtcdAcquireCancel(lock: ptr CEtcdLock, waitMs, leaseMs: int64, cancellation: ptr CCancellation, output: ptr ptr CEtcdLease, error: ptr CError): cint {.importc: "dilock_etcd_acquire_with_cancellation", header: "dilock/dilock.h", cdecl.}
+proc cConsulAcquireDefaultCancel(lock: ptr CConsulLock, cancellation: ptr CCancellation, output: ptr ptr CConsulLease, error: ptr CError): cint {.importc: "dilock_consul_acquire_default_with_cancellation", header: "dilock/dilock.h", cdecl.}
+proc cConsulAcquireCancel(lock: ptr CConsulLock, waitMs, leaseMs: int64, cancellation: ptr CCancellation, output: ptr ptr CConsulLease, error: ptr CError): cint {.importc: "dilock_consul_acquire_with_cancellation", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLeaseFence(lease: ptr CEtcdLease, fence: ptr CEtcdFence, epoch: cstring, capacity: csize_t, error: ptr CError): cint {.importc: "dilock_etcd_lease_fence", header: "dilock/dilock.h", cdecl.}
+proc cConsulLeaseFence(lease: ptr CConsulLease, fence: ptr CConsulFence, epoch: cstring, capacity: csize_t, error: ptr CError): cint {.importc: "dilock_consul_lease_fence", header: "dilock/dilock.h", cdecl.}
+proc cConsulLeaseRenew(lease: ptr CConsulLease, renewed: ptr int32, error: ptr CError): cint {.importc: "dilock_consul_lease_renew", header: "dilock/dilock.h", cdecl.}
+proc cConsulLeaseTtl(lease: ptr CConsulLease, ttl: ptr int64, error: ptr CError): cint {.importc: "dilock_consul_lease_effective_ttl_ms", header: "dilock/dilock.h", cdecl.}
+proc cConsulProvision(options: ptr CConsulOptions, error: ptr CError): cint {.importc: "dilock_consul_provision_namespace", header: "dilock/dilock.h", cdecl.}
 
 proc check(status: cint, error: CError) {.raises: [DilockError].} =
   if status == cint(dsOk): return
@@ -226,6 +271,43 @@ proc connectEtcd*(endpoint, namespace, epoch: string,
   check(cEtcdProviderCreate(addr options, addr raw, addr error), error)
   EtcdProvider(raw: requireOutputHandle(raw, "etcd provider"))
 
+proc connectConsul*(endpoint, namespace, epoch: string, aclToken = ""): ConsulProvider =
+  ## Connects to a Consul agent after its matching metadata has been
+  ## provisioned. The ACL token is copied into the native provider and is
+  ## never included in exception text.
+  validateCStringInput(endpoint, "Consul endpoint")
+  validateCStringInput(namespace, "namespace")
+  validateCStringInput(epoch, "coordination epoch")
+  validateCStringInput(aclToken, "Consul ACL token")
+  ensureAbi()
+  var options: CConsulOptions
+  cConsulOptionsInit(addr options)
+  options.endpoint = endpoint.cstring
+  options.name_space = namespace.cstring
+  options.coordination_epoch = epoch.cstring
+  options.acl_token = aclToken.cstring
+  var raw: ptr CConsulProvider
+  var error: CError
+  check(cConsulProviderCreate(addr options, addr raw, addr error), error)
+  ConsulProvider(raw: requireOutputHandle(raw, "Consul provider"))
+
+proc provisionConsulNamespace*(endpoint, namespace, epoch: string, aclToken = "") =
+  ## Explicitly creates compatible Consul namespace metadata using CAS=0.
+  ## Normal provider construction never provisions or repairs metadata.
+  validateCStringInput(endpoint, "Consul endpoint")
+  validateCStringInput(namespace, "namespace")
+  validateCStringInput(epoch, "coordination epoch")
+  validateCStringInput(aclToken, "Consul ACL token")
+  ensureAbi()
+  var options: CConsulOptions
+  cConsulOptionsInit(addr options)
+  options.endpoint = endpoint.cstring
+  options.name_space = namespace.cstring
+  options.coordination_epoch = epoch.cstring
+  options.acl_token = aclToken.cstring
+  var error: CError
+  check(cConsulProvision(addr options, addr error), error)
+
 proc lock*(provider: RedisProvider, resource: string): RedisLock =
   requireHandle(provider, "Redis provider")
   validateCStringInput(resource, "resource")
@@ -241,6 +323,14 @@ proc lock*(provider: EtcdProvider, resource: string): EtcdLock =
   var error: CError
   check(cEtcdLockCreate(provider.raw, resource.cstring, addr raw, addr error), error)
   EtcdLock(raw: requireOutputHandle(raw, "etcd lock"))
+
+proc lock*(provider: ConsulProvider, resource: string): ConsulLock =
+  requireHandle(provider, "Consul provider")
+  validateCStringInput(resource, "resource")
+  var raw: ptr CConsulLock
+  var error: CError
+  check(cConsulLockCreate(provider.raw, resource.cstring, addr raw, addr error), error)
+  ConsulLock(raw: requireOutputHandle(raw, "Consul lock"))
 
 proc acquireDefault*(lock: RedisLock): RedisLease =
   requireHandle(lock, "Redis lock")
@@ -290,6 +380,20 @@ proc acquire*(lock: EtcdLock, waitMs, leaseMs: int64): EtcdLease =
   check(cEtcdAcquire(lock.raw, waitMs, leaseMs, addr raw, addr error), error)
   EtcdLease(raw: requireOutputHandle(raw, "etcd lease"))
 
+proc acquireDefault*(lock: ConsulLock): ConsulLease =
+  requireHandle(lock, "Consul lock")
+  var raw: ptr CConsulLease
+  var error: CError
+  check(cConsulAcquireDefault(lock.raw, addr raw, addr error), error)
+  ConsulLease(raw: requireOutputHandle(raw, "Consul lease"))
+
+proc acquire*(lock: ConsulLock, waitMs, leaseMs: int64): ConsulLease =
+  requireHandle(lock, "Consul lock")
+  var raw: ptr CConsulLease
+  var error: CError
+  check(cConsulAcquire(lock.raw, waitMs, leaseMs, addr raw, addr error), error)
+  ConsulLease(raw: requireOutputHandle(raw, "Consul lease"))
+
 proc tryAcquire*(lock: RedisLock, leaseMs: int64): Option[RedisLease] =
   requireHandle(lock, "Redis lock")
   var raw: ptr CRedisLease
@@ -306,12 +410,24 @@ proc tryAcquire*(lock: EtcdLock, leaseMs: int64): Option[EtcdLease] =
   check(cEtcdTryAcquire(lock.raw, leaseMs, addr raw, addr error), error)
   some(EtcdLease(raw: requireOutputHandle(raw, "etcd lease")))
 
+proc tryAcquire*(lock: ConsulLock, leaseMs: int64): Option[ConsulLease] =
+  requireHandle(lock, "Consul lock")
+  var raw: ptr CConsulLease
+  var error: CError
+  let status = cConsulTryAcquire(lock.raw, leaseMs, addr raw, addr error)
+  if status == cint(dsBusy): return none(ConsulLease)
+  check(status, error)
+  some(ConsulLease(raw: requireOutputHandle(raw, "Consul lease")))
+
 proc isValid*(lease: RedisLease): bool =
   requireHandle(lease, "Redis lease")
   cRedisLeaseValid(lease.raw) != 0
 proc isValid*(lease: EtcdLease): bool =
   requireHandle(lease, "etcd lease")
   cEtcdLeaseValid(lease.raw) != 0
+proc isValid*(lease: ConsulLease): bool =
+  requireHandle(lease, "Consul lease")
+  cConsulLeaseValid(lease.raw) != 0
 
 proc release*(lease: RedisLease): ReleaseOutcome =
   requireHandle(lease, "Redis lease")
@@ -327,6 +443,28 @@ proc release*(lease: EtcdLease): ReleaseOutcome =
   check(cEtcdLeaseRelease(lease.raw, addr rawOutcome, addr error), error)
   releaseOutcomeFromC(cast[int32](rawOutcome))
 
+proc release*(lease: ConsulLease): ReleaseOutcome =
+  requireHandle(lease, "Consul lease")
+  var rawOutcome: CReleaseOutcome
+  var error: CError
+  check(cConsulLeaseRelease(lease.raw, addr rawOutcome, addr error), error)
+  releaseOutcomeFromC(cast[int32](rawOutcome))
+
+proc renew*(lease: ConsulLease): bool =
+  ## Renews the same Consul session and confirms the same owner and LockIndex.
+  requireHandle(lease, "Consul lease")
+  var renewed: int32
+  var error: CError
+  check(cConsulLeaseRenew(lease.raw, addr renewed, addr error), error)
+  renewed != 0
+
+proc effectiveTtlMs*(lease: ConsulLease): int64 =
+  requireHandle(lease, "Consul lease")
+  var ttl: int64
+  var error: CError
+  check(cConsulLeaseTtl(lease.raw, addr ttl, addr error), error)
+  ttl
+
 proc renew*(lease: RedisLease, leaseMs: int64): bool =
   ## Extends a Redis lease when the backend still recognizes its owner token.
   ## Backend errors and lost ownership raise `DilockError`; they are not reported
@@ -341,14 +479,20 @@ proc destroy*(provider: RedisProvider) =
   if not provider.isNil and provider.raw != nil: cRedisProviderDestroy(provider.raw); provider.raw = nil
 proc destroy*(provider: EtcdProvider) =
   if not provider.isNil and provider.raw != nil: cEtcdProviderDestroy(provider.raw); provider.raw = nil
+proc destroy*(provider: ConsulProvider) =
+  if not provider.isNil and provider.raw != nil: cConsulProviderDestroy(provider.raw); provider.raw = nil
 proc destroy*(lock: RedisLock) =
   if not lock.isNil and lock.raw != nil: cRedisLockDestroy(lock.raw); lock.raw = nil
 proc destroy*(lock: EtcdLock) =
   if not lock.isNil and lock.raw != nil: cEtcdLockDestroy(lock.raw); lock.raw = nil
+proc destroy*(lock: ConsulLock) =
+  if not lock.isNil and lock.raw != nil: cConsulLockDestroy(lock.raw); lock.raw = nil
 proc destroy*(lease: RedisLease) =
   if not lease.isNil and lease.raw != nil: cRedisLeaseDestroy(lease.raw); lease.raw = nil
 proc destroy*(lease: EtcdLease) =
   if not lease.isNil and lease.raw != nil: cEtcdLeaseDestroy(lease.raw); lease.raw = nil
+proc destroy*(lease: ConsulLease) =
+  if not lease.isNil and lease.raw != nil: cConsulLeaseDestroy(lease.raw); lease.raw = nil
 
 proc initCancellation*(): Cancellation =
   ensureAbi()
@@ -378,6 +522,22 @@ proc acquire*(lock: EtcdLock, waitMs, leaseMs: int64, cancellation: Cancellation
   check(cEtcdAcquireCancel(lock.raw, waitMs, leaseMs, cancellation.raw, addr raw, addr error), error)
   EtcdLease(raw: requireOutputHandle(raw, "etcd lease"))
 
+proc acquireDefault*(lock: ConsulLock, cancellation: Cancellation): ConsulLease =
+  requireHandle(lock, "Consul lock")
+  requireHandle(cancellation, "cancellation")
+  var raw: ptr CConsulLease
+  var error: CError
+  check(cConsulAcquireDefaultCancel(lock.raw, cancellation.raw, addr raw, addr error), error)
+  ConsulLease(raw: requireOutputHandle(raw, "Consul lease"))
+
+proc acquire*(lock: ConsulLock, waitMs, leaseMs: int64, cancellation: Cancellation): ConsulLease =
+  requireHandle(lock, "Consul lock")
+  requireHandle(cancellation, "cancellation")
+  var raw: ptr CConsulLease
+  var error: CError
+  check(cConsulAcquireCancel(lock.raw, waitMs, leaseMs, cancellation.raw, addr raw, addr error), error)
+  ConsulLease(raw: requireOutputHandle(raw, "Consul lease"))
+
 proc fence*(lease: EtcdLease): EtcdFence =
   requireHandle(lease, "etcd lease")
   var rawFence: CEtcdFence
@@ -394,6 +554,23 @@ proc fence*(lease: EtcdLease): EtcdFence =
                         csize_t(storage.len), addr error), error)
   storage.setLen(epochLength)
   EtcdFence(epoch: storage, createRevision: rawFence.create_revision)
+
+proc fence*(lease: ConsulLease): ConsulFence =
+  requireHandle(lease, "Consul lease")
+  var rawFence: CConsulFence
+  var error: CError
+  let probeStatus = cConsulLeaseFence(lease.raw, addr rawFence, nil, 0, addr error)
+  if probeStatus != cint(dsInvalidArgument):
+    if probeStatus == cint(dsOk): failInternal("C ABI fence size probe unexpectedly succeeded")
+    check(probeStatus, error)
+  if rawFence.coordination_epoch_bytes > csize_t(high(int) - 1):
+    failInternal("C ABI returned an unrepresentable fencing epoch length")
+  let epochLength = int(rawFence.coordination_epoch_bytes)
+  var storage = newString(epochLength + 1)
+  check(cConsulLeaseFence(lease.raw, addr rawFence, cast[cstring](addr storage[0]),
+                          csize_t(storage.len), addr error), error)
+  storage.setLen(epochLength)
+  ConsulFence(epoch: storage, lockIndex: rawFence.lock_index)
 
 template withLease*(leaseName, acquireExpression: untyped, body: untyped) =
   block:

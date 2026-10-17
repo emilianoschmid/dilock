@@ -2,6 +2,8 @@ requires 'perl', '5.020';
 requires 'Digest::SHA';
 requires 'Encode';
 requires 'JSON::PP';
+requires 'HTTP::Tiny';
+requires 'MIME::Base64';
 
 # Backend clients are optional at runtime. Install only the dependencies for
 # the adapter(s) used by the application; META_MERGE mirrors these as

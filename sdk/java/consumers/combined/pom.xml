@@ -8,5 +8,6 @@
     <dependency><groupId>org.dilock</groupId><artifactId>dilock-core</artifactId><version>${dilock.version}</version></dependency>
     <dependency><groupId>org.dilock</groupId><artifactId>dilock-redis</artifactId><version>${dilock.version}</version></dependency>
     <dependency><groupId>org.dilock</groupId><artifactId>dilock-etcd</artifactId><version>${dilock.version}</version></dependency>
+    <dependency><groupId>org.dilock</groupId><artifactId>dilock-consul</artifactId><version>${dilock.version}</version></dependency>
   </dependencies>
 </project>

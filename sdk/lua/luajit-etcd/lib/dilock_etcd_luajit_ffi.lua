@@ -25,6 +25,16 @@ typedef struct dilock_etcd_options {
     int32_t auto_renew;
 } dilock_etcd_options;
 typedef struct dilock_etcd_fence { int64_t create_revision; size_t coordination_epoch_bytes; } dilock_etcd_fence;
+typedef struct dilock_consul_provider dilock_consul_provider;
+typedef struct dilock_consul_lock dilock_consul_lock;
+typedef struct dilock_consul_lease dilock_consul_lease;
+typedef struct dilock_consul_options {
+    const char *endpoint; const char *name_space; const char *coordination_epoch;
+    const char *acl_token; dilock_cleanup_callback cleanup_callback; void *cleanup_user_data;
+    int64_t rpc_timeout_ms; int64_t cleanup_timeout_ms; int64_t poll_interval_ms;
+    int64_t default_wait_ms; int64_t default_lease_ms;
+} dilock_consul_options;
+typedef struct dilock_consul_fence { uint64_t lock_index; size_t coordination_epoch_bytes; } dilock_consul_fence;
 typedef int32_t dilock_release_outcome;
 uint32_t dilock_c_abi_version(void);
 void dilock_etcd_options_init(dilock_etcd_options *options);
@@ -44,6 +54,20 @@ int32_t dilock_etcd_lease_fence(const dilock_etcd_lease *lease, dilock_etcd_fenc
 int32_t dilock_etcd_lease_release(dilock_etcd_lease *lease,
     dilock_release_outcome *outcome, dilock_error *error);
 void dilock_etcd_lease_destroy(dilock_etcd_lease *lease);
+void dilock_consul_options_init(dilock_consul_options *options);
+int32_t dilock_consul_provider_create(const dilock_consul_options *options, dilock_consul_provider **out, dilock_error *error);
+void dilock_consul_provider_destroy(dilock_consul_provider *provider);
+int32_t dilock_consul_lock_create(dilock_consul_provider *provider, const char *resource, dilock_consul_lock **out, dilock_error *error);
+void dilock_consul_lock_destroy(dilock_consul_lock *lock);
+int32_t dilock_consul_acquire(dilock_consul_lock *lock, int64_t wait_ms, int64_t lease_ms, dilock_consul_lease **out, dilock_error *error);
+int32_t dilock_consul_try_acquire(dilock_consul_lock *lock, int64_t lease_ms, dilock_consul_lease **out, dilock_error *error);
+int32_t dilock_consul_lease_is_valid(const dilock_consul_lease *lease);
+int32_t dilock_consul_lease_effective_ttl_ms(const dilock_consul_lease *lease, int64_t *effective_ttl_ms, dilock_error *error);
+int32_t dilock_consul_lease_fence(const dilock_consul_lease *lease, dilock_consul_fence *fence, char *coordination_epoch, size_t epoch_capacity, dilock_error *error);
+int32_t dilock_consul_lease_renew(dilock_consul_lease *lease, int32_t *renewed, dilock_error *error);
+int32_t dilock_consul_lease_release(dilock_consul_lease *lease, dilock_release_outcome *outcome, dilock_error *error);
+void dilock_consul_lease_destroy(dilock_consul_lease *lease);
+int32_t dilock_consul_provision_namespace(const dilock_consul_options *options, dilock_error *error);
 ]=]
 
 local status_names = {
@@ -76,7 +100,19 @@ local function decimal_i64(value)
     return output
 end
 
-local M = { decimal_i64 = decimal_i64 }
+local function decimal_u64(value)
+    local number = ffi.cast("uint64_t", value)
+    if number == 0 then return "0" end
+    local divisor, output = ffi.new("uint64_t", 10), ""
+    while number > 0 do
+        local digit = tonumber(number % divisor)
+        output = string.char(48 + digit) .. output
+        number = number / divisor
+    end
+    return output
+end
+
+local M = { decimal_i64 = decimal_i64, decimal_u64 = decimal_u64 }
 
 function M.load(path)
     local ok, lib = pcall(ffi.load, path or "dilock_c")
@@ -156,6 +192,84 @@ function M.load(path)
     end
 
     function api:lease_destroy(lease) lib.dilock_etcd_lease_destroy(lease) end
+    return api
+end
+
+function M.load_consul(path)
+    local ok, lib = pcall(ffi.load, path or "dilock_c")
+    if not ok then return nil, "backend_unavailable", tostring(lib) end
+    local api = {}
+    function api:abi_version() return tonumber(lib.dilock_c_abi_version()) end
+    function api:provider_create(config)
+        local options, error = ffi.new("dilock_consul_options[1]"), ffi.new("dilock_error[1]")
+        lib.dilock_consul_options_init(options)
+        options[0].endpoint, options[0].name_space = config.endpoint, config.namespace
+        options[0].coordination_epoch, options[0].acl_token = config.epoch, config.token
+        options[0].rpc_timeout_ms, options[0].cleanup_timeout_ms = config.rpc_timeout_ms, config.cleanup_timeout_ms
+        options[0].poll_interval_ms, options[0].default_wait_ms = config.poll_interval_ms, config.default_wait_ms
+        options[0].default_lease_ms = config.default_lease_ms
+        local out = ffi.new("dilock_consul_provider *[1]")
+        local status = lib.dilock_consul_provider_create(options, out, error)
+        if status ~= 0 then return nil, status_name(status), error_message(error) end
+        return out[0]
+    end
+    function api:provision(config)
+        local options, error = ffi.new("dilock_consul_options[1]"), ffi.new("dilock_error[1]")
+        lib.dilock_consul_options_init(options)
+        options[0].endpoint, options[0].name_space = config.endpoint, config.namespace
+        options[0].coordination_epoch, options[0].acl_token = config.epoch, config.token
+        local status = lib.dilock_consul_provision_namespace(options, error)
+        if status ~= 0 then return nil, status_name(status), error_message(error) end
+        return true
+    end
+    function api:provider_destroy(provider) lib.dilock_consul_provider_destroy(provider) end
+    function api:lock_create(provider, resource)
+        local out, error = ffi.new("dilock_consul_lock *[1]"), ffi.new("dilock_error[1]")
+        local status = lib.dilock_consul_lock_create(provider, resource, out, error)
+        if status ~= 0 then return nil, status_name(status), error_message(error) end
+        return out[0]
+    end
+    function api:lock_destroy(lock) lib.dilock_consul_lock_destroy(lock) end
+    local function acquire_call(fn, lock, a, b)
+        local out, error = ffi.new("dilock_consul_lease *[1]"), ffi.new("dilock_error[1]")
+        local status = fn(lock, a, b, out, error)
+        if status ~= 0 then return nil, status_name(status), error_message(error) end
+        return out[0]
+    end
+    function api:acquire(lock, wait_ms, lease_ms) return acquire_call(lib.dilock_consul_acquire, lock, wait_ms, lease_ms) end
+    function api:try_acquire(lock, lease_ms)
+        local out, error = ffi.new("dilock_consul_lease *[1]"), ffi.new("dilock_error[1]")
+        local status = lib.dilock_consul_try_acquire(lock, lease_ms, out, error)
+        if status ~= 0 then return nil, status_name(status), error_message(error) end
+        return out[0]
+    end
+    function api:lease_info(lease)
+        local fence, epoch, error = ffi.new("dilock_consul_fence[1]"), ffi.new("char[1025]"), ffi.new("dilock_error[1]")
+        local status = lib.dilock_consul_lease_fence(lease, fence, epoch, 1025, error)
+        if status ~= 0 then return nil, status_name(status), error_message(error) end
+        if fence[0].coordination_epoch_bytes > 1024 then return nil, "protocol_mismatch", "coordination epoch exceeds C ABI buffer" end
+        local ttl = ffi.new("int64_t[1]")
+        status = lib.dilock_consul_lease_effective_ttl_ms(lease, ttl, error)
+        if status ~= 0 then return nil, status_name(status), error_message(error) end
+        return { lock_index = decimal_u64(fence[0].lock_index), coordination_epoch = ffi.string(epoch, fence[0].coordination_epoch_bytes), effective_ttl_ms = tonumber(ttl[0]) }
+    end
+    function api:lease_valid(lease) return lib.dilock_consul_lease_is_valid(lease) == 1 end
+    function api:lease_renew(lease)
+        local renewed, error = ffi.new("int32_t[1]"), ffi.new("dilock_error[1]")
+        local status = lib.dilock_consul_lease_renew(lease, renewed, error)
+        if status ~= 0 then return nil, status_name(status), error_message(error) end
+        return renewed[0] == 1
+    end
+    function api:lease_release(lease)
+        local outcome, error = ffi.new("dilock_release_outcome[1]"), ffi.new("dilock_error[1]")
+        local status = lib.dilock_consul_lease_release(lease, outcome, error)
+        if status ~= 0 then return "unknown", status_name(status), error_message(error) end
+        local names = { [0] = "released", [1] = "already_not_owned", [2] = "unknown" }
+        local result = names[tonumber(outcome[0])]
+        if not result then return "unknown", "protocol_mismatch", "native C ABI returned an invalid release outcome" end
+        return result
+    end
+    function api:lease_destroy(lease) lib.dilock_consul_lease_destroy(lease) end
     return api
 end
 

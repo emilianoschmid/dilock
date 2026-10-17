@@ -55,6 +55,17 @@ pub fn build(b: *std.Build) void {
     etcd_module.linkSystemLibrary("dilock_c", .{});
     b.installArtifact(b.addExecutable(.{ .name = "dilock-zig-etcd-example", .root_module = etcd_module }));
 
+    const consul_module = b.createModule(.{
+        .root_source_file = b.path("examples/consul_quickstart.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    consul_module.addImport("dilock", module);
+    consul_module.addIncludePath(.{ .cwd_relative = include_dir });
+    consul_module.addLibraryPath(.{ .cwd_relative = library_dir });
+    consul_module.linkSystemLibrary("dilock_c", .{});
+    b.installArtifact(b.addExecutable(.{ .name = "dilock-zig-consul-example", .root_module = consul_module }));
+
     const tests_module = b.createModule(.{
         .root_source_file = b.path("tests/contract.zig"),
         .target = target,

@@ -49,6 +49,7 @@ defmodule Dilock.Identity do
   def validate_metadata(raw, profile, epoch) when is_binary(raw) do
     with {:ok, value} <- Jason.decode(raw),
          true <- is_map(value),
+         true <- map_size(value) == 5,
          true <- value["protocol_major"] === 1,
          true <- value["identity_scheme"] === "sha256-framed-utf8-v1",
          true <- value["profile"] === profile,

@@ -18,7 +18,7 @@ Golden vectors are in `vectors/identity.json`. `tools/reference_identity.py` is 
 
 ## Backend names
 
-Redis lock key: `dilock:{<resource_id>}:lease` (literal braces). Metadata key for a namespace: `dilock:namespace:<namespace>:meta`. Etcd native Lock name: UTF-8 `/dilock/locks/<resource_id>`. Etcd namespace metadata key: `/dilock/namespaces/<namespace>/meta`. NATS candidate KV key: `l.<resource_id>` within the configured bucket.
+Redis lock key: `dilock:{<resource_id>}:lease` (literal braces). Metadata key for a namespace: `dilock:namespace:<namespace>:meta`. Etcd native Lock name: UTF-8 `/dilock/locks/<resource_id>`. Etcd namespace metadata key: `/dilock/namespaces/<namespace>/meta`. Consul KV lock key: `dilock/locks/<resource_id>`; metadata key: `dilock/namespaces/<namespace>/meta`. NATS candidate KV key: `l.<resource_id>` within the configured bucket.
 
 Do not add the language, owner, random process ID or SDK version to the lock key. Owner identity belongs in the ownership value. A deployment must provision/check compatible namespace metadata; it is not a magic split-brain detector and cannot protect against manually misconfigured independent coordinators.
 

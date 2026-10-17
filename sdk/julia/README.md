@@ -136,3 +136,35 @@ end
 The etcd native Lock API has no non-blocking try operation. Auto-renew maintains
 the etcd lease while the scope is active; lease loss still requires the caller
 to stop or fence protected work.
+
+## Consul
+
+The optional Consul adapter uses HTTP.jl and JSON3. It requires explicit
+metadata provisioning, then a linearizable metadata read during connect. Use
+the same namespace and epoch across participants. Consul session TTLs round up
+to whole seconds and must be 10 seconds to 24 hours. The returned fence is the
+configured epoch and the key's `LockIndex`; retain `dilock/locks/*` KV entries
+so that the index cannot reset. The protected resource must atomically enforce
+that fence.
+
+```julia
+using Dilock
+
+provider = ConsulProvider(endpoint=get(ENV, "CONSUL_HTTP_ADDR", "http://127.0.0.1:8500"),
+                          namespace="reports", epoch=ENV["DILOCK_COORDINATION_EPOCH"],
+                          token=get(ENV, "CONSUL_HTTP_TOKEN", nothing))
+provision_consul_namespace(provider) # explicit operator-controlled setup
+connect_consul(provider)
+daily = lock(provider, "daily")
+with_lease(daily; wait_ms=5_000, lease_ms=30_000) do lease
+    token = fence(lease)
+    # Atomically compare/register token at the protected resource.
+    renew!(lease) # renewal is explicit
+end
+close(provider)
+```
+
+Set `DILOCK_TEST_CONSUL_ENDPOINT` to enable the single-agent lifecycle test;
+optional variables are `DILOCK_TEST_CONSUL_NAMESPACE`,
+`DILOCK_TEST_CONSUL_EPOCH`, and `DILOCK_TEST_CONSUL_TOKEN`. See
+`examples/consul.jl`.

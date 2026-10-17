@@ -13,7 +13,7 @@ import sys
 
 
 VERSION = "0.1.0"
-MODULES = ("core", "redis", "etcd")
+MODULES = ("core", "redis", "etcd", "consul")
 
 
 def digest(path: Path) -> str:
@@ -100,7 +100,7 @@ def main() -> int:
         settings = ["-s", str(maven_settings)] if maven_settings.is_file() else []
         common = [maven, "-o", "-B", "-ntp", *settings, f"-Dmaven.repo.local={local_repo}"]
         source_pom = source_copy / "pom.xml"
-        run("fresh copied-source reactor install", [*common, "-f", str(source_pom), "-pl", "core,redis,etcd", "-am", "install"], source_copy)
+        run("fresh copied-source reactor install", [*common, "-f", str(source_pom), "-pl", "core,redis,etcd,consul", "-am", "install"], source_copy)
 
         artifacts: list[dict[str, object]] = []
         for module in MODULES:
@@ -122,14 +122,14 @@ def main() -> int:
         consumer_pom = scratch / "consumer" / "pom.xml"
         run("isolated four-consumer Maven build", [*common, "-f", str(consumer_pom), "package"], consumer_pom.parent)
         module_results: dict[str, dict[str, object]] = {}
-        for module in ("core-only", "redis-only", "etcd-only", "combined"):
+        for module in ("core-only", "redis-only", "etcd-only", "consul-only", "combined"):
             pom = scratch / "consumer" / module / "pom.xml"
             output_file = scratch / f"{module}-classpath.txt"
             run(f"{module} runtime dependency closure", [*common, "-f", str(pom), "org.apache.maven.plugins:maven-dependency-plugin:3.9.0:build-classpath",
                  "-Dmdep.includeScope=runtime", f"-Dmdep.outputFile={output_file}"], pom.parent)
             classpath = output_file.read_text(encoding="utf-8").strip()
             lowered = classpath.lower()
-            forbidden = {"core-only": ("jedis", "jetcd"), "redis-only": ("jetcd",), "etcd-only": ("jedis",)}.get(module, ())
+            forbidden = {"core-only": ("jedis", "jetcd", "consul"), "redis-only": ("jetcd", "consul"), "etcd-only": ("jedis", "consul"), "consul-only": ("jedis", "jetcd")}.get(module, ())
             leaked = [dependency for dependency in forbidden if dependency in lowered]
             if leaked:
                 raise RuntimeError(f"{module} consumer unexpectedly resolved backend dependencies: {leaked}")
@@ -137,9 +137,11 @@ def main() -> int:
                 raise RuntimeError("Redis-only consumer did not resolve Jedis")
             if module == "etcd-only" and "jetcd" not in lowered:
                 raise RuntimeError("etcd-only consumer did not resolve Jetcd")
+            if module == "consul-only" and "jackson-databind" not in lowered:
+                raise RuntimeError("Consul-only consumer did not resolve Jackson")
             classes = scratch / "consumer" / module / "target" / "classes"
             main_class = {"core-only": "CoreConsumer", "redis-only": "RedisConsumer",
-                          "etcd-only": "EtcdConsumer", "combined": "PackageConsumer"}[module]
+                          "etcd-only": "EtcdConsumer", "consul-only": "ConsulConsumer", "combined": "PackageConsumer"}[module]
             java = os.environ.get("DILOCK_JAVA") or shutil.which("java")
             if not java:
                 candidate = Path(os.environ.get("JAVA_HOME", "")) / "bin" / ("java.exe" if os.name == "nt" else "java")
@@ -152,7 +154,7 @@ def main() -> int:
                                       "forbidden_backend_dependencies": list(forbidden)}
         report["module_consumers"] = module_results
         report["status"] = "passed"
-        report["reason"] = "Fresh source-copy reactor tests and install passed; core-only, Redis-only, etcd-only and combined external consumers compiled and ran with backend dependency isolation verified."
+        report["reason"] = "Fresh source-copy reactor tests and install passed; core-only, Redis-only, etcd-only, Consul-only and combined external consumers compiled and ran with backend dependency isolation verified."
     except Exception as error:
         report["status"] = "failed"
         report["reason"] = f"{type(error).__name__}: {error}"

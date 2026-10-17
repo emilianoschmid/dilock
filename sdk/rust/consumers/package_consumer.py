@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 
-CRATES = ("dilock", "dilock-redis", "dilock-etcd")
+CRATES = ("dilock", "dilock-redis", "dilock-etcd", "dilock-consul")
 
 
 class ConsumerError(RuntimeError):
@@ -66,6 +66,7 @@ edition = "2024"
 dilock = { path = \"crates/dilock\" }
 dilock-redis = { path = \"crates/dilock-redis\" }
 dilock-etcd = { path = \"crates/dilock-etcd\" }
+dilock-consul = { path = \"crates/dilock-consul\" }
 
 [patch.crates-io]
 dilock = { path = \"crates/dilock\" }
@@ -74,6 +75,7 @@ dilock = { path = \"crates/dilock\" }
     (project / "src/main.rs").write_text(
         """use dilock::{Options, resource_id};
 use dilock_etcd::EtcdProvider;
+use dilock_consul::{ConsulOptions, ConsulProvider};
 use dilock_redis::RedisProvider;
 
 fn validate_public_surface() -> Result<(), Box<dyn std::error::Error>> {
@@ -86,6 +88,13 @@ fn validate_public_surface() -> Result<(), Box<dyn std::error::Error>> {
     let _redis_handle = redis.lock("archive-consumer")?;
     let etcd = EtcdProvider::new("http://127.0.0.1:1", "default", "consumer-epoch")?;
     let _etcd_handle = etcd.lock("archive-consumer")?;
+    let consul_options = ConsulOptions {
+        namespace: "default".into(),
+        coordination_epoch: "archive-consumer-epoch".into(),
+        ..ConsulOptions::default()
+    };
+    let consul = ConsulProvider::new(&consul_options)?;
+    let _consul_handle = consul.lock("archive-consumer")?;
     Ok(())
 }
 
@@ -121,6 +130,10 @@ def main() -> int:
     parser.add_argument("--rustup-home", type=Path, help="Rust toolchain home (or DILOCK_RUSTUP_HOME)")
     parser.add_argument("--protoc", type=Path, help="protoc executable (or DILOCK_PROTOC)")
     parser.add_argument(
+        "--dilock-c-lib-dir", type=Path,
+        help="directory containing the Consul-enabled dilock_c shared library (or DILOCK_C_LIB_DIR)",
+    )
+    parser.add_argument(
         "--target-dir", type=Path,
         help="reusable Cargo target directory (or DILOCK_CARGO_TARGET_DIR); never cleaned by this driver",
     )
@@ -150,6 +163,20 @@ def main() -> int:
         )
         env = os.environ.copy()
         env["CARGO_NET_OFFLINE"] = "true"
+        native_c_value = args.dilock_c_lib_dir or (
+            Path(os.environ["DILOCK_C_LIB_DIR"]) if os.environ.get("DILOCK_C_LIB_DIR") else None
+        )
+        native_c_lib = native_c_value.expanduser().resolve() if native_c_value else None
+        if native_c_lib is None or not native_c_lib.is_dir():
+            raise ConsumerError(
+                "Consul crate consumer requires a built C ABI installation; pass --dilock-c-lib-dir or set DILOCK_C_LIB_DIR",
+                blocked=True,
+            )
+        env["DILOCK_C_LIB_DIR"] = str(native_c_lib)
+        if os.name == "nt":
+            env["PATH"] = str(native_c_lib) + os.pathsep + env.get("PATH", "")
+        else:
+            env["LD_LIBRARY_PATH"] = str(native_c_lib) + os.pathsep + env.get("LD_LIBRARY_PATH", "")
         repo = args.repo.resolve()
         cargo_home = configured_path(args.cargo_home, "DILOCK_CARGO_HOME", repo / ".tools" / "cargo")
         rustup_home = configured_path(args.rustup_home, "DILOCK_RUSTUP_HOME", repo / ".tools" / "rustup")

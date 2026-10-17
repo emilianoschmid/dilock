@@ -2,6 +2,11 @@ import org.dilock.etcd.EtcdFence;
 import org.dilock.etcd.EtcdLease;
 import org.dilock.etcd.EtcdLock;
 import org.dilock.etcd.EtcdProvider;
+import org.dilock.consul.ConsulFence;
+import org.dilock.consul.ConsulLease;
+import org.dilock.consul.ConsulLock;
+import org.dilock.consul.ConsulProvider;
+import org.dilock.consul.ConsulProviderOptions;
 import org.dilock.redis.DilockException;
 import org.dilock.redis.Identity;
 import org.dilock.redis.RedisLease;
@@ -30,9 +35,15 @@ public final class PackageConsumer {
         require(EtcdLock.class, "tryAcquire", long.class);
         require(EtcdLease.class, "fence");
         require(EtcdFence.class, "epoch");
+        require(ConsulProvider.class, "connect", String.class, String.class, String.class);
+        require(ConsulProvider.class, "connect", ConsulProviderOptions.class);
+        require(ConsulProvider.class, "lock", String.class);
+        require(ConsulLock.class, "acquire");
+        require(ConsulLease.class, "fence");
+        require(ConsulFence.class, "lockIndex");
         require(DilockException.class, "kind");
 
-        System.out.println("Exact Maven artifact consumer passed: identity, Redis, etcd, lease and fence APIs are available.");
+        System.out.println("Exact Maven artifact consumer passed: identity, Redis, etcd, Consul, lease and fence APIs are available.");
     }
 
     private static void require(Class<?> type, String name, Class<?>... parameters) throws NoSuchMethodException {

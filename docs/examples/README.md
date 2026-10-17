@@ -5,7 +5,8 @@ Each implemented language/backend pair has a consistent quickstart at
 `main.*` source file and a README entry point; it links to the local build/run
 instructions, metadata requirements, and backend limits for that sample. The
 seven original SDKs also retain their deeper consumer examples in the parent
-directories.
+directories. The draft Consul profile currently has [Python](python-consul/quickstart/README.md)
+and .NET API examples; its remaining language routes are in progress.
 
 | Language / ecosystem | Redis quickstart | etcd quickstart |
 |---|---|---|

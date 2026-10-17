@@ -4,6 +4,7 @@ use (
 	.
 	./cmd/dilock-go-worker
 	./etcd
+	./consul
 	./redis
 )
 
@@ -12,5 +13,7 @@ replace example.invalid/dilock/core v0.1.0 => .
 replace example.invalid/dilock/redis v0.1.0 => ./redis
 
 replace example.invalid/dilock/etcd v0.1.0 => ./etcd
+
+replace example.invalid/dilock/consul v0.1.0 => ./consul
 
 replace example.invalid/dilock/conformance-worker v0.1.0 => ./cmd/dilock-go-worker

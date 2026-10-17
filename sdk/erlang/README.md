@@ -1,7 +1,7 @@
 # Erlang consumer facade for Dilock
 
 Erlang reuses the existing Elixir/BEAM SDK. This directory is an Erlang-facing
-consumer facade and examples, not a second Redis or etcd implementation and not
+consumer facade and examples, not a second Redis, etcd or Consul implementation and not
 a separately buildable/published package. Calls delegate to the Elixir modules
 in `../elixir`; generated gRPC stubs and all distributed-lock semantics remain
 owned by that SDK.
@@ -37,7 +37,7 @@ the owner monitor while a backend lease may still be active.
 Provider options must be a proper keyword list with atom keys. A non-list,
 improper list, or malformed entry returns `{error, invalid_configuration}`
 before a provider process starts. Only `endpoint`, `namespace`, `epoch`,
-`rpc_timeout_ms`, `cleanup_timeout_ms`, `cleanup_observer`, and the standard
+`token`, `rpc_timeout_ms`, `cleanup_timeout_ms`, `cleanup_observer`, and the standard
 OTP `name` option are accepted; unknown keys are rejected so misspelled safety
 settings cannot be silently ignored. `cleanup_observer` must be a unary
 function and is invoked asynchronously with a map containing `backend`,
@@ -45,7 +45,8 @@ function and is invoked asynchronously with a map containing `backend`,
 rejected too, so repeated endpoints, epochs, or timeout values cannot select
 an ambiguous configuration.
 
-For an OTP application, use `redis_child_spec/1` or `etcd_child_spec/1` in the
+For an OTP application, use `redis_child_spec/1`, `etcd_child_spec/1` or
+`consul_child_spec/1` in the
 supervisor's child list. They return the backend's standard child-spec map
 without starting a provider; the supervisor owns its lifetime. Invalid or
 ambiguous provider options return `{error, invalid_configuration}` before a
@@ -71,8 +72,9 @@ scope cleanup outcomes.
 `examples/dilock_erlang_redis_example.erl` and
 `examples/dilock_erlang_etcd_example.erl` show supervised-provider lifetimes
 and `try ... after` cleanup. They need real backends and pre-provisioned
-metadata. Run the EUnit suite after changing the facade or its underlying Elixir
-runtime.
+metadata. `examples/dilock_erlang_consul_example.erl` demonstrates the Consul
+facade and `LockIndex` fence. Run the EUnit suite after changing the facade or
+its underlying Elixir runtime.
 
 ## Redis quick start
 
@@ -134,8 +136,8 @@ run_configured(Endpoint, Epoch, Resource) ->
 
 Errors and ordinary contention remain distinct tagged results. Lease expiry
 cannot stop a paused process; Redis does not provide strong fencing. The etcd
-facade exposes an epoch-scoped revision fence, which the protected resource
-must compare atomically.
+facade exposes an epoch-scoped revision fence; Consul exposes an epoch-scoped
+`LockIndex` fence. The protected resource must compare either fence atomically.
 
 For the underlying runtime and backend guarantees, see
 [`../elixir/README.md`](../elixir/README.md). The facade does not define an

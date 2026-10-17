@@ -8,7 +8,7 @@ defmodule Dilock.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      description: "Distributed leases for Redis and etcd",
+      description: "Distributed leases for Redis, etcd and Consul",
       package: [
         licenses: ["Apache-2.0"],
         links: %{"Hex.pm" => "https://hex.pm/packages/dilock"},
@@ -18,7 +18,7 @@ defmodule Dilock.MixProject do
     ]
   end
 
-  def application, do: [extra_applications: [:logger, :crypto]]
+  def application, do: [extra_applications: [:logger, :crypto, :inets, :ssl]]
 
   defp deps do
     [

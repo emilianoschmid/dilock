@@ -1,6 +1,6 @@
 # Dilock for Elixir
 
-The Elixir SDK contains Redis and etcd backend source, protocol identity and a
+The Elixir SDK contains Redis, etcd and Consul backend source, protocol identity and a
 supervised provider/lease API. Redis uses Redix. The etcd adapter calls stubs
 generated from the bundled etcd v3.7.2 protocol definitions. The adapter source
 uses native etcd Lock/Lease RPCs. Run the SDK tests against disposable
@@ -110,6 +110,39 @@ after
 end
 ```
 
+## Consul use
+
+The Consul adapter uses the HTTP KV/session APIs, a fresh TTL session per
+acquisition, and the KV entry's `LockIndex` as an epoch-scoped fence. Provision
+the namespace metadata explicitly before starting the provider. Lock KV entries
+must be retained because deleting one can reset its fencing counter. Session
+leases must be 10 seconds or longer; requested durations are rounded up to a
+whole second. HTTPS uses system trust roots and verifies the server name.
+
+```elixir
+options = [
+  endpoint: System.fetch_env!("DILOCK_CONSUL_URL"),
+  namespace: "orders",
+  epoch: System.fetch_env!("DILOCK_COORDINATION_EPOCH"),
+  token: System.get_env("DILOCK_CONSUL_TOKEN")
+] |> Keyword.reject(fn {_key, value} -> is_nil(value) end)
+
+:ok = Dilock.Consul.provision_namespace(options)
+{:ok, provider} = Dilock.Consul.start_link(options)
+try do
+  {:ok, lock} = Dilock.lock(provider, "orders", "invoice/123")
+  case Dilock.with_lease(lock, %{wait_ms: 5_000, lease_ms: 10_000}, fn lease ->
+         {:ok, fence} = Dilock.Consul.fence(Dilock.Lease.ownership(lease))
+         IO.inspect(fence, label: "Consul fence; enforce it atomically at the resource")
+       end) do
+    {:ok, result} -> result
+    {:error, reason} -> raise "Dilock failure: #{inspect(reason)}"
+  end
+after
+  GenServer.stop(provider)
+end
+```
+
 The shared-provider etcd example follows the same two-resource flow: both
 handles are created from one provider before either lock is acquired, the first
 uses `with_lease/2` defaults, and the second supplies explicit acquisition
@@ -142,7 +175,8 @@ effects.
 
 ## Build and verification
 
-Dependencies are Redix, gRPC Elixir, Mint, Protobuf and Jason. The etcd protocol
+Dependencies are Redix, gRPC Elixir, Mint, Protobuf and Jason. Consul uses OTP
+`:inets` and `:ssl`; it adds no HTTP client dependency. The etcd protocol
 sources are copied from upstream etcd v3.7.2 definitions and keep both upstream
 license files. Generated Elixir messages and gRPC stubs are included in `lib/`,
 so building or consuming the package does not require `protoc`. To regenerate
@@ -150,10 +184,10 @@ them from the vendored protocol definitions, run
 `pwsh -File scripts/generate_protos.ps1`. The script builds the pinned Protobuf
 dependency's `protoc-gen-elixir` escript when missing, then runs the local
 definitions through the `plugins=grpc` generator. Regeneration needs Mix
-dependencies and pinned protoc 31.1. The adapter currently requires HTTP
-plaintext endpoints; `https://` returns `{:error, :unsupported_tls}` during
-validation. Broader failure/concurrency checks and an installed package
-consumer remain open. `mix hex.build` also requires an owner-confirmed
+dependencies and pinned protoc 31.1. The etcd adapter requires HTTP plaintext
+endpoints; `https://` returns `{:error, :unsupported_tls}` during etcd
+validation. Consul supports HTTP and verified HTTPS. Broader failure/concurrency
+checks and an installed package consumer remain open. `mix hex.build` also requires an owner-confirmed
 `package.links` URL, which is not recorded in this checkout. No package has
 been published.
 
@@ -186,6 +220,17 @@ DILOCK_REDIS_URL=redis://localhost:6379 MIX_ENV=test mix test
 The Redis integration exercises two independent providers, contention, release,
 `with_lease/3` result propagation, renewal, expiry and stale-release safety. It
 does not validate Redis replication failover, partitions or external fencing.
+
+`test/consul_integration_test.exs` is enabled when `DILOCK_CONSUL_URL` is set;
+it explicitly provisions the test namespace, then checks independent-provider
+contention, handoff and increasing `LockIndex` values on a disposable Consul
+agent. It accepts `DILOCK_CONSUL_TOKEN` for ACL-enabled agents. Run it only
+against a disposable Consul authority:
+
+```shell
+DILOCK_CONSUL_URL=http://localhost:8500 DILOCK_NAMESPACE=default \
+  DILOCK_COORDINATION_EPOCH=local-test MIX_ENV=test mix test
+```
 
 `GRPC.Client.Adapters.Mint` is selected explicitly for etcd. This avoids
 depending on gRPC's optional default Gun adapter; the adapter remains a separate

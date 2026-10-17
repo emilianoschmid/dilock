@@ -1,7 +1,7 @@
 # Dilock for Swift
 
-Swift Package Manager products are split into `DilockCore`, `DilockRedis`, and
-`DilockEtcd`. The repository-root `Package.swift` exposes those same products
+Swift Package Manager products are split into `DilockCore`, `DilockRedis`,
+`DilockEtcd`, and `DilockConsul`. The repository-root `Package.swift` exposes those same products
 from `sdk/swift/Sources`, so a tagged Git checkout can be consumed from the
 repository root instead of relying on an unsupported subdirectory URL. A minimal root-package consumer fixture is maintained in the repository for local validation.
 The implementation follows Dilock's shared draft-1 identity and
@@ -106,6 +106,45 @@ do {
     throw error
 }
 ```
+
+## Consul quickstart
+
+Provision namespace metadata explicitly once with `ConsulProvider.provisionNamespace`.
+Provider construction validates the existing record and never repairs it. Configure
+the optional ACL token out of band; requests send it only in `X-Consul-Token`.
+Consul sessions are per acquisition, renew while waiting and held, and expose the
+epoch plus `LockIndex` as a fencing token. Keep each lock KV key so its LockIndex
+cannot reset.
+
+```swift
+import DilockConsul
+import DilockCore
+import Foundation
+
+let options = try ConsulProviderOptions(
+    endpoint: URL(string: "http://127.0.0.1:8500")!,
+    namespace: "billing",
+    epoch: "billing-consul-incarnation-1"
+)
+_ = try await ConsulProvider.provisionNamespace(options: options)
+let provider = try await ConsulProvider(options: options)
+do {
+    try await provider.lock("invoice/8391").withLease { lease in
+        guard let fence = await lease.fence else { throw DilockError.leaseLost }
+        // Atomically enforce (fence.epoch, fence.lockIndex) at the resource.
+        print("Run one short operation under fence \(fence.epoch)/\(fence.lockIndex)")
+    }
+    await provider.close()
+} catch {
+    await provider.close()
+    throw error
+}
+```
+
+The opt-in live test uses `DILOCK_TEST_CONSUL_ENDPOINT`,
+`DILOCK_TEST_CONSUL_NAMESPACE`, `DILOCK_TEST_CONSUL_EPOCH`, and optional
+`DILOCK_TEST_CONSUL_TOKEN`. Its namespace must already be provisioned with the
+same epoch; live tests do not mutate namespace metadata.
 
 ## Redis quickstart with defaults
 

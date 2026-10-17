@@ -1,0 +1,5 @@
+(library
+ (name dilock_consul)
+ (public_name dilock-consul)
+ (wrapped false)
+ (libraries dilock lwt.unix cohttp-lwt-unix uri yojson base64 mtime.clock))

@@ -10,6 +10,7 @@ import org.dilock.etcd.EtcdFence
 import org.dilock.redis.AcquireOptions as JavaAcquireOptions
 import org.dilock.redis.RedisProviderOptions as JavaRedisProviderOptions
 import org.dilock.etcd.EtcdProviderOptions as JavaEtcdProviderOptions
+import org.dilock.consul.ConsulProviderOptions as JavaConsulProviderOptions
 import org.dilock.redis.CleanupObserver
 import org.dilock.redis.DilockException
 import java.time.Duration
@@ -106,6 +107,14 @@ object DilockEtcd {
 
     /** Connects using the complete Kotlin-native provider policy. */
     @JvmStatic fun connect(settings: ProviderSettings): EtcdProvider = connect(settings.toEtcdJava())
+}
+
+/** Constructors for the Consul KV session profile. Metadata must be provisioned explicitly. */
+object DilockConsul {
+    @JvmStatic fun connect(endpoint: String, namespace: String, epoch: String): ConsulProvider =
+        ConsulProvider(org.dilock.consul.ConsulProvider.connect(endpoint, namespace, epoch))
+    @JvmStatic fun connect(options: JavaConsulProviderOptions): ConsulProvider =
+        ConsulProvider(org.dilock.consul.ConsulProvider.connect(options))
 }
 
 /** Shared surface for backend-bound locks. Each handle reuses its provider transport. */
@@ -211,6 +220,25 @@ class EtcdLease internal constructor(internal val delegate: org.dilock.etcd.Etcd
         etcdReleaseOutcome(delegate.release())
     }
     /** Best-effort close reports uncertain cleanup through the configured Java observer. */
+    override fun close() = delegate.close()
+}
+
+/** Reusable provider for Consul's HTTP KV session adapter. */
+class ConsulProvider internal constructor(private val delegate: org.dilock.consul.ConsulProvider) : AutoCloseable {
+    fun lock(resource: String): ConsulLock = ConsulLock(delegate.lock(resource))
+    override fun close() = delegate.close()
+}
+
+class ConsulLock internal constructor(private val delegate: org.dilock.consul.ConsulLock) {
+    fun acquire(policy: AcquirePolicy = AcquirePolicy.DEFAULT): ConsulLease = ConsulLease(delegate.acquire(policy.toJava()))
+    fun tryAcquire(): ConsulLease? = delegate.tryAcquire().orElse(null)?.let(::ConsulLease)
+}
+
+class ConsulLease internal constructor(private val delegate: org.dilock.consul.ConsulLease) : AutoCloseable {
+    fun assertValid() = delegate.assertValid()
+    fun fence(): org.dilock.consul.ConsulFence = delegate.fence()
+    fun release(): ReleaseOutcome = if (delegate.release() == org.dilock.consul.ConsulLease.ReleaseOutcome.RELEASED)
+        ReleaseOutcome.RELEASED else ReleaseOutcome.ALREADY_NOT_OWNED
     override fun close() = delegate.close()
 }
 

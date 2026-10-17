@@ -42,9 +42,11 @@ def command_for(sdk: str, task: str, backend: str | None = None) -> list[list[st
             "java": [[maven, "-s", str(ROOT / ".tools/maven-settings.xml"), "-f", "pom.xml", "test"]],
         }[sdk]
     if task == "integration":
-        if backend not in BACKENDS:
-            raise ValueError("integration requires --backend redis or etcd")
+        if backend not in (*BACKENDS, "consul"):
+            raise ValueError("integration requires --backend redis, etcd or consul")
         if sdk == "python":
+            if backend == "consul":
+                return [[py, "tests/test_consul_real.py"]]
             return [[py, "-m", "pytest", f"tests/test_{backend}_real.py", "-v"]]
         if sdk == "go":
             return [["go", "test", "-count=1", f"./{backend}"]]
@@ -55,8 +57,14 @@ def command_for(sdk: str, task: str, backend: str | None = None) -> list[list[st
         if sdk == "java":
             if backend == "etcd":
                 return [[py, "tools/etcd_worker_smoke.py"]]
-        if sdk == "dotnet" and backend == "etcd":
-            return [["dotnet", "test", "Tests", "-c", "Release"]]
+            if backend == "consul":
+                return [[maven, "-o", "-f", "pom.xml", "-pl", "consul", "-am", "test",
+                         "-Dtest=ConsulContractTest,ConsulLiveTest", "-Dsurefire.failIfNoSpecifiedTests=false"]]
+        if sdk == "dotnet" and backend in ("etcd", "consul"):
+            command = ["dotnet", "test", "Tests", "-c", "Release"]
+            if backend == "consul":
+                command.extend(["--filter", "FullyQualifiedName~LiveConsulContentionRenewal"])
+            return [command]
         if sdk == "cpp":
             build = ROOT / (".tools/dilock-cpp-etcd" if backend == "etcd" else "build/cpp")
             return [["ctest", "--test-dir", str(build), "--output-on-failure", "-R", backend]]
@@ -105,7 +113,7 @@ def main() -> int:
     test.add_argument("--sdk", choices=SDKS, required=True)
     integration = sub.add_parser("integration")
     integration.add_argument("--sdk", choices=SDKS, required=True)
-    integration.add_argument("--backend", choices=BACKENDS, required=True)
+    integration.add_argument("--backend", choices=(*BACKENDS, "consul"), required=True)
     integration.add_argument("--endpoint")
     interop = sub.add_parser("interop")
     interop.add_argument("--backend", choices=BACKENDS, required=True)
@@ -171,20 +179,34 @@ def main() -> int:
     backend = getattr(args, "backend", None)
     env = None
     if args.operation == "integration":
-        endpoint = args.endpoint or ("redis://127.0.0.1:16379" if backend == "redis" else "http://127.0.0.1:22379")
+        endpoint = args.endpoint or (
+            "redis://127.0.0.1:16379" if backend == "redis" else
+            "http://127.0.0.1:28500" if backend == "consul" else
+            "http://127.0.0.1:22379"
+        )
         namespace = "dev-check-" + uuid.uuid4().hex
         epoch = "local-dev-check-v1"
         env = os.environ.copy()
+        source_path = str(ROOT / "sdk/python/src")
+        env["PYTHONPATH"] = os.pathsep.join(
+            part for part in (source_path, env.get("PYTHONPATH", "")) if part
+        )
         if backend == "redis":
             env.update(DILOCK_REDIS_URL=endpoint, DILOCK_NAMESPACE=namespace, DILOCK_EPOCH=epoch)
             provision = [str(ROOT / ".tools/venv/Scripts/python.exe"), "tools/provision.py",
                          "--endpoint", endpoint, "--namespace", namespace, "--epoch", epoch]
-        else:
+        elif backend == "etcd":
             env.update(DILOCK_ETCD_ENDPOINT=endpoint, DILOCK_ETCD_NAMESPACE=namespace,
                        DILOCK_ETCD_EPOCH=epoch)
             provision = [str(ROOT / ".tools/venv/Scripts/python.exe"), "-c",
                          "from tools.provision_etcd import provision_etcd; import sys; print(provision_etcd(*sys.argv[1:]))",
                          endpoint, namespace, epoch]
+        else:
+            env.update(DILOCK_CONSUL_ENDPOINT=endpoint, DILOCK_CONSUL_NAMESPACE=namespace,
+                       DILOCK_CONSUL_EPOCH=epoch)
+            provision = [str(ROOT / ".tools/venv/Scripts/python.exe"),
+                         str(ROOT / "tools/provision_consul.py"),
+                         "--endpoint", endpoint, "--namespace", namespace, "--epoch", epoch]
         if not Path(provision[0]).is_file():
             provision[0] = sys.executable
         status = run([provision], ROOT, env)

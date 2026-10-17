@@ -10,9 +10,12 @@ python sdk/rust/consumers/package_consumer.py `
 
 The scratch directory must be new or empty. The driver copies the workspace to
 scratch, runs `cargo package --locked --offline`, extracts the exact core,
-Redis, and etcd `.crate` archives, and compiles, tests, and runs a consumer that
-uses only those extracted archives and the local offline dependency cache. It
-does not contact crates.io or either backend. No dependency or toolchain is
+Redis, etcd, and Consul `.crate` archives, and compiles, tests, and runs a
+consumer that uses those extracted archives and the local offline dependency
+cache. The Consul facade also requires a C ABI installation built with
+`DILOCK_BUILD_CONSUL=ON` and `DILOCK_BUILD_C_API=ON`; pass its library directory
+with `--dilock-c-lib-dir` or `DILOCK_C_LIB_DIR`. The driver does not contact
+crates.io or a Consul backend. No dependency or toolchain is
 downloaded; Rust 1.88 must be selected separately when validating the MSRV.
 
 For a checkout that keeps its caches outside the repository, pass

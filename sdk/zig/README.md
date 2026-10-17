@@ -1,7 +1,7 @@
 # Dilock Zig binding
 
-This is an experimental Zig binding over the repository's C ABI facade. Redis
-and etcd operations are performed by the existing C++ engines through
+This is an experimental Zig binding over the repository's C ABI facade. Redis,
+etcd and Consul operations are performed by the existing C++ engines through
 `Dilock::c`; this package adds C import, typed Zig error sets and explicit
 `defer`-based handle destruction. The C ABI is an internal version-1 candidate,
 not a release-stable interface. The Zig binding is therefore not an
@@ -76,6 +76,16 @@ The same per-attempt overload is available for etcd. Its native `Lock` path
 does not provide non-blocking try-acquire; etcd fencing must be checked
 atomically by the protected resource.
 
+Consul uses `ConsulProvider.connectWithOptions` for endpoint, ACL token and
+timing settings. Provision the namespace metadata explicitly with
+`provisionConsulNamespace` before workers start. The ACL token is passed as
+NUL-terminated text and should come from the deployment secret manager. Consul
+fencing returns the provisioned epoch and KV `LockIndex`; protected writes must
+compare that fence atomically. Keep lock KV entries in place after release so
+`LockIndex` cannot reset. `ConsulLock.tryAcquire` returns `null` only for busy
+contention, and `ConsulLease.renew()` returns false when ownership is no longer
+confirmed.
+
 For default wait and lease durations with cancellation, use
 `acquireDefaultCancellable(&cancellation)` on either lock type. The explicit
 duration overload remains available as `acquireCancellable(waitMs, leaseMs,
@@ -105,15 +115,17 @@ Call `deinit()` exactly once for each sole owner.
 
 ## Build and test
 
-First build/install the CMake SDK with both backends, `BUILD_SHARED_LIBS=ON` and
+First build/install the CMake SDK with Redis, etcd and Consul enabled,
+(`DILOCK_BUILD_ETCD=ON`, `DILOCK_BUILD_CONSUL=ON`),
+`BUILD_SHARED_LIBS=ON` and
 `DILOCK_BUILD_C_API=ON` as described in [`../c/README.md`](../c/README.md). A
 shared C ABI carries the selected platform's C++ runtime dependencies. Then,
 with Zig 0.17.0, point
 `zig build` at the installed header and library directories using
 `-Dc-include=<prefix>/include -Dc-lib=<prefix>/lib`. Run `zig build test` and
-`zig build` compiles both examples as installed artifacts (it does not run them
-against a backend). The ABI
-currently exports both backend profiles in one library, so this binding has a
+`zig build` compiles all three examples as installed artifacts (it does not run them
+against a backend). The ABI currently exports all enabled backend profiles in
+one library, so this binding has a
 combined native dependency and inherits that engine's platform requirements.
 
 The build pins Zig 0.17.0 in `build.zig.zon`. Run `zig build test` with the

@@ -1,6 +1,6 @@
 # Dilock Scala SDK
 
-This facade reuses the production Java Redis and etcd engines. It does not
+This facade reuses the production Java Redis, etcd, and Consul engines. It does not
 reimplement the wire protocol or use the local-only `examples/style/scala/`
 sample as a backend. The shared Java engine implements the protocol; distinct
 Scala 3 and Scala 2.13 facade sources preserve each language line's syntax.
@@ -9,9 +9,9 @@ Scala 2.13 candidate uses the `dilock-scala213_2.13` binary suffix. These are
 local candidates, not verified Maven Central coordinates, and publication is
 not configured.
 
-The Java core is a normal dependency. Java Redis and etcd adapters are provided
+The Java core is a normal dependency. Java Redis, etcd, and Consul adapters are provided
 dependencies, so consumers must add the adapter(s) they actually use:
-`org.dilock:dilock-redis` and/or `org.dilock:dilock-etcd`. This keeps backend
+`org.dilock:dilock-redis`, `org.dilock:dilock-etcd`, and/or `org.dilock:dilock-consul`. This keeps backend
 clients optional.
 
 ## Redis

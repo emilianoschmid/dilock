@@ -130,7 +130,8 @@ module Dilock
   # Shared helpers are intentionally small; backend semantics remain in adapters.
   # @private Internal implementation details; use provider and lock APIs instead.
   module Internal
-    PROFILES = { redis: 'redis-single-authority-v1', etcd: 'etcd-native-lock-v1' }.freeze
+    PROFILES = { redis: 'redis-single-authority-v1', etcd: 'etcd-native-lock-v1',
+                 consul: 'consul-kv-session-v1' }.freeze
     DEFAULT_RPC_MS = 2_000
     DEFAULT_CLEANUP_MS = 2_000
 

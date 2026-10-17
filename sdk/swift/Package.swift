@@ -8,6 +8,7 @@ let package = Package(
         .library(name: "DilockCore", targets: ["DilockCore"]),
         .library(name: "DilockRedis", targets: ["DilockRedis"]),
         .library(name: "DilockEtcd", targets: ["DilockEtcd"]),
+        .library(name: "DilockConsul", targets: ["DilockConsul"]),
         .library(name: "DilockSwiftWorkerSupport", targets: ["DilockSwiftWorkerSupport"]),
         .executable(name: "dilock-swift-worker", targets: ["DilockSwiftWorker"]),
     ],
@@ -54,6 +55,7 @@ let package = Package(
                 .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),
             ]
         ),
+        .target(name: "DilockConsul", dependencies: ["DilockCore"]),
         .executableTarget(
             name: "DilockSwiftWorker",
             dependencies: [
@@ -75,6 +77,7 @@ let package = Package(
             ]
         ),
         .testTarget(name: "DilockEtcdTests", dependencies: ["DilockCore", "DilockEtcd"]),
+        .testTarget(name: "DilockConsulTests", dependencies: ["DilockCore", "DilockConsul"]),
         .testTarget(name: "DilockSwiftWorkerTests", dependencies: ["DilockSwiftWorkerSupport"]),
     ]
 )

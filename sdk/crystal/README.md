@@ -114,7 +114,59 @@ The etcd specs require the matching shared ABI on the linker path. Set
 `DILOCK_TEST_ETCD_ENDPOINT`, `DILOCK_TEST_ETCD_NAMESPACE`, and
 `DILOCK_TEST_ETCD_EPOCH` to use a pre-provisioned disposable etcd namespace, then
 run `crystal spec etcd_spec/dilock_etcd_spec.cr --link-flags "-L<abi-prefix>/lib"`.
-The ordinary Redis `crystal spec` suite does not load or link the optional ABI.
+The Redis-only suite is `crystal spec spec/dilock_spec.cr` and does not load or
+link the optional ABI.
+
+## Experimental Consul facade
+
+Consul also uses the shared C ABI and C++ engine; it does not add another
+Crystal HTTP stack. Build the C/C++ install with
+`DILOCK_BUILD_CONSUL=ON`, `DILOCK_BUILD_C_API=ON`, and
+`BUILD_SHARED_LIBS=ON`. Keep `libdilock_c`, the C++ engine, libcurl, and their
+runtime libraries available at link and load time. Import the facade with
+`require "dilock/consul"` (the facade loads the shared C ABI declarations).
+
+Provision the namespace metadata explicitly with
+`ConsulProvider#provision_namespace` before workers acquire locks. The
+coordination epoch must be valid UTF-8, non-empty, NUL-free, and at most 1,024
+bytes. ACL tokens are NUL-free strings; source them from the deployment secret
+manager. Session TTLs must be 10 seconds through 24 hours; Consul rounds them
+up to whole seconds. `try_acquire` returns `nil` only for confirmed contention.
+Fences contain `(coordination_epoch, LockIndex)` and protected writes must
+enforce them atomically. Retain lock KV entries after release so `LockIndex`
+cannot reset.
+
+```crystal
+require "dilock"
+require "dilock/consul"
+
+provider = Dilock::ConsulProvider.new(
+  "production-incarnation-1",
+  "http://consul.service:8500",
+  "billing",
+  ENV["DILOCK_CONSUL_ACL_TOKEN"]? || "",
+)
+provider.provision_namespace
+handle = provider.lock("invoice/42/reconcile")
+lease = handle.acquire_default
+fence = lease.fence
+# Atomically apply fence.coordination_epoch and fence.lock_index at the resource.
+raise Dilock::Error.new("release not confirmed") unless
+  lease.release == Dilock::ConsulReleaseOutcome::Released
+lease.close
+handle.close
+provider.close
+```
+
+Set `DILOCK_TEST_CONSUL_ENDPOINT`, `DILOCK_TEST_CONSUL_NAMESPACE`,
+`DILOCK_TEST_CONSUL_EPOCH`, and optionally `DILOCK_TEST_CONSUL_ACL_TOKEN` to
+run the live Crystal spec against a pre-provisioned disposable Consul agent.
+The test provisions compatible metadata, then acquires, checks the TTL and
+fence, and releases once. Compile it with the C ABI library on the linker path:
+
+```sh
+crystal spec consul_spec/dilock_consul_spec.cr --link-flags "-L<abi-prefix>/lib"
+```
 
 The short example uses the default namespace and requested TTL; the epoch is
 still required. To configure every acquisition option exposed by Redis, pass

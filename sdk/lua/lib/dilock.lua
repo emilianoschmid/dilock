@@ -75,6 +75,9 @@ local function identity(namespace, resource)
     return resty_string.to_hex(digest:final())
 end
 
+-- Shared by backend adapters so every facade derives the same resource key.
+_M.resource_id = identity
+
 local function redis_connection(self)
     local red, err = redis:new()
     if not red then return nil, err end

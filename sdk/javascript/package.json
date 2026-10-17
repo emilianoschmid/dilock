@@ -15,6 +15,7 @@
   "dependencies": {
     "@dilock/core": "file:../typescript/packages/core",
     "@dilock/etcd": "file:../typescript/packages/etcd",
+    "@dilock/consul": "file:../typescript/packages/consul",
     "@dilock/redis": "file:../typescript/packages/redis"
   }
 }

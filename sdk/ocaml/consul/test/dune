@@ -1,0 +1,7 @@
+(test
+ (name consul_contract)
+ (libraries dilock_consul lwt.unix alcotest))
+
+(executable
+ (name live_consul)
+ (libraries dilock_consul lwt.unix))

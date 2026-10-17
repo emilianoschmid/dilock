@@ -2,6 +2,7 @@
 #include "c_api_error.hpp"
 
 #include "dilock/etcd.hpp"
+#include "dilock/consul.hpp"
 #include "dilock/redis.hpp"
 
 #include <algorithm>
@@ -21,6 +22,9 @@ struct dilock_redis_lease { dilock::Lease value; };
 struct dilock_etcd_provider { std::unique_ptr<dilock::EtcdProvider> value; };
 struct dilock_etcd_lock { dilock::EtcdResourceLock value; };
 struct dilock_etcd_lease { dilock::EtcdLease value; };
+struct dilock_consul_provider { std::unique_ptr<dilock::ConsulProvider> value; };
+struct dilock_consul_lock { dilock::ConsulResourceLock value; };
+struct dilock_consul_lease { dilock::ConsulLease value; };
 struct dilock_cancellation { std::atomic_bool requested{false}; };
 
 namespace {
@@ -182,6 +186,30 @@ dilock::EtcdOptions etcd_options(const dilock_etcd_options* source) {
     return value;
 }
 
+dilock::ConsulOptions consul_options(const dilock_consul_options* source) {
+    if (source == nullptr) throw std::invalid_argument("Consul options pointer is null");
+    dilock::ConsulOptions value;
+    value.endpoint = optional_string(source->endpoint, "http://127.0.0.1:8500");
+    value.name_space = optional_string(source->name_space, "default");
+    value.coordination_epoch = optional_string(source->coordination_epoch, "");
+    value.acl_token = optional_string(source->acl_token, "");
+    value.rpc_timeout = std::chrono::milliseconds(source->rpc_timeout_ms);
+    value.cleanup_timeout = std::chrono::milliseconds(source->cleanup_timeout_ms);
+    value.poll_interval = std::chrono::milliseconds(source->poll_interval_ms);
+    value.default_acquisition.wait = std::chrono::milliseconds(source->default_wait_ms);
+    value.default_acquisition.lease = std::chrono::milliseconds(source->default_lease_ms);
+    if (source->cleanup_callback != nullptr) {
+        const auto callback = source->cleanup_callback;
+        void* const user_data = source->cleanup_user_data;
+        value.cleanup_observer = [callback, user_data](const dilock::CleanupObservation& observation) {
+            const auto outcome = observation.outcome == dilock::ReleaseResult::unknown ? DILOCK_RELEASE_UNKNOWN :
+                observation.outcome == dilock::ReleaseResult::already_not_owned ? DILOCK_ALREADY_NOT_OWNED : DILOCK_RELEASED;
+            callback(DILOCK_BACKEND_CONSUL, outcome, observation.reason.c_str(), user_data);
+        };
+    }
+    return value;
+}
+
 } // namespace
 
 extern "C" {
@@ -198,6 +226,11 @@ void dilock_etcd_options_init(dilock_etcd_options* options) {
     if (options == nullptr) return;
     *options = dilock_etcd_options{"127.0.0.1:2379", "default", "", nullptr, nullptr, nullptr, nullptr, nullptr,
         2000, 2000, 25, 5000, 30000, 0};
+}
+void dilock_consul_options_init(dilock_consul_options* options) {
+    if (options == nullptr) return;
+    *options = dilock_consul_options{"http://127.0.0.1:8500", "default", "", "", nullptr, nullptr,
+        2000, 2000, 50, 5000, 30000};
 }
 dilock_cancellation* dilock_cancellation_create(dilock_error* error) {
     dilock_cancellation* result = nullptr;
@@ -353,6 +386,76 @@ dilock_status dilock_etcd_try_acquire(dilock_etcd_lock* lock, int64_t lease_ms,
     set_error(error, DILOCK_STATUS_UNSUPPORTED_CAPABILITY,
         "etcd native Lock has no safe try-acquire operation");
     return DILOCK_STATUS_UNSUPPORTED_CAPABILITY;
+}
+
+dilock_status dilock_consul_provider_create(const dilock_consul_options* options,
+    dilock_consul_provider** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke(error, [&] { auto value = std::make_unique<dilock_consul_provider>(); value->value = std::make_unique<dilock::ConsulProvider>(consul_options(options)); *out = value.release(); });
+}
+void dilock_consul_provider_destroy(dilock_consul_provider* provider) { delete provider; }
+dilock_status dilock_consul_lock_create(dilock_consul_provider* provider, const char* resource,
+    dilock_consul_lock** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke(error, [&] { if (provider == nullptr || resource == nullptr) throw std::invalid_argument("provider and resource are required"); auto value = std::make_unique<dilock_consul_lock>(); value->value = provider->value->lock(resource); *out = value.release(); });
+}
+void dilock_consul_lock_destroy(dilock_consul_lock* lock) { delete lock; }
+dilock_status dilock_consul_acquire(dilock_consul_lock* lock, int64_t wait_ms, int64_t lease_ms,
+    dilock_consul_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke(error, [&] { if (lock == nullptr) throw std::invalid_argument("lock is null"); auto value = std::make_unique<dilock_consul_lease>(); value->value = lock->value.acquire(std::chrono::milliseconds(wait_ms), std::chrono::milliseconds(lease_ms)); *out = value.release(); });
+}
+dilock_status dilock_consul_acquire_default(dilock_consul_lock* lock,
+    dilock_consul_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke(error, [&] { if (lock == nullptr) throw std::invalid_argument("lock is null"); auto value = std::make_unique<dilock_consul_lease>(); value->value = lock->value.acquire(); *out = value.release(); });
+}
+dilock_status dilock_consul_acquire_with_cancellation(dilock_consul_lock* lock,
+    int64_t wait_ms, int64_t lease_ms, dilock_cancellation* cancellation,
+    dilock_consul_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke_cancellable(error, cancellation, [&](std::stop_token stop) { if (lock == nullptr) throw std::invalid_argument("lock is null"); auto value = std::make_unique<dilock_consul_lease>(); value->value = lock->value.acquire(std::chrono::milliseconds(wait_ms), std::chrono::milliseconds(lease_ms), stop); *out = value.release(); });
+}
+dilock_status dilock_consul_acquire_default_with_cancellation(dilock_consul_lock* lock,
+    dilock_cancellation* cancellation, dilock_consul_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke_cancellable(error, cancellation, [&](std::stop_token stop) { if (lock == nullptr) throw std::invalid_argument("lock is null"); auto value = std::make_unique<dilock_consul_lease>(); value->value = lock->value.acquire(stop); *out = value.release(); });
+}
+dilock_status dilock_consul_try_acquire(dilock_consul_lock* lock, int64_t lease_ms,
+    dilock_consul_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    bool busy = false;
+    const auto status = invoke(error, [&] { if (lock == nullptr) throw std::invalid_argument("lock is null"); auto result = lock->value.try_acquire(std::chrono::milliseconds(lease_ms)); if (!result) { busy = true; set_error(error, DILOCK_STATUS_BUSY, "resource is currently held"); return; } auto value = std::make_unique<dilock_consul_lease>(); value->value = std::move(*result); *out = value.release(); });
+    return status == DILOCK_STATUS_OK && busy ? DILOCK_STATUS_BUSY : status;
+}
+int32_t dilock_consul_lease_is_valid(const dilock_consul_lease* lease) { return lease != nullptr && lease->value.valid() ? 1 : 0; }
+dilock_status dilock_consul_lease_effective_ttl_ms(const dilock_consul_lease* lease,
+    int64_t* effective_ttl_ms, dilock_error* error) {
+    clear_error(error);
+    if (lease == nullptr || effective_ttl_ms == nullptr) { set_error(error, DILOCK_STATUS_INVALID_ARGUMENT, "lease and effective TTL output are required"); return DILOCK_STATUS_INVALID_ARGUMENT; }
+    return invoke(error, [&] { *effective_ttl_ms = lease->value.effective_ttl().count(); });
+}
+dilock_status dilock_consul_lease_fence(const dilock_consul_lease* lease, dilock_consul_fence* fence,
+    char* epoch, size_t epoch_capacity, dilock_error* error) {
+    clear_error(error);
+    if (lease == nullptr || fence == nullptr) { set_error(error, DILOCK_STATUS_INVALID_ARGUMENT, "lease and fence output are required"); return DILOCK_STATUS_INVALID_ARGUMENT; }
+    return invoke(error, [&] { const auto value = lease->value.fence(); fence->lock_index = value.lock_index; fence->coordination_epoch_bytes = value.coordination_epoch.size(); if (epoch == nullptr || epoch_capacity <= value.coordination_epoch.size()) throw std::invalid_argument("coordination epoch output buffer is null or too small"); std::memcpy(epoch, value.coordination_epoch.data(), value.coordination_epoch.size()); epoch[value.coordination_epoch.size()] = '\0'; });
+}
+dilock_status dilock_consul_lease_renew(dilock_consul_lease* lease, int32_t* renewed, dilock_error* error) {
+    if (renewed != nullptr) *renewed = 0;
+    if (lease == nullptr || renewed == nullptr) { set_error(error, DILOCK_STATUS_INVALID_ARGUMENT, "lease and renewed output are required"); return DILOCK_STATUS_INVALID_ARGUMENT; }
+    return invoke(error, [&] { *renewed = lease->value.renew() ? 1 : 0; });
+}
+dilock_status dilock_consul_lease_release(dilock_consul_lease* lease,
+    dilock_release_outcome* outcome, dilock_error* error) {
+    clear_error(error);
+    if (outcome != nullptr) *outcome = DILOCK_RELEASE_UNKNOWN;
+    if (lease == nullptr || outcome == nullptr) { set_error(error, DILOCK_STATUS_INVALID_ARGUMENT, "lease and outcome are required"); return DILOCK_STATUS_INVALID_ARGUMENT; }
+    return public_release(lease->value.release(), outcome);
+}
+void dilock_consul_lease_destroy(dilock_consul_lease* lease) { delete lease; }
+dilock_status dilock_consul_provision_namespace(const dilock_consul_options* options, dilock_error* error) {
+    return invoke(error, [&] { dilock::provision_consul_namespace(consul_options(options)); });
 }
 
 } // extern "C"

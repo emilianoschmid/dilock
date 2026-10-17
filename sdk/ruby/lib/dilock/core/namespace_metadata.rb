@@ -61,11 +61,15 @@ module Dilock
     private_class_method :validate_object!
 
     def validate_fields!(value, profile, epoch)
-      expected_metadata(profile, epoch).each do |field, expected_value|
+      expected = expected_metadata(profile, epoch)
+      expected.each do |field, expected_value|
         next if value.key?(field) && value[field] == expected_value
 
         raise ProtocolMismatch.new("namespace metadata mismatch for #{field}",
                                    category: :protocol_mismatch)
+      end
+      unless value.keys.sort == expected.keys.sort
+        raise ProtocolMismatch.new('namespace metadata has unsupported fields', category: :protocol_mismatch)
       end
       return if value['fixed_lease_ms'].nil?
 

@@ -243,6 +243,52 @@ program facade_test
   call etcd_destroy_lease(lease)
   call etcd_destroy_lock(lock_handle)
   call etcd_destroy_provider(provider)
+
+  status = consul_provision_namespace('consul:8500', 'consul-epoch', message, &
+                                      name_space='billing', acl_token='test-token')
+  call require(status == dilock_ok, 'Consul metadata provisioning uses the explicit wrapper')
+  status = consul_open('consul:8500', 'consul-epoch', provider, message, &
+                       name_space='billing', acl_token='test-token')
+  call require(status == dilock_ok .and. c_associated(provider), 'Consul provider opens with optional token')
+  status = consul_lock(provider, 'invoice/42', lock_handle, message)
+  call require(status == dilock_ok .and. c_associated(lock_handle), 'Consul lock handle is created')
+  status = cancellation_create(cancellation, message)
+  call require(status == dilock_ok, 'Consul cancellation handle is created')
+  call cancellation_request(cancellation)
+  status = consul_acquire_default_with_cancellation(lock_handle, cancellation, lease, message)
+  call require(status == dilock_cancelled .and. .not. c_associated(lease), &
+                'Consul cancellable default acquire preserves cancellation')
+  call cancellation_destroy(cancellation)
+  status = cancellation_create(cancellation, message)
+  call require(status == dilock_ok, 'Fresh Consul cancellation handle is created')
+  status = consul_acquire_with_cancellation(lock_handle, 100_c_int64_t, 30000_c_int64_t, &
+                                             cancellation, lease, message)
+  call require(status == dilock_ok .and. c_associated(lease), 'Consul cancellable acquisition succeeds')
+  status = consul_effective_ttl_ms(lease, revision, message)
+  call require(status == dilock_ok .and. revision == 30000_c_int64_t, 'Consul effective TTL is exposed')
+  block
+    integer(c_int64_t) :: lock_index
+    character(len=32) :: consul_epoch
+    integer(c_int) :: renewed
+    status = consul_fence(lease, lock_index, consul_epoch, message)
+    call require(status == dilock_ok .and. lock_index == 42_c_int64_t, 'Consul fence returns LockIndex')
+    call require(trim(consul_epoch) == 'consul-epoch', 'Consul fence returns its coordination epoch')
+    status = consul_renew(lease, renewed, message)
+    call require(status == dilock_ok .and. renewed == 1_c_int, 'Consul session renewal is exposed')
+  end block
+  status = consul_release(lease, outcome, message)
+  call require(status == dilock_ok .and. outcome == dilock_released, 'Consul lease release returns its outcome')
+  call consul_destroy_lease(lease)
+  call cancellation_destroy(cancellation)
+  status = consul_try_acquire(lock_handle, 30000_c_int64_t, lease, message)
+  call require(status == dilock_ok .and. c_associated(lease), 'Consul try-acquire returns a lease')
+  call consul_destroy_lease(lease)
+  call consul_destroy_lock(lock_handle)
+  call consul_destroy_provider(provider)
+  status = consul_open('consul:8500', 'consul-epoch', provider, message, &
+                       name_space='billing', acl_token='bad' // achar(0) // 'token')
+  call require(status == dilock_invalid_argument .and. .not. c_associated(provider), &
+                'Consul ACL token rejects embedded NUL before the ABI')
 contains
   subroutine require(condition, description)
     logical, intent(in) :: condition

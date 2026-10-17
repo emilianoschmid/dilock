@@ -1,9 +1,9 @@
 # Dilock Groovy facade
 
 This artifact is a small Groovy closure facade over the Java SDK. It reuses the
-Java Redis and native etcd adapters and does not duplicate protocol logic.
-`withRedis` and `withEtcd` own and close a provider. `withRedisLock` and
-`withEtcdLock` own only the acquired lease, so a provider can serve multiple
+Java Redis, native etcd, and Consul adapters and does not duplicate protocol logic.
+`withRedis`, `withEtcd`, and `withConsul` own and close a provider. `withRedisLock`,
+`withEtcdLock`, and `withConsulLock` own only the acquired lease, so a provider can serve multiple
 resource scopes. These helpers call the lease's explicit bounded `release()`
 and require the `RELEASED` outcome after otherwise successful work;
 `ALREADY_NOT_OWNED` is reported as a scope failure so a lost lease cannot look

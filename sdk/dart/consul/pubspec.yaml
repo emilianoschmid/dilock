@@ -1,0 +1,12 @@
+name: dilock_consul
+description: Consul HTTP KV/session adapter for Dilock distributed leases.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+dependencies:
+  dilock:
+    path: ../dilock
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.0

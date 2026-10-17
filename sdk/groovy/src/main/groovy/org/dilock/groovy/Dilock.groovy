@@ -2,6 +2,8 @@ package org.dilock.groovy
 
 import org.dilock.etcd.EtcdLease
 import org.dilock.etcd.EtcdProvider
+import org.dilock.consul.ConsulLease
+import org.dilock.consul.ConsulProvider
 import org.dilock.redis.AcquireOptions
 import org.dilock.redis.RedisLease
 import org.dilock.redis.RedisProvider
@@ -20,6 +22,10 @@ final class Dilock {
 
     static EtcdProvider etcd(String endpoint, String namespace, String epoch) {
         EtcdProvider.connect(endpoint, namespace, epoch)
+    }
+
+    static ConsulProvider consul(String endpoint, String namespace, String epoch) {
+        ConsulProvider.connect(endpoint, namespace, epoch)
     }
 
     static <T extends AutoCloseable, R> R withCloseable(T resource, Closure<R> body) {
@@ -63,11 +69,26 @@ final class Dilock {
         withCloseable(etcd(endpoint, namespace, epoch), body)
     }
 
+    static <R> R withConsul(String endpoint, String namespace, String epoch,
+                            Closure<R> body) {
+        Objects.requireNonNull(body, 'body')
+        withCloseable(consul(endpoint, namespace, epoch), body)
+    }
+
+    static <R> R withConsulLock(ConsulProvider provider, String resource, Closure<R> body) {
+        Objects.requireNonNull(body, 'body')
+        withLease(provider.lock(resource).acquire(), body)
+    }
+
     static <R> R withLease(RedisLease lease, Closure<R> body) {
         withLeaseScope(lease, body)
     }
 
     static <R> R withLease(EtcdLease lease, Closure<R> body) {
+        withLeaseScope(lease, body)
+    }
+
+    static <R> R withLease(ConsulLease lease, Closure<R> body) {
         withLeaseScope(lease, body)
     }
 
@@ -86,7 +107,8 @@ final class Dilock {
         try {
             Object outcome = lease.release()
             if (outcome != RedisLease.ReleaseOutcome.RELEASED &&
-                    outcome != EtcdLease.ReleaseOutcome.RELEASED) {
+                    outcome != EtcdLease.ReleaseOutcome.RELEASED &&
+                    outcome != org.dilock.consul.ConsulLease.ReleaseOutcome.RELEASED) {
                 releaseFailure = new IllegalStateException(
                     "Lease scope did not receive a RELEASED acknowledgement: ${outcome}")
             }

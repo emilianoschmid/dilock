@@ -1,13 +1,13 @@
 cabal-version: 3.0
 name: dilock
 version: 0.1.0
-synopsis: Experimental distributed lock client with optional etcd C ABI facade
-description: Experimental Redis client with an optional Haskell facade over Dilock C ABI v1 for etcd.
+synopsis: Experimental distributed lock client with optional etcd and Consul C ABI facades
+description: Experimental Redis client with optional Haskell facades over Dilock C ABI v1 backends.
 category: Concurrency
 license: Apache-2.0
 license-file: LICENSE
 build-type: Simple
-extra-source-files: data/redis-release.lua, data/redis-renew.lua, README.md, LICENSE, cbits/dilock_haskell_ffi.c, cbits/dilock_haskell_ffi.h, examples/redis/README.md, examples/etcd-c-abi/README.md
+extra-source-files: data/redis-release.lua, data/redis-renew.lua, README.md, LICENSE, cbits/dilock_haskell_ffi.c, cbits/dilock_haskell_ffi.h, examples/redis/README.md, examples/etcd-c-abi/README.md, examples/consul-c-abi/README.md
 data-files: data/redis-release.lua, data/redis-renew.lua
 
 flag strict-test-warnings
@@ -25,6 +25,11 @@ flag etcd-c-abi
   default: False
   manual: True
 
+flag consul-c-abi
+  description: Build the optional experimental Consul adapter through Dilock C ABI v1 (requires an installed shared Dilock C++ library)
+  default: False
+  manual: True
+
 library
   exposed-modules: Dilock.Redis, Dilock.Internal.Backoff, Dilock.Internal.Duration, Dilock.Internal.Exception, Dilock.Internal.Metadata, Dilock.Internal.Renewal, Dilock.Internal.Release
   other-modules: Dilock.Internal.CancellableResult, Paths_dilock
@@ -35,6 +40,9 @@ library
   ghc-options: -Wall -Wcompat
   if flag(etcd-c-abi)
     exposed-modules: Dilock.Etcd.CABI
+  if flag(consul-c-abi)
+    exposed-modules: Dilock.Consul.CABI
+  if flag(etcd-c-abi) || flag(consul-c-abi)
     c-sources: cbits/dilock_haskell_ffi.c
     include-dirs: cbits
     extra-libraries: dilock_c
@@ -83,6 +91,32 @@ executable etcd_c_abi_live
     buildable: False
   ghc-options: -Wall -threaded
 
+test-suite consul_c_abi
+  type: exitcode-stdio-1.0
+  main-is: ConsulCABI.hs
+  hs-source-dirs: test
+  build-depends: base, dilock, text
+  default-language: Haskell2010
+  if flag(consul-c-abi)
+    buildable: True
+  else
+    buildable: False
+  if flag(strict-test-warnings)
+    ghc-options: -Wall -Werror
+  else
+    ghc-options: -Wall
+
+executable consul_c_abi_live
+  main-is: ConsulCABILive.hs
+  hs-source-dirs: test
+  build-depends: base, dilock, text
+  default-language: Haskell2010
+  if flag(consul-c-abi)
+    buildable: True
+  else
+    buildable: False
+  ghc-options: -Wall -threaded
+
 executable dilock-redis-quickstart
   main-is: Main.hs
   hs-source-dirs: examples/redis
@@ -98,6 +132,19 @@ executable dilock-etcd-cabi-quickstart
   build-depends: base, dilock, text
   default-language: Haskell2010
   if flag(etcd-c-abi)
+    buildable: True
+  else
+    buildable: False
+  ghc-options: -Wall -threaded
+  if flag(strict-example-warnings)
+    ghc-options: -Werror
+
+executable dilock-consul-cabi-quickstart
+  main-is: Main.hs
+  hs-source-dirs: examples/consul-c-abi
+  build-depends: base, dilock, text
+  default-language: Haskell2010
+  if flag(consul-c-abi)
     buildable: True
   else
     buildable: False

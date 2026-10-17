@@ -19,7 +19,7 @@ $ExecutionContext.SessionState.Module.OnRemove = {
     [Dilock.PowerShell.ModuleAssemblyResolver]::Unregister()
 }.GetNewClosure()
 
-foreach ($assemblyName in @('Dilock.Core.dll', 'Dilock.Redis.dll', 'Dilock.Etcd.dll')) {
+foreach ($assemblyName in @('Dilock.Core.dll', 'Dilock.Redis.dll', 'Dilock.Etcd.dll', 'Dilock.Consul.dll')) {
     $assemblyPath = Join-Path $script:LibraryDirectory $assemblyName
     if (-not (Test-Path -LiteralPath $assemblyPath -PathType Leaf)) {
         throw "Dilock module assembly is missing: $assemblyPath"
@@ -149,6 +149,47 @@ function New-DilockEtcdProvider {
     $configuration.DefaultAcquisition = $acquisition
     $configuration.CleanupObserver = New-DilockCleanupObserver
     return [Dilock.Etcd.EtcdProvider]::ConnectAsync($configuration, $CancellationToken).GetAwaiter().GetResult()
+}
+
+function New-DilockConsulProvider {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string] $Endpoint,
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string] $Epoch,
+        [ValidatePattern('^[a-z0-9][a-z0-9_.-]{0,63}$')][string] $Namespace = 'default',
+        [TimeSpan] $MetadataTimeout = ([TimeSpan]::FromSeconds(2)),
+        [Dilock.AcquireOptions] $Options,
+        [TimeSpan] $WaitTimeout = ([TimeSpan]::FromSeconds(5)),
+        [TimeSpan] $LeaseDuration = ([TimeSpan]::FromSeconds(30)),
+        [TimeSpan] $RpcTimeout = ([TimeSpan]::FromSeconds(2)),
+        [TimeSpan] $CleanupTimeout = ([TimeSpan]::FromSeconds(2)),
+        [switch] $AutoRenew,
+        [switch] $RequireFencing,
+        [System.Threading.CancellationToken] $CancellationToken = [System.Threading.CancellationToken]::None
+    )
+    $policyParameters = @('WaitTimeout', 'LeaseDuration', 'RpcTimeout', 'CleanupTimeout', 'AutoRenew', 'RequireFencing')
+    $hasIndividualPolicy = $false
+    foreach ($name in $policyParameters) { if ($PSBoundParameters.ContainsKey($name)) { $hasIndividualPolicy = $true; break } }
+    if ($PSBoundParameters.ContainsKey('Options')) {
+        if ($hasIndividualPolicy) { throw 'Pass either -Options or individual acquisition options, not both.' }
+        if ($null -eq $Options) { throw '-Options cannot be null.' }
+        $Options.Validate()
+        $acquisition = $Options
+    }
+    else {
+        $acquisition = New-DilockAcquireOptions -WaitTimeout $WaitTimeout -LeaseDuration $LeaseDuration `
+            -RpcTimeout $RpcTimeout -CleanupTimeout $CleanupTimeout -AutoRenew:$AutoRenew -RequireFencing:$RequireFencing
+    }
+    $configuration = [Dilock.Consul.ConsulProviderOptions]::new()
+    $configuration.Endpoint = $Endpoint
+    $configuration.Namespace = $Namespace
+    $configuration.ExpectedEpoch = $Epoch
+    $consulToken = [Environment]::GetEnvironmentVariable('CONSUL_HTTP_TOKEN')
+    if (-not [string]::IsNullOrWhiteSpace($consulToken)) { $configuration.Token = $consulToken }
+    $configuration.MetadataTimeout = $MetadataTimeout
+    $configuration.DefaultAcquisition = $acquisition
+    $configuration.CleanupObserver = New-DilockCleanupObserver
+    return [Dilock.Consul.ConsulProvider]::ConnectAsync($configuration, $CancellationToken).GetAwaiter().GetResult()
 }
 
 function Get-DilockLock {
@@ -310,6 +351,6 @@ function Invoke-Dilock {
 }
 
 Export-ModuleMember -Function @(
-    'New-DilockRedisProvider', 'New-DilockEtcdProvider', 'Get-DilockLock',
+    'New-DilockRedisProvider', 'New-DilockEtcdProvider', 'New-DilockConsulProvider', 'Get-DilockLock',
     'Enter-Dilock', 'Exit-Dilock', 'Close-DilockLease', 'Close-DilockProvider', 'Invoke-Dilock'
 )

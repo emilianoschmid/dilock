@@ -276,3 +276,133 @@ dilock_status dilock_etcd_acquire_default_with_cancellation(dilock_etcd_lock *lo
     *lease = status == DILOCK_STATUS_OK ? (dilock_etcd_lease *)&fake_lease : NULL;
     return status;
 }
+
+void dilock_consul_options_init(dilock_consul_options *options) {
+    memset(options, 0, sizeof(*options));
+    options->rpc_timeout_ms = 2000;
+    options->cleanup_timeout_ms = 2000;
+    options->poll_interval_ms = 50;
+    options->default_wait_ms = 5000;
+    options->default_lease_ms = 30000;
+}
+
+dilock_status dilock_consul_provision_namespace(const dilock_consul_options *options,
+                                                 dilock_error *error) {
+    if (strcmp(options->endpoint, "consul:8500") != 0 ||
+        strcmp(options->name_space, "billing") != 0 ||
+        strcmp(options->coordination_epoch, "consul-epoch") != 0 ||
+        strcmp(options->acl_token, "test-token") != 0) {
+        return invalid_argument(error, "Consul provisioning inputs changed");
+    }
+    success_error(error);
+    return DILOCK_STATUS_OK;
+}
+
+dilock_status dilock_consul_provider_create(const dilock_consul_options *options,
+                                            dilock_consul_provider **provider,
+                                            dilock_error *error) {
+    if (strcmp(options->endpoint, "consul:8500") != 0 ||
+        strcmp(options->name_space, "billing") != 0 ||
+        strcmp(options->coordination_epoch, "consul-epoch") != 0 ||
+        strcmp(options->acl_token, "test-token") != 0) {
+        *provider = NULL;
+        return invalid_argument(error, "Consul options changed their exact input bytes");
+    }
+    strcpy(current_epoch, options->coordination_epoch);
+    *provider = (dilock_consul_provider *)&fake_provider;
+    success_error(error);
+    return DILOCK_STATUS_OK;
+}
+
+void dilock_consul_provider_destroy(dilock_consul_provider *provider) { (void)provider; }
+
+dilock_status dilock_consul_lock_create(dilock_consul_provider *provider, const char *resource,
+                                        dilock_consul_lock **lock, dilock_error *error) {
+    (void)provider;
+    if (strcmp(resource, "invoice/42") != 0) {
+        *lock = NULL;
+        return invalid_argument(error, "Consul resource changed its exact input bytes");
+    }
+    *lock = (dilock_consul_lock *)&fake_lock;
+    success_error(error);
+    return DILOCK_STATUS_OK;
+}
+
+void dilock_consul_lock_destroy(dilock_consul_lock *lock) { (void)lock; }
+
+dilock_status dilock_consul_acquire(dilock_consul_lock *lock, int64_t wait_ms,
+                                    int64_t lease_ms, dilock_consul_lease **lease,
+                                    dilock_error *error) {
+    (void)lock; (void)wait_ms; (void)lease_ms;
+    *lease = (dilock_consul_lease *)&fake_lease;
+    success_error(error);
+    return DILOCK_STATUS_OK;
+}
+
+dilock_status dilock_consul_acquire_default(dilock_consul_lock *lock,
+                                            dilock_consul_lease **lease,
+                                            dilock_error *error) {
+    return dilock_consul_acquire(lock, 5000, 30000, lease, error);
+}
+
+dilock_status dilock_consul_try_acquire(dilock_consul_lock *lock, int64_t lease_ms,
+                                        dilock_consul_lease **lease, dilock_error *error) {
+    return dilock_consul_acquire(lock, 0, lease_ms, lease, error);
+}
+
+dilock_status dilock_consul_acquire_with_cancellation(dilock_consul_lock *lock,
+    int64_t wait_ms, int64_t lease_ms, dilock_cancellation *cancellation,
+    dilock_consul_lease **lease, dilock_error *error) {
+    (void)lock; (void)wait_ms; (void)lease_ms;
+    dilock_status status = cancellable_status(cancellation, error);
+    *lease = status == DILOCK_STATUS_OK ? (dilock_consul_lease *)&fake_lease : NULL;
+    return status;
+}
+
+dilock_status dilock_consul_acquire_default_with_cancellation(dilock_consul_lock *lock,
+    dilock_cancellation *cancellation, dilock_consul_lease **lease, dilock_error *error) {
+    (void)lock;
+    dilock_status status = cancellable_status(cancellation, error);
+    *lease = status == DILOCK_STATUS_OK ? (dilock_consul_lease *)&fake_lease : NULL;
+    return status;
+}
+
+dilock_status dilock_consul_lease_release(dilock_consul_lease *lease,
+                                         dilock_release_outcome *outcome,
+                                         dilock_error *error) {
+    (void)lease;
+    *outcome = DILOCK_RELEASED;
+    success_error(error);
+    return DILOCK_STATUS_OK;
+}
+
+dilock_status dilock_consul_lease_fence(const dilock_consul_lease *lease,
+    dilock_consul_fence *fence, char *epoch, size_t epoch_capacity, dilock_error *error) {
+    (void)lease;
+    size_t epoch_bytes = strlen(current_epoch);
+    fence->lock_index = 42;
+    fence->coordination_epoch_bytes = epoch_bytes;
+    if (epoch_capacity < epoch_bytes + 1)
+        return invalid_argument(error, "Consul epoch output capacity too small");
+    memcpy(epoch, current_epoch, epoch_bytes + 1);
+    success_error(error);
+    return DILOCK_STATUS_OK;
+}
+
+dilock_status dilock_consul_lease_renew(dilock_consul_lease *lease, int32_t *renewed,
+                                        dilock_error *error) {
+    (void)lease;
+    *renewed = 1;
+    success_error(error);
+    return DILOCK_STATUS_OK;
+}
+
+dilock_status dilock_consul_lease_effective_ttl_ms(const dilock_consul_lease *lease,
+    int64_t *ttl_ms, dilock_error *error) {
+    (void)lease;
+    *ttl_ms = 30000;
+    success_error(error);
+    return DILOCK_STATUS_OK;
+}
+
+void dilock_consul_lease_destroy(dilock_consul_lease *lease) { (void)lease; }

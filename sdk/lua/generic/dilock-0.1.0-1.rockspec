@@ -4,8 +4,8 @@ source = {
    url = "file://.",
 }
 description = {
-   summary = "Standalone Lua Redis distributed-lock client",
-   detailed = "Experimental synchronous Lua 5.1/LuaJIT Redis single-authority lock SDK.",
+   summary = "Standalone Lua Redis and Consul distributed-lock client",
+   detailed = "Experimental synchronous Lua 5.1/LuaJIT Redis and Consul lock SDK.",
    license = "Apache-2.0",
 }
 dependencies = {
@@ -20,5 +20,6 @@ build = {
    type = "builtin",
    modules = {
       dilock = "lib/dilock.lua",
+      ["dilock.consul"] = "lib/dilock/consul.lua",
    },
 }

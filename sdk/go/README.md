@@ -68,6 +68,37 @@ The conformance worker is a local tool module that depends on both adapters; it 
 
 Real Redis interoperability requires pre-provisioned namespace metadata and an explicitly configured standalone test authority. No test provisions or modifies shared Redis metadata automatically. From the repository root, launch the conformance worker with `go -C sdk/go/cmd/dilock-go-worker run . <config.json>`; it uses JSON Lines on stdin/stdout.
 
+## Consul HTTP KV/session profile
+
+The `example.invalid/dilock/consul` module uses the Consul agent HTTP API and
+standard-library `net/http`. It creates one TTL session per attempt, verifies
+the acquired session with a consistent KV read, and exposes the retained
+`LockIndex` paired with the configured epoch as a `Fence`. Session TTLs must be
+10 seconds through 24 hours and are rounded upward to whole seconds. Provision
+metadata with `ProvisionNamespace` before `NewProvider`; ordinary startup only
+validates existing metadata. Never delete lock KV entries because Consul can
+reset their LockIndex values.
+
+```go
+provider, err := consul.NewProvider(ctx, "http://127.0.0.1:8500", consul.ProviderOptions{
+    Namespace: "orders",
+    Epoch:     "consul-incarnation-2026-10",
+})
+if err != nil { return err }
+defer provider.Close()
+lock, err := provider.Lock("invoice/4821")
+if err != nil { return err }
+err = lock.WithLease(ctx, func(lease *consul.Lease) error {
+    fence := lease.Fence()
+    _ = fence // Enforce (fence.Epoch, fence.LockIndex) atomically at the resource.
+    return nil
+})
+```
+
+Go's module workspace includes this adapter locally. Its consumer and real
+Consul lifecycle evidence remain separate from source presence. No package has
+been published.
+
 ## etcd native Lock profile
 
 The `example.invalid/dilock/etcd` package uses etcd's official gRPC Lock/Unlock service and v3

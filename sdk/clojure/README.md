@@ -1,10 +1,10 @@
 # Dilock Clojure facade
 
 This thin facade provides Clojure constructors and `with-open` macros over the
-Java SDK. Redis and etcd protocol logic stays in the Java modules; this project
+Java SDK. Redis, etcd, and Consul protocol logic stays in the Java modules; this project
 does not implement a second backend. The dependency on both adapters is
 intentional for this combined facade. Applications that need only one backend
-can depend on that Java adapter directly.
+can depend on the Java adapter directly.
 
 The quick path uses the Java defaults (5 seconds of acquisition wait and a 30
 second lease):
@@ -27,7 +27,7 @@ release on normal work; if work already failed, the cleanup exception is
 attached as suppressed while the original exception remains primary. This is
 deliberate because Java `close()` is best-effort and reports an unknown outcome
 only through its optional observer. The macro accepts only the typed `RELEASED`
-outcome from the Java Redis or etcd adapter; another value with the same name
+outcome from the Java Redis, etcd, or Consul adapter; another value with the same name
 does not confirm cleanup. Keep the scope short. A lease is not a
 local mutex and expiry cannot stop a paused process.
 

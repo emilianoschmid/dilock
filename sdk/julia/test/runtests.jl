@@ -16,11 +16,45 @@ vectors = JSON3.read(read(joinpath(root, "spec", "vectors", "identity.json"), St
     @test_throws ArgumentError Dilock.resource_id("default", String(UInt8[0xff]))
 end
 
+@testset "Consul profile contract" begin
+    provider = Dilock.ConsulProvider(epoch="consul-test", namespace="test")
+    expected = Dilock._consul_expected(provider)
+    @test expected["profile"] == "consul-kv-session-v1"
+    @test expected["coordination_epoch"] == "consul-test"
+    @test Dilock._consul_effective_ttl(10_001) == 11_000
+    @test Dilock._consul_margin(10_000) == 100
+    @test Dilock.resource_id("test", "resource") == Dilock.resource_id(provider.namespace, "resource")
+    @test Dilock._consul_release_after_destroy(:released, false) == :unknown
+    @test Dilock._consul_release_after_destroy(:already_not_owned, true) == :already_not_owned
+    @test_throws ArgumentError Dilock.ConsulProvider(epoch="bad", endpoint="http://user:pass@localhost:8500")
+    @test_throws ArgumentError Dilock.ConsulProvider(epoch="bad", endpoint="http://localhost:8500/v1")
+    @test_throws ArgumentError Dilock.ConsulProvider(epoch="")
+end
+
 @testset "Redis scripts match the shared contract" begin
     @test read(joinpath(@__DIR__, "..", "src", "redis-release.lua"), String) ==
           read(joinpath(root, "spec", "backends", "redis-release.lua"), String)
     @test read(joinpath(@__DIR__, "..", "src", "redis-renew.lua"), String) ==
           read(joinpath(root, "spec", "backends", "redis-renew.lua"), String)
+end
+
+if haskey(ENV, "DILOCK_TEST_CONSUL_ENDPOINT")
+    @testset "Consul session lifecycle" begin
+        provider = Dilock.ConsulProvider(
+            endpoint=ENV["DILOCK_TEST_CONSUL_ENDPOINT"],
+            namespace=get(ENV, "DILOCK_TEST_CONSUL_NAMESPACE", "dilock-julia-live"),
+            epoch=get(ENV, "DILOCK_TEST_CONSUL_EPOCH", "julia-live-test"),
+            token=get(ENV, "DILOCK_TEST_CONSUL_TOKEN", nothing))
+        Dilock.provision_consul_namespace(provider)
+        Dilock.connect_consul(provider)
+        resource = Dilock.lock(provider, "lifecycle")
+        lease = Dilock.acquire(resource; wait_ms=10_000, lease_ms=30_000)
+        @test Dilock.fence(lease).epoch == provider.epoch
+        @test parse(BigInt, Dilock.fence(lease).lock_index) > 0
+        @test Dilock.renew!(lease)
+        @test Dilock.release!(lease) == :released
+        Base.close(provider)
+    end
 end
 
 @testset "renewal validates lease duration before backend access" begin

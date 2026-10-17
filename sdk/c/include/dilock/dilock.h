@@ -50,7 +50,8 @@ typedef enum dilock_release_outcome {
 
 typedef enum dilock_backend {
     DILOCK_BACKEND_REDIS = 0,
-    DILOCK_BACKEND_ETCD = 1
+    DILOCK_BACKEND_ETCD = 1,
+    DILOCK_BACKEND_CONSUL = 2
 } dilock_backend;
 
 /* Cleanup notifications may run synchronously on whichever thread destroys a
@@ -65,12 +66,20 @@ typedef struct dilock_redis_lease dilock_redis_lease;
 typedef struct dilock_etcd_provider dilock_etcd_provider;
 typedef struct dilock_etcd_lock dilock_etcd_lock;
 typedef struct dilock_etcd_lease dilock_etcd_lease;
+typedef struct dilock_consul_provider dilock_consul_provider;
+typedef struct dilock_consul_lock dilock_consul_lock;
+typedef struct dilock_consul_lease dilock_consul_lease;
 typedef struct dilock_cancellation dilock_cancellation;
 
 typedef struct dilock_etcd_fence {
     int64_t create_revision;
     size_t coordination_epoch_bytes;
 } dilock_etcd_fence;
+
+typedef struct dilock_consul_fence {
+    uint64_t lock_index;
+    size_t coordination_epoch_bytes;
+} dilock_consul_fence;
 
 typedef struct dilock_redis_options {
     const char *host;
@@ -107,11 +116,26 @@ typedef struct dilock_etcd_options {
     int32_t auto_renew;
 } dilock_etcd_options;
 
+typedef struct dilock_consul_options {
+    const char *endpoint;
+    const char *name_space;
+    const char *coordination_epoch;
+    const char *acl_token;
+    dilock_cleanup_callback cleanup_callback;
+    void *cleanup_user_data;
+    int64_t rpc_timeout_ms;
+    int64_t cleanup_timeout_ms;
+    int64_t poll_interval_ms;
+    int64_t default_wait_ms;
+    int64_t default_lease_ms;
+} dilock_consul_options;
+
 /* Set ABI defaults: default namespace, 2s RPC/cleanup, 5s wait and 30s lease.
  * coordination_epoch must still be supplied by the deployment. */
 DILOCK_C_API uint32_t dilock_c_abi_version(void);
 DILOCK_C_API void dilock_redis_options_init(dilock_redis_options *options);
 DILOCK_C_API void dilock_etcd_options_init(dilock_etcd_options *options);
+DILOCK_C_API void dilock_consul_options_init(dilock_consul_options *options);
 DILOCK_C_API dilock_cancellation *dilock_cancellation_create(dilock_error *error);
 DILOCK_C_API void dilock_cancellation_request(dilock_cancellation *cancellation);
 /* Keep the cancellation object alive until the acquire call returns. */
@@ -193,6 +217,43 @@ DILOCK_C_API void dilock_etcd_lease_destroy(dilock_etcd_lease *lease);
 DILOCK_C_API dilock_status dilock_etcd_try_acquire(
     dilock_etcd_lock *lock, int64_t lease_ms,
     dilock_etcd_lease **out, dilock_error *error);
+
+DILOCK_C_API dilock_status dilock_consul_provider_create(
+    const dilock_consul_options *options, dilock_consul_provider **out, dilock_error *error);
+DILOCK_C_API void dilock_consul_provider_destroy(dilock_consul_provider *provider);
+DILOCK_C_API dilock_status dilock_consul_lock_create(
+    dilock_consul_provider *provider, const char *resource,
+    dilock_consul_lock **out, dilock_error *error);
+DILOCK_C_API void dilock_consul_lock_destroy(dilock_consul_lock *lock);
+DILOCK_C_API dilock_status dilock_consul_acquire(
+    dilock_consul_lock *lock, int64_t wait_ms, int64_t lease_ms,
+    dilock_consul_lease **out, dilock_error *error);
+DILOCK_C_API dilock_status dilock_consul_acquire_default(
+    dilock_consul_lock *lock, dilock_consul_lease **out, dilock_error *error);
+DILOCK_C_API dilock_status dilock_consul_acquire_with_cancellation(
+    dilock_consul_lock *lock, int64_t wait_ms, int64_t lease_ms,
+    dilock_cancellation *cancellation, dilock_consul_lease **out, dilock_error *error);
+DILOCK_C_API dilock_status dilock_consul_acquire_default_with_cancellation(
+    dilock_consul_lock *lock, dilock_cancellation *cancellation,
+    dilock_consul_lease **out, dilock_error *error);
+DILOCK_C_API dilock_status dilock_consul_try_acquire(
+    dilock_consul_lock *lock, int64_t lease_ms,
+    dilock_consul_lease **out, dilock_error *error);
+DILOCK_C_API int32_t dilock_consul_lease_is_valid(const dilock_consul_lease *lease);
+DILOCK_C_API dilock_status dilock_consul_lease_effective_ttl_ms(
+    const dilock_consul_lease *lease, int64_t *effective_ttl_ms, dilock_error *error);
+/* The caller buffer must fit epoch bytes plus a trailing NUL. On short buffers,
+ * the fence outputs still contain the LockIndex and required epoch byte count. */
+DILOCK_C_API dilock_status dilock_consul_lease_fence(
+    const dilock_consul_lease *lease, dilock_consul_fence *fence,
+    char *coordination_epoch, size_t epoch_capacity, dilock_error *error);
+DILOCK_C_API dilock_status dilock_consul_lease_renew(
+    dilock_consul_lease *lease, int32_t *renewed, dilock_error *error);
+DILOCK_C_API dilock_status dilock_consul_lease_release(
+    dilock_consul_lease *lease, dilock_release_outcome *outcome, dilock_error *error);
+DILOCK_C_API void dilock_consul_lease_destroy(dilock_consul_lease *lease);
+DILOCK_C_API dilock_status dilock_consul_provision_namespace(
+    const dilock_consul_options *options, dilock_error *error);
 
 #ifdef __cplusplus
 }
