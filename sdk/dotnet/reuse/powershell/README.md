@@ -2,7 +2,7 @@
 
 This directory contains a script consumer for development and a minimal local
 PowerShell module candidate in [`module/Dilock`](module/Dilock/README.md). The
-module wraps the existing public .NET Core, Redis, and etcd APIs; it does not
+module wraps the existing public .NET Core, Redis, etcd and Consul APIs; it does not
 implement a PowerShell lock engine. Its ZIP is locally buildable but has not
 been published to the PowerShell Gallery.
 
@@ -22,7 +22,7 @@ DLLs without running a second host-side .NET build.
 not create another lock engine or a PowerShell package. By default it builds both existing backend
 projects without restore and checks the public identity API. Pass `-SkipBuild` only after those
 Release assemblies have already been built. `-AssemblyDirectory` can point to one Release output
-directory containing Core, Redis and Etcd assemblies when the artifacts were built by a consumer
+directory containing Core, Redis, Etcd and Consul assemblies when the artifacts were built by a consumer
 project. Set `DILOCK_ETCD_ENDPOINT` and the provisioned `DILOCK_EPOCH` to run etcd; otherwise set
 `DILOCK_REDIS_URL` and the epoch to run Redis. If both endpoints are configured, autodetection fails
 closed; choose one explicitly with `-Backend Redis` or `-Backend Etcd`. An explicit backend whose
@@ -92,7 +92,8 @@ finally {
 ```
 
 Use the equivalent `EtcdProviderOptions` and `EtcdProvider.ConnectAsync` for
-etcd. Do not provision namespace metadata from ordinary application startup.
+etcd. Use `New-DilockConsulProvider` or `ConsulProviderOptions` for Consul; the
+ACL token is read from `CONSUL_HTTP_TOKEN`, and Consul requires a 10-second-minimum TTL. Do not provision namespace metadata from ordinary application startup.
 The module provider constructors and standalone example install the .NET
 `CleanupObserver`; if best-effort scope disposal cannot confirm cleanup, they
 write the backend and reason to standard error. Reconcile the protected resource
@@ -130,6 +131,6 @@ pwsh -NoProfile -File sdk/dotnet/reuse/powershell/tests/Test-BackendSelection.ps
 ```
 
 For an existing build produced by an F#, VB.NET, or other .NET consumer project,
-pass `-SkipBuild -AssemblyDirectory <directory-containing-Core-Redis-Etcd-dlls>`.
+pass `-SkipBuild -AssemblyDirectory <directory-containing-Core-Redis-Etcd-Consul-dlls>`.
 The endpoint and epoch variables must refer to an already provisioned backend and matching
 namespace metadata; this consumer does not provision etcd metadata or publish a PowerShell module.

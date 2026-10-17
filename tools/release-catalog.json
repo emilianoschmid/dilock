@@ -16,6 +16,8 @@
         "sdk/dotnet/Dilock.Core/**",
         "sdk/dotnet/Dilock.Redis/**",
         "sdk/dotnet/Dilock.Etcd/**",
+        "sdk/dotnet/Dilock.Consul/**",
+        "sdk/dotnet/Worker/**",
         "sdk/dotnet/Consumers/**",
         "sdk/dotnet/Tests/**"
       ],
@@ -120,6 +122,25 @@
             "--no-restore",
             "-o",
             "/out/dotnet"
+          ],
+          [
+            "dotnet",
+            "restore",
+            "Dilock.Consul",
+            "--source",
+            "/root/.nuget/packages",
+            "--ignore-failed-sources",
+            "-p:NuGetAudit=false"
+          ],
+          [
+            "dotnet",
+            "pack",
+            "Dilock.Consul",
+            "-c",
+            "Release",
+            "--no-restore",
+            "-o",
+            "/out/dotnet"
           ]
         ],
         "artifact_globs": [
@@ -136,7 +157,8 @@
         "required_artifact_patterns": [
           "Dilock.Core.*.nupkg",
           "Dilock.Redis.*.nupkg",
-          "Dilock.Etcd.*.nupkg"
+          "Dilock.Etcd.*.nupkg",
+          "Dilock.Consul.*.nupkg"
         ],
         "unexecuted_checks": [
           "Dependency vulnerability-database audit NOT_RUN in this network-isolated packaging recipe; NuGetAudit=false only disables that unavailable online lookup. SDK safety/consumer tests remain independent."
@@ -170,7 +192,7 @@
         ]
       },
       "publication": {
-        "route": "NuGet: Dilock.Core, Dilock.Redis, Dilock.Etcd",
+        "route": "NuGet: Dilock.Core, Dilock.Redis, Dilock.Etcd, Dilock.Consul",
         "identity_state": "unverified",
         "enabled": false
       }
@@ -572,6 +594,7 @@
         "sdk/go/LICENSE",
         "sdk/go/redis/**",
         "sdk/go/etcd/**",
+      "sdk/go/consul/**",
         "sdk/go/consumers/**",
         "sdk/go/cmd/**"
       ],
@@ -693,6 +716,7 @@
         "sdk/rust/dilock/**",
         "sdk/rust/redis/**",
         "sdk/rust/etcd/**",
+        "sdk/rust/consul/**",
         "sdk/rust/consumers/**",
         "sdk/rust/tests/**",
         "sdk/rust/worker/**"
@@ -726,8 +750,10 @@
         "**/*.o",
         "**/*.a"
       ],
-      "delivery_kind": "native",
-      "dependencies": [],
+      "delivery_kind": "facade",
+      "dependencies": [
+        "c"
+      ],
       "package_formats": [
         "source-bundle-tar.gz",
         "crate"
@@ -740,12 +766,13 @@
           [
             "mkdir",
             "-p",
-            "/out/rust"
+            "/out/rust",
+            "/out/c"
           ],
           [
             "/bin/sh",
             "-ec",
-            "export PROTOC=/opt/dilock/rust-protoc/protoc-wrapper; cargo package --locked --offline -p dilock -p dilock-redis -p dilock-etcd"
+            "tar -xzf /packages/c/c-c-install.tar.gz -C /out/c; export PROTOC=/opt/dilock/rust-protoc/protoc-wrapper; export DILOCK_C_LIB_DIR=/out/c/lib; export LD_LIBRARY_PATH=/out/c/lib:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; cargo package --locked --offline -p dilock -p dilock-redis -p dilock-etcd -p dilock-consul"
           ]
         ],
         "artifact_globs": [
@@ -755,16 +782,18 @@
         "execution_state": "not_run",
         "prerequisites": [
           "Immutable image must be locally cached; no image pulls or network dependency installation.",
-          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "The C dependency must provide a Consul-enabled shared dilock_c installation plus its C++ and TLS runtime libraries."
         ],
         "recorded_image_reference": "rust@sha256:114c7a4425406451c2866b6aafe69fe29b1b298832db1277d411ac73c82d04d6",
         "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
         "required_artifact_patterns": [
           "dilock-0.1.0.crate",
           "dilock-redis-0.1.0.crate",
-          "dilock-etcd-0.1.0.crate"
+          "dilock-etcd-0.1.0.crate",
+          "dilock-consul-0.1.0.crate"
         ],
-        "verification_policy": "Cargo archive verification remains enabled. All three interdependent SDK crates are selected in one invocation; no --no-verify, registry source replacement, or invented crates.io index entry.",
+        "verification_policy": "Cargo archive verification remains enabled. All four Rust SDK crates are selected in one invocation; Consul links the exact Consul-enabled C ABI artifact. No --no-verify, registry source replacement, or invented crates.io index entry.",
         "primary_reference": "https://doc.rust-lang.org/cargo/commands/cargo-package.html",
         "cache_prerequisites": [
           ".tools/cargo/registry",
@@ -785,7 +814,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir -p /consumer/source; tar -xzf /packages/rust/dilock-rust-*-source.tar.gz -C /consumer/source; python3 /consumer/source/sdk/rust/consumers/package_consumer.py --repo /consumer/source --archives-dir /packages/rust --scratch /consumer/rust-consumer --output /consumer/rust-consumer.json --protoc /opt/dilock/rust-protoc/protoc-wrapper"
+            "export DILOCK_C_LIB_DIR=/consumer/prefix/c/lib; export LD_LIBRARY_PATH=/consumer/prefix/c/lib:/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; mkdir -p /consumer/source /consumer/prefix/c; tar -xzf /packages/rust/dilock-rust-*-source.tar.gz -C /consumer/source; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; python3 /consumer/source/sdk/rust/consumers/package_consumer.py --repo /consumer/source --archives-dir /packages/rust --scratch /consumer/rust-consumer --output /consumer/rust-consumer.json --protoc /opt/dilock/rust-protoc/protoc-wrapper"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
@@ -793,11 +822,12 @@
         "requires_native_artifacts": true,
         "kind": "installed-native-package",
         "native_artifacts_consumed_from": [
-          "rust"
+          "rust",
+          "c"
         ]
       },
       "publication": {
-        "route": "crates.io: dilock, dilock-redis, dilock-etcd (proposed names)",
+        "route": "crates.io: dilock, dilock-redis, dilock-etcd, dilock-consul (proposed names)",
         "identity_state": "unverified",
         "enabled": false
       }
@@ -816,6 +846,7 @@
         "sdk/java/redis/**",
         "sdk/java/etcd/**",
         "sdk/java/consumers/**",
+        "sdk/java/consul/**",
         "sdk/java/tests/**",
         "sdk/java/LICENSE",
         "sdk/java/NOTICE"
@@ -876,13 +907,14 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir -p /out/java; cp pom.xml /out/java/dilock-java-parent.pom; for unit in core redis etcd; do cp \"$unit/pom.xml\" \"/out/java/dilock-$unit.pom\"; done"
+            "mkdir -p /out/java; cp pom.xml /out/java/dilock-java-parent.pom; for unit in core redis etcd consul; do cp \"$unit/pom.xml\" \"/out/java/dilock-$unit.pom\"; done"
           ]
         ],
         "artifact_globs": [
           "sdk/java/core/target/*.jar",
           "sdk/java/redis/target/*.jar",
           "sdk/java/etcd/target/*.jar",
+          "sdk/java/consul/target/*.jar",
           "/out/java/*.pom"
         ],
         "output_role": "package",
@@ -906,7 +938,11 @@
           "dilock-java-parent.pom",
           "dilock-core.pom",
           "dilock-redis.pom",
-          "dilock-etcd.pom"
+          "dilock-etcd.pom",
+          "dilock-consul-0.1.0.jar",
+          "dilock-consul-0.1.0-sources.jar",
+          "dilock-consul-0.1.0-javadoc.jar",
+          "dilock-consul.pom"
         ]
       },
       "consumer": {
@@ -1388,7 +1424,9 @@
           "sdk/swift/tests/DilockCoreTests/IdentityTests.swift",
           "sdk/swift/tests/DilockCoreTests/WithLeaseTests.swift",
           "sdk/swift/tests/DilockCoreTests/Fixtures/identity.json",
-          "sdk/swift/tests/DilockEtcdTests/EtcdLiveIntegrationTests.swift"
+          "sdk/swift/tests/DilockEtcdTests/EtcdLiveIntegrationTests.swift",
+          "sdk/swift/Tests/DilockConsulTests/ConsulOptionsTests.swift",
+          "sdk/swift/Tests/DilockConsulTests/ConsulLiveIntegrationTests.swift"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -1424,7 +1462,8 @@
         "sdk/dart/AGENTS.md",
         "sdk/dart/dilock/**",
         "sdk/dart/redis/**",
-        "sdk/dart/etcd/**"
+      "sdk/dart/etcd/**",
+      "sdk/dart/consul/**"
       ],
       "source_exclude": [
         "**/validation/**",
@@ -1602,7 +1641,9 @@
           "sdk/elixir/test/conformance_worker_test.exs",
           "sdk/elixir/test/dilock_erlang_live_test.exs",
           "sdk/elixir/test/dilock_identity_test.exs",
-          "sdk/elixir/test/etcd_cleanup_budget_test.exs"
+          "sdk/elixir/test/etcd_cleanup_budget_test.exs",
+          "sdk/elixir/test/consul_contract_test.exs",
+          "sdk/elixir/test/consul_integration_test.exs"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -1612,7 +1653,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir -p /root/.mix/archives; tar -xf /opt/dilock/elixir-tools/hex-2.5.1-installed.tar -C /root/.mix/archives; export MIX_REBAR3=/opt/dilock/elixir-tools/rebar3; mkdir -p /consumer/source; tar -xzf /packages/elixir/dilock-elixir-*-source.tar.gz -C /consumer/source; mkdir /consumer/hex; tar -xf /packages/elixir/*.tar -C /consumer/hex; mkdir /consumer/installed; tar -xzf /consumer/hex/contents.tar.gz -C /consumer/installed; cp /consumer/source/sdk/elixir/mix.lock /consumer/installed/mix.lock; mkdir -p /consumer/installed/deps; cp -R /opt/dilock/elixir-deps/. /consumer/installed/deps/; cd /consumer/installed; HEX_OFFLINE=1 MIX_ENV=test mix deps.compile; HEX_OFFLINE=1 MIX_ENV=test mix compile; HEX_OFFLINE=1 MIX_ENV=test mix run --no-compile -e 'unless Code.ensure_loaded?(Dilock.Redis) and Code.ensure_loaded?(Dilock.Etcd), do: raise(\"installed backend API missing\")'"
+            "mkdir -p /root/.mix/archives; tar -xf /opt/dilock/elixir-tools/hex-2.5.1-installed.tar -C /root/.mix/archives; export MIX_REBAR3=/opt/dilock/elixir-tools/rebar3; mkdir -p /consumer/source; tar -xzf /packages/elixir/dilock-elixir-*-source.tar.gz -C /consumer/source; mkdir /consumer/hex; tar -xf /packages/elixir/*.tar -C /consumer/hex; mkdir /consumer/installed; tar -xzf /consumer/hex/contents.tar.gz -C /consumer/installed; cp /consumer/source/sdk/elixir/mix.lock /consumer/installed/mix.lock; mkdir -p /consumer/installed/deps; cp -R /opt/dilock/elixir-deps/. /consumer/installed/deps/; cd /consumer/installed; HEX_OFFLINE=1 MIX_ENV=test mix deps.compile; HEX_OFFLINE=1 MIX_ENV=test mix compile; HEX_OFFLINE=1 MIX_ENV=test mix run --no-compile -e 'unless Code.ensure_loaded?(Dilock.Redis) and Code.ensure_loaded?(Dilock.Etcd) and Code.ensure_loaded?(Dilock.Consul), do: raise(\"installed backend API missing\")'"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
@@ -1814,7 +1855,7 @@
           [
             "/bin/sh",
             "-ec",
-            "export PATH=/opt/dilock/grpc-root/usr/bin:$PATH; export LD_LIBRARY_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; export PKG_CONFIG_SYSROOT_DIR=/opt/dilock/grpc-root; export PKG_CONFIG_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/pkgconfig; export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH; mkdir -p /out/c; cmake -S . -B /work/.release/build/c -DCMAKE_BUILD_TYPE=Release -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_C_API=ON -DCMAKE_INSTALL_PREFIX=/out/c '-DCMAKE_PREFIX_PATH=/opt/dilock/grpc-root/usr;/opt/dilock/cppinstall;/opt/dilock/cppdeps/usr;/opt/dilock/openssl/usr;/opt/dilock/openssl-runtime/usr' -DOpenSSL_ROOT_DIR=/opt/dilock/openssl/usr -DOpenSSL_INCLUDE_DIR=/opt/dilock/openssl/usr/include -DOPENSSL_CRYPTO_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libcrypto.so.3 -DOPENSSL_SSL_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libssl.so.3 -DOPENSSL_USE_STATIC_LIBS=FALSE -DgRPC_DIR=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/cmake/grpc -DProtobuf_INCLUDE_DIR=/opt/dilock/grpc-root/usr/include -DProtobuf_LIBRARY=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/libprotobuf.so -DProtobuf_PROTOC_EXECUTABLE=/opt/dilock/grpc-root/usr/bin/protoc -Dnlohmann_json_DIR=/opt/dilock/cppdeps/usr/share/cmake/nlohmann_json -Dredis++_DIR=/opt/dilock/cppinstall/share/cmake/redis++ -DHiredis_DIR=/opt/dilock/cppinstall/lib/cmake/hiredis; cmake --build /work/.release/build/c --parallel 2; cmake --install /work/.release/build/c"
+            "export PATH=/opt/dilock/grpc-root/usr/bin:$PATH; export LD_LIBRARY_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; export PKG_CONFIG_SYSROOT_DIR=/opt/dilock/grpc-root; export PKG_CONFIG_PATH=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/pkgconfig; export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH; mkdir -p /out/c; cmake -S . -B /work/.release/build/c -DCMAKE_BUILD_TYPE=Release -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_CONSUL=ON -DDILOCK_BUILD_C_API=ON -DCMAKE_INSTALL_PREFIX=/out/c '-DCMAKE_PREFIX_PATH=/opt/dilock/grpc-root/usr;/opt/dilock/cppinstall;/opt/dilock/cppdeps/usr;/opt/dilock/openssl/usr;/opt/dilock/openssl-runtime/usr' -DOpenSSL_ROOT_DIR=/opt/dilock/openssl/usr -DOpenSSL_INCLUDE_DIR=/opt/dilock/openssl/usr/include -DOPENSSL_CRYPTO_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libcrypto.so.3 -DOPENSSL_SSL_LIBRARY=/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu/libssl.so.3 -DOPENSSL_USE_STATIC_LIBS=FALSE -DgRPC_DIR=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/cmake/grpc -DProtobuf_INCLUDE_DIR=/opt/dilock/grpc-root/usr/include -DProtobuf_LIBRARY=/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu/libprotobuf.so -DProtobuf_PROTOC_EXECUTABLE=/opt/dilock/grpc-root/usr/bin/protoc -Dnlohmann_json_DIR=/opt/dilock/cppdeps/usr/share/cmake/nlohmann_json -Dredis++_DIR=/opt/dilock/cppinstall/share/cmake/redis++ -DHiredis_DIR=/opt/dilock/cppinstall/lib/cmake/hiredis; cmake --build /work/.release/build/c --parallel 2; cmake --install /work/.release/build/c"
           ]
         ],
         "artifact_globs": [
@@ -2085,7 +2126,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir -p /consumer/source; tar -xzf /packages/fsharp/dilock-fsharp-*-source.tar.gz -C /consumer/source; mkdir /consumer/app; cp /consumer/source/sdk/dotnet/reuse/fsharp/* /consumer/app/; sed -i 's#<ProjectReference Include=\"../../Dilock.Redis/Dilock.Redis.csproj\" />#<PackageReference Include=\"Dilock.Redis\" Version=\"0.1.0-dev.1\" />#; s#<ProjectReference Include=\"../../Dilock.Etcd/Dilock.Etcd.csproj\" />#<PackageReference Include=\"Dilock.Etcd\" Version=\"0.1.0-dev.1\" />#' /consumer/app/Dilock.FSharp.Consumer.fsproj; cd /consumer/app; dotnet restore --packages /consumer/nuget --source /packages/dotnet --source /root/.nuget/packages --ignore-failed-sources -p:NuGetAudit=false; dotnet build --no-restore -c Release"
+            "mkdir -p /consumer/source; tar -xzf /packages/fsharp/dilock-fsharp-*-source.tar.gz -C /consumer/source; mkdir /consumer/app; cp /consumer/source/sdk/dotnet/reuse/fsharp/* /consumer/app/; sed -i 's#<ProjectReference Include=\"../../Dilock.Redis/Dilock.Redis.csproj\" />#<PackageReference Include=\"Dilock.Redis\" Version=\"0.1.0-dev.1\" />#; s#<ProjectReference Include=\"../../Dilock.Etcd/Dilock.Etcd.csproj\" />#<PackageReference Include=\"Dilock.Etcd\" Version=\"0.1.0-dev.1\" />#; s#<ProjectReference Include=\"../../Dilock.Consul/Dilock.Consul.csproj\" />#<PackageReference Include=\"Dilock.Consul\" Version=\"0.1.0-dev.1\" />#' /consumer/app/Dilock.FSharp.Consumer.fsproj; cd /consumer/app; dotnet restore --packages /consumer/nuget --source /packages/dotnet --source /root/.nuget/packages --ignore-failed-sources -p:NuGetAudit=false; dotnet build --no-restore -c Release"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
@@ -2213,7 +2254,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir -p /consumer/source; tar -xzf /packages/vbnet/dilock-vbnet-*-source.tar.gz -C /consumer/source; mkdir /consumer/app; cp /consumer/source/sdk/dotnet/reuse/vb/* /consumer/app/; sed -i 's#<ProjectReference Include=\"../../Dilock.Redis/Dilock.Redis.csproj\" />#<PackageReference Include=\"Dilock.Redis\" Version=\"0.1.0-dev.1\" />#; s#<ProjectReference Include=\"../../Dilock.Etcd/Dilock.Etcd.csproj\" />#<PackageReference Include=\"Dilock.Etcd\" Version=\"0.1.0-dev.1\" />#' /consumer/app/Dilock.VisualBasic.Consumer.vbproj; cd /consumer/app; dotnet restore --packages /consumer/nuget --source /packages/dotnet --source /root/.nuget/packages --ignore-failed-sources -p:NuGetAudit=false; dotnet build --no-restore -c Release"
+            "mkdir -p /consumer/source; tar -xzf /packages/vbnet/dilock-vbnet-*-source.tar.gz -C /consumer/source; mkdir /consumer/app; cp /consumer/source/sdk/dotnet/reuse/vb/* /consumer/app/; sed -i 's#<ProjectReference Include=\"../../Dilock.Redis/Dilock.Redis.csproj\" />#<PackageReference Include=\"Dilock.Redis\" Version=\"0.1.0-dev.1\" />#; s#<ProjectReference Include=\"../../Dilock.Etcd/Dilock.Etcd.csproj\" />#<PackageReference Include=\"Dilock.Etcd\" Version=\"0.1.0-dev.1\" />#; s#<ProjectReference Include=\"../../Dilock.Consul/Dilock.Consul.csproj\" />#<PackageReference Include=\"Dilock.Consul\" Version=\"0.1.0-dev.1\" />#' /consumer/app/Dilock.VisualBasic.Consumer.vbproj; cd /consumer/app; dotnet restore --packages /consumer/nuget --source /packages/dotnet --source /root/.nuget/packages --ignore-failed-sources -p:NuGetAudit=false; dotnet build --no-restore -c Release"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
@@ -2684,7 +2725,8 @@
         "entrypoints": [
           "sdk/erlang/test/dilock_erlang_tests.erl",
           "sdk/erlang/examples/dilock_erlang_etcd_example.erl",
-          "sdk/erlang/examples/dilock_erlang_redis_example.erl"
+          "sdk/erlang/examples/dilock_erlang_redis_example.erl",
+          "sdk/erlang/examples/dilock_erlang_consul_example.erl"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -2932,7 +2974,8 @@
         "prerequisites": [
           "Immutable image must be locally cached; no image pulls or network dependency installation.",
           "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
-          "Install dependency outputs or configure ecosystem-local repositories for: c."
+          "Install dependency outputs or configure ecosystem-local repositories for: c.",
+          "The Consul facade requires the Consul-enabled C ABI shared installation and its C++/TLS runtime libraries."
         ],
         "recorded_image_reference": "sha256:baea9b2ca36e8f027d7ef5b60bd86cdf9d00a1e6a491cefa282111690cefbb44",
         "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
@@ -2944,7 +2987,8 @@
         "entrypoints": [
           "sdk/zig/tests/contract.zig",
           "sdk/zig/examples/etcd_quickstart.zig",
-          "sdk/zig/examples/redis_quickstart.zig"
+          "sdk/zig/examples/redis_quickstart.zig",
+          "sdk/zig/examples/consul_quickstart.zig"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -3228,6 +3272,7 @@
         "sdk/crystal/src/**",
         "sdk/crystal/spec/**",
         "sdk/crystal/etcd_spec/**",
+        "sdk/crystal/consul_spec/**",
         "sdk/crystal/examples/**"
       ],
       "source_exclude": [
@@ -3275,7 +3320,13 @@
           [
             "mkdir",
             "-p",
-            "/out/crystal"
+            "/out/crystal",
+            "/out/c"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "tar -xzf /packages/c/c-c-install.tar.gz -C /out/c"
           ],
           [
             "shards",
@@ -3287,6 +3338,11 @@
             "examples/basic.cr",
             "-o",
             "/out/crystal/redis-quickstart"
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "export LD_LIBRARY_PATH=/out/c/lib:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; crystal build examples/consul_basic.cr --link-flags '-L/out/c/lib' -o /out/crystal/consul-quickstart"
           ]
         ],
         "artifact_globs": [
@@ -3304,7 +3360,9 @@
       "consumer": {
         "entrypoints": [
           "sdk/crystal/examples/basic.cr",
-          "sdk/crystal/examples/etcd_basic.cr"
+          "sdk/crystal/examples/etcd_basic.cr",
+          "sdk/crystal/examples/consul_basic.cr",
+          "sdk/crystal/consul_spec/dilock_consul_spec.cr"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -3314,14 +3372,16 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir -p /consumer/source; tar -xzf /packages/crystal/dilock-crystal-*-source.tar.gz -C /consumer/source; cd /consumer/source/sdk/crystal; shards check; crystal spec spec"
+            "export LD_LIBRARY_PATH=/consumer/prefix/c/lib:/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; mkdir -p /consumer/source /consumer/prefix/c; tar -xzf /packages/crystal/dilock-crystal-*-source.tar.gz -C /consumer/source; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; cd /consumer/source/sdk/crystal; shards check; crystal spec spec; crystal spec consul_spec/dilock_consul_spec.cr --link-flags '-L/consumer/prefix/c/lib'; crystal build examples/consul_basic.cr --link-flags '-L/consumer/prefix/c/lib' -o /consumer/consul-quickstart"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
         "delivery_profile": "source-package native compiler/test consumer",
-        "requires_native_artifacts": false,
+        "requires_native_artifacts": true,
         "kind": "frozen-source-package",
-        "native_artifacts_consumed_from": []
+        "native_artifacts_consumed_from": [
+          "c"
+        ]
       },
       "publication": {
         "route": "Shards",
@@ -3340,6 +3400,7 @@
         "sdk/lua/AGENTS.md",
         "sdk/lua/example.lua",
         "sdk/lua/example_etcd.lua",
+        "sdk/lua/example_consul.lua",
         "sdk/lua/generic/*.rockspec",
         "sdk/lua/generic/LICENSE",
         "sdk/lua/generic/README.md",
@@ -3418,7 +3479,7 @@
           "Immutable image must be locally cached; no image pulls or network dependency installation.",
           "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
           "Install dependency outputs or configure ecosystem-local repositories for: c.",
-          "OpenResty, generic Lua 5.1 Redis rock, and LuaJIT C-ABI etcd module are separate runtime profiles; generic Lua does not offer etcd."
+          "OpenResty, generic Lua 5.1 Redis rock, and LuaJIT C-ABI modules are separate runtime profiles; OpenResty Consul requires preloaded lua-resty-http and lua-resty-openssl; generic Lua does not offer etcd."
         ],
         "required_artifact_patterns": [
           "dilock-*.src.rock"
@@ -3426,7 +3487,10 @@
       },
       "consumer": {
         "entrypoints": [
-          "sdk/lua/generic/test/run-consumer.sh"
+          "sdk/lua/generic/test/run-consumer.sh",
+          "sdk/lua/test/consul_spec.lua",
+          "sdk/lua/test/consul_live_handler.lua",
+          "sdk/lua/test/nginx.consul.integration.conf"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -3436,7 +3500,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir -p /consumer/source; tar -xzf /packages/lua/dilock-lua-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; luarocks --lua-version=5.1 --tree=/consumer/rocks install --deps-mode=none /packages/lua/*.src.rock; eval \"$(luarocks --lua-version=5.1 --tree=/consumer/rocks path)\"; DILOCK_VECTOR_PATH=/consumer/source/spec/vectors/identity.json lua5.1 /consumer/source/sdk/lua/generic/test/unit.lua; LUA_PATH=\"/consumer/source/sdk/lua/luajit-etcd/lib/?.lua;;\" LD_LIBRARY_PATH=/consumer/prefix/c/lib luajit /consumer/source/sdk/lua/luajit-etcd/test/core_spec.lua"
+            "mkdir -p /consumer/source; tar -xzf /packages/lua/dilock-lua-*-source.tar.gz -C /consumer/source; mkdir -p /consumer/prefix/c; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; luarocks --lua-version=5.1 --tree=/consumer/rocks install --deps-mode=none /packages/lua/*.src.rock; eval \"$(luarocks --lua-version=5.1 --tree=/consumer/rocks path)\"; DILOCK_VECTOR_PATH=/consumer/source/spec/vectors/identity.json lua5.1 /consumer/source/sdk/lua/generic/test/unit.lua; lua5.1 /consumer/source/sdk/lua/generic/test/consul_contract.lua; LUA_PATH=\"/consumer/source/sdk/lua/lib/?.lua;;\" luajit /consumer/source/sdk/lua/test/consul_spec.lua; LUA_PATH=\"/consumer/source/sdk/lua/luajit-etcd/lib/?.lua;;\" LD_LIBRARY_PATH=/consumer/prefix/c/lib luajit /consumer/source/sdk/lua/luajit-etcd/test/core_spec.lua; LUA_PATH=\"/consumer/source/sdk/lua/luajit-etcd/lib/?.lua;;\" luajit /consumer/source/sdk/lua/luajit-etcd/test/consul_contract.lua"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
@@ -3521,6 +3585,7 @@
           [
             "cabal",
             "sdist",
+            "--flags=+consul-c-abi",
             "--output-directory=/out/haskell"
           ]
         ],
@@ -3542,8 +3607,11 @@
         "entrypoints": [
           "sdk/haskell/test/EtcdCABI.hs",
           "sdk/haskell/test/EtcdCABILive.hs",
+          "sdk/haskell/test/ConsulCABI.hs",
+          "sdk/haskell/test/ConsulCABILive.hs",
           "sdk/haskell/test/Identity.hs",
-          "sdk/haskell/examples/etcd-c-abi/Main.hs"
+          "sdk/haskell/examples/etcd-c-abi/Main.hs",
+          "sdk/haskell/examples/consul-c-abi/Main.hs"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -3553,7 +3621,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir /consumer/cabal; tar -xzf /packages/haskell/dilock-[0-9]*.tar.gz -C /consumer/cabal; cd /consumer/cabal/dilock-*; cabal test --offline"
+            "mkdir -p /consumer/cabal /consumer/prefix/c; tar -xzf /packages/haskell/dilock-[0-9]*.tar.gz -C /consumer/cabal; tar -xzf /packages/c/c-c-install.tar.gz -C /consumer/prefix/c; export LD_LIBRARY_PATH=/consumer/prefix/c/lib:/opt/dilock/grpc-root/usr/lib/x86_64-linux-gnu:/opt/dilock/cppinstall/lib:/opt/dilock/cppdeps/usr/lib/x86_64-linux-gnu:/opt/dilock/openssl-runtime/usr/lib/x86_64-linux-gnu; cd /consumer/cabal/dilock-*; cabal test --offline --flags=+consul-c-abi --extra-include-dirs=/consumer/prefix/c/include --extra-lib-dirs=/consumer/prefix/c/lib; cabal build --offline --flags=+consul-c-abi dilock-consul-cabi-quickstart --extra-include-dirs=/consumer/prefix/c/include --extra-lib-dirs=/consumer/prefix/c/lib"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
@@ -3561,7 +3629,8 @@
         "requires_native_artifacts": true,
         "kind": "installed-native-package",
         "native_artifacts_consumed_from": [
-          "haskell"
+          "haskell",
+          "c"
         ]
       },
       "publication": {
@@ -3584,6 +3653,7 @@
         "sdk/ocaml/lib/**",
         "sdk/ocaml/data/**",
         "sdk/ocaml/etcd/**",
+        "sdk/ocaml/consul/**",
         "sdk/ocaml/test/**"
       ],
       "source_exclude": [
@@ -3639,10 +3709,23 @@
             "build",
             "-p",
             "dilock"
+          ],
+          [
+            "opam",
+            "install",
+            "--offline",
+            "--yes",
+            "."
+          ],
+          [
+            "/bin/sh",
+            "-ec",
+            "cd consul; opam exec -- dune build -p dilock-consul"
           ]
         ],
         "artifact_globs": [
-          "sdk/ocaml/_build/default/*.install"
+          "sdk/ocaml/_build/default/*.install",
+          "sdk/ocaml/consul/_build/default/*.install"
         ],
         "output_role": "build-validation",
         "execution_state": "not_run",
@@ -3657,7 +3740,10 @@
           "sdk/ocaml/test/deadline_test.ml",
           "sdk/ocaml/test/dune",
           "sdk/ocaml/test/etcd_contract.ml",
-          "sdk/ocaml/test/identity.ml"
+          "sdk/ocaml/test/identity.ml",
+          "sdk/ocaml/consul/lib/consul.ml",
+          "sdk/ocaml/consul/test/consul_contract.ml",
+          "sdk/ocaml/consul/test/live_consul.ml"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -3667,7 +3753,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir -p /consumer/source; tar -xzf /packages/ocaml/dilock-ocaml-*-source.tar.gz -C /consumer/source; cd /consumer/source/sdk/ocaml; opam exec -- dune build -p dilock; opam exec -- dune exec test/identity.exe; opam exec -- dune exec test/deadline_test.exe; opam exec -- dune exec test/etcd_contract.exe"
+            "mkdir -p /consumer/source; tar -xzf /packages/ocaml/dilock-ocaml-*-source.tar.gz -C /consumer/source; cd /consumer/source/sdk/ocaml; opam exec -- dune build -p dilock; opam exec -- dune exec test/identity.exe; opam exec -- dune exec test/deadline_test.exe; opam exec -- dune exec test/etcd_contract.exe; opam install --offline --yes .; cd consul; opam exec -- dune build -p dilock-consul; opam exec -- dune exec test/consul_contract.exe"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
@@ -3765,7 +3851,11 @@
         ]
       },
       "consumer": {
-        "entrypoints": [],
+        "entrypoints": [
+          "sdk/perl/t/consul_adapter.t",
+          "sdk/perl/t/consul_integration.t",
+          "sdk/perl/lib/Dilock/Consul.pm"
+        ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
         "cwd": "/consumer",
@@ -3774,7 +3864,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir /consumer/perl; tar -xzf /packages/perl/Dilock-[0-9]*.tar.gz -C /consumer/perl; cd /consumer/perl/Dilock-*; perl Makefile.PL INSTALL_BASE=/consumer/installed; make; make install; PERL5LIB=/consumer/installed/lib/perl5 perl -MDilock -e 'print \"$Dilock::VERSION\\n\"'"
+            "mkdir /consumer/perl; tar -xzf /packages/perl/Dilock-[0-9]*.tar.gz -C /consumer/perl; cd /consumer/perl/Dilock-*; perl Makefile.PL INSTALL_BASE=/consumer/installed; make; make install; PERL5LIB=/consumer/installed/lib/perl5 perl -MDilock -e 'print \"$Dilock::VERSION\\n\"'; PERL5LIB=/consumer/installed/lib/perl5 perl -MDilock::Consul -e 'my $p = Dilock::Consul->new(coordination_epoch => \"consumer\"); die unless $p->{namespace} eq \"default\"'; prove -Ilib -It/lib t/consul_adapter.t"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",
@@ -3862,7 +3952,8 @@
         "execution_state": "not_run",
         "prerequisites": [
           "Immutable image must be locally cached; no image pulls or network dependency installation.",
-          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches."
+          "Dependencies must be preloaded in the isolated builder cache; source bundles never include vendor caches.",
+          "The newly declared HTTP.jl 1.x dependency and its dependency tree must be preloaded in the offline Julia depot."
         ],
         "recorded_image_reference": "julia@sha256:2323a3445e7701cf8f7190293e360e4f67c7e43de24480183f178aa1062dc99b",
         "image_observation": "Matched local docker image ls --no-trunc on 2026-10-12; compiler image cache is not dependency-cache proof.",
@@ -3875,7 +3966,8 @@
         "entrypoints": [
           "sdk/julia/test/runtests.jl",
           "sdk/julia/examples/basic.jl",
-          "sdk/julia/examples/etcd.jl"
+          "sdk/julia/examples/etcd.jl",
+          "sdk/julia/examples/consul.jl"
         ],
         "execution_state": "not_run",
         "policy": "A source bundle or successful build is not an installed-package/live-backend consumer pass.",
@@ -3996,6 +4088,8 @@
       "consumer": {
         "entrypoints": [
           "sdk/r/tests/testthat.R",
+          "sdk/r/tests/testthat/test-consul-contract.R",
+          "sdk/r/tests/testthat/test-consul-live.R",
           "sdk/r/tests/testthat/test-etcd-live.R",
           "sdk/r/tests/testthat/test-etcd-wire.R",
           "sdk/r/tests/testthat/test-identity.R"
@@ -4008,7 +4102,7 @@
           [
             "/bin/sh",
             "-ec",
-            "mkdir /consumer/Rlib; R_LIBS=/opt/dilock/r-lib R CMD INSTALL --library=/consumer/Rlib /packages/r/dilock_[0-9]*.tar.gz; R_LIBS=/consumer/Rlib:/opt/dilock/r-lib Rscript -e 'library(dilock); stopifnot(grepl(\"/consumer/Rlib\", find.package(\"dilock\")))'"
+            "mkdir /consumer/Rlib; R_LIBS=/opt/dilock/r-lib R CMD INSTALL --install-tests --library=/consumer/Rlib /packages/r/dilock_[0-9]*.tar.gz; R_LIBS=/consumer/Rlib:/opt/dilock/r-lib Rscript -e 'library(dilock); stopifnot(grepl(\"/consumer/Rlib\", find.package(\"dilock\"))); testthat::test_check(\"dilock\")'"
           ]
         ],
         "scope": "Exact package installation/public API import or consumer compilation outside the checkout; live backends are not run.",

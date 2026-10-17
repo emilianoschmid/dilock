@@ -1,7 +1,7 @@
 # Dilock D binding
 
 This D source candidate binds the repository's C ABI over the existing C++
-Redis and etcd engines. It adds typed D status exceptions, non-copyable handle
+Redis, etcd and Consul engines. It adds typed D status exceptions, non-copyable handle
 wrappers and `scope(exit)` examples; it contains no duplicate backend or lock
 protocol. The C ABI is an internal version-1 candidate rather than a
 release-stable contract. This D binding is research-stage and not publishable
@@ -18,6 +18,13 @@ scope(exit) lock.destroy();
 auto lease = lock.acquireDefault();
 scope(exit) lease.destroy();
 ```
+
+Consul uses an HTTP agent URL and optional ACL token. Provision matching
+metadata separately with `provisionConsulNamespace(options)` before connecting;
+normal provider construction only validates it. The example
+[`consul_quickstart.d`](examples/consul_quickstart.d) reads a verified fence
+from the acquired lease. HTTPS uses the system trust store, and the Consul lock
+KV entry must be retained so its `LockIndex` cannot reset.
 
 The etcd endpoint is the raw gRPC target such as `127.0.0.1:2379`; do not
 prefix it with `http://`. The Redis and etcd quickstarts accept endpoint
@@ -66,7 +73,7 @@ shows the immediate-acquisition form while reusing one provider and one lock
 handle. A false result is ordinary contention; exceptions still represent
 backend, protocol, or cancellation failures.
 
-`RedisProviderOptions` and `EtcdProviderOptions` expose the provider settings
+`RedisProviderOptions`, `EtcdProviderOptions` and `ConsulProviderOptions` expose the provider settings
 available in the C ABI while preserving its defaults. Durations use
 `core.time.Duration` and are converted to whole milliseconds. Redis options
 include username/password, database, RPC and cleanup timeouts, safety margin,
@@ -77,6 +84,11 @@ are PEM contents, not file paths. A client certificate and its private key
 must be provided together; a custom root certificate can be used on its own.
 Keep etcd auto-renew disabled unless the application explicitly wants
 keepalive to continue after acquisition.
+
+Consul options include agent endpoint, namespace, expected epoch, optional ACL
+token, RPC and cleanup timeouts, poll interval, and default wait/lease durations.
+TTL requests must be between 10 seconds and 24 hours. The returned fence is
+`(epoch, LockIndex)` and must be enforced atomically by the protected resource.
 
 Keep the short `connect(host, namespace, epoch)` overload for common defaults.
 Use the options overload when deployment configuration needs explicit
@@ -154,4 +166,17 @@ Build/install both C++ backend profiles and a shared C ABI as described in
 the resulting `dilock_c` library. DMD is the reference compiler; the module also needs a C++ linker runtime
 and the transitive native dependencies of the C++ package. Run `dub test`, then
 build/run `examples/redis_quickstart.d` and `examples/etcd_quickstart.d` against
-explicitly provisioned local authorities. 
+explicitly provisioned local authorities.
+
+The opt-in Consul lifecycle consumer is `tests/consul_live.d`. After provisioning
+the namespace metadata, compile it against the installed C ABI and run it with
+the same endpoint, namespace, and epoch:
+
+```sh
+ldc2 -Isource -L-L"$DILOCK_C_LIB_DIR" \
+  -L-Wl,-rpath-link,"$DILOCK_C_LIB_DIR" -L-ldilock_c \
+  source/dilock.d tests/consul_live.d -of=/tmp/dilock-d-consul-live
+DILOCK_CONSUL_ENDPOINT=http://127.0.0.1:8500 \
+DILOCK_CONSUL_NAMESPACE=consul-validation DILOCK_CONSUL_EPOCH=local-validation-1 \
+LD_LIBRARY_PATH="$DILOCK_C_LIB_DIR:${LD_LIBRARY_PATH:-}" /tmp/dilock-d-consul-live
+```

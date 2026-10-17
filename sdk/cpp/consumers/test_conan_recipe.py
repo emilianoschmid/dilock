@@ -43,6 +43,10 @@ def test_conan_redis_profile_omits_etcd_dependencies() -> None:
         node for node in ast.walk(requirements)
         if isinstance(node, ast.If) and ast.unparse(node.test) == "self.options.with_etcd"
     )
+    consul_branch = next(
+        node for node in ast.walk(requirements)
+        if isinstance(node, ast.If) and ast.unparse(node.test) == "self.options.with_consul"
+    )
     always_required = [
         ast.literal_eval(node.args[0])
         for node in ast.walk(requirements)
@@ -50,14 +54,16 @@ def test_conan_redis_profile_omits_etcd_dependencies() -> None:
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "requires"
         and node not in ast.walk(etcd_branch)
+        and node not in ast.walk(consul_branch)
     ]
 
-    assert options == {"with_etcd": [True, False], "shared": [True, False]}
-    assert defaults == {"with_etcd": False, "shared": False}
+    assert options == {"with_etcd": [True, False], "with_consul": [True, False], "shared": [True, False]}
+    assert defaults == {"with_etcd": False, "with_consul": False, "shared": False}
     assert always_required == [
         "redis-plus-plus/1.3.15", "openssl/3.5.8", "nlohmann_json/3.12.0",
     ]
     assert _requires(etcd_branch) == ["protobuf/3.21.12", "grpc/1.54.3"]
+    assert _requires(consul_branch) == ["libcurl/8.21.0"]
 
 
 def test_conan_recipe_configures_and_exports_the_selected_profiles() -> None:
@@ -70,14 +76,24 @@ def test_conan_recipe_configures_and_exports_the_selected_profiles() -> None:
         node for node in ast.walk(package_info_method)
         if isinstance(node, ast.If) and ast.unparse(node.test) == "self.options.with_etcd"
     )
+    consul_info_branch = next(
+        node for node in ast.walk(package_info_method)
+        if isinstance(node, ast.If) and ast.unparse(node.test) == "self.options.with_consul"
+    )
     etcd_info = ast.unparse(etcd_info_branch).replace('"', "'")
 
     assert "DILOCK_BUILD_ETCD" in generate
     assert "bool(self.options.with_etcd)" in generate
+    assert "DILOCK_BUILD_CONSUL" in generate
+    assert "bool(self.options.with_consul)" in generate
     assert "self.cpp_info.components['redis']" in package_info
     assert "'Dilock::redis'" in package_info
     assert "self.cpp_info.components['etcd']" in etcd_info
     assert "'Dilock::etcd'" in etcd_info
+    consul_info = ast.unparse(consul_info_branch).replace('"', "'")
+    assert "self.cpp_info.components['consul']" in consul_info
+    assert "'Dilock::consul'" in consul_info
+    assert "libcurl::libcurl" in consul_info
     for dependency in (
         "openssl::crypto", "openssl::ssl", "nlohmann_json::nlohmann_json",
         "protobuf::libprotobuf", "grpc::grpc++",

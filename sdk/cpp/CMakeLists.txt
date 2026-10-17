@@ -6,7 +6,8 @@ include(CMakePackageConfigHelpers)
 
 option(DILOCK_BUILD_TESTS "Build SDK tests" ON)
 option(DILOCK_BUILD_ETCD "Build the optional etcd native Lock profile" OFF)
-option(DILOCK_BUILD_C_API "Build the optional C17 ABI facade over both native backend profiles" OFF)
+option(DILOCK_BUILD_CONSUL "Build the optional Consul HTTP KV/session profile" OFF)
+option(DILOCK_BUILD_C_API "Build the optional C17 ABI facade over enabled backend profiles" OFF)
 option(DILOCK_ENABLE_ASAN_UBSAN "Instrument SDK and tests with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(DILOCK_ENABLE_TSAN "Instrument SDK and tests with ThreadSanitizer" OFF)
 
@@ -60,6 +61,27 @@ set_target_properties(dilock_cpp PROPERTIES
     EXPORT_NAME redis
     CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON)
+
+if(DILOCK_BUILD_CONSUL)
+    find_package(CURL REQUIRED)
+    set(DILOCK_CURL_TARGET CURL::libcurl)
+    add_library(dilock_cpp_consul src/consul.cpp)
+    add_library(Dilock::consul ALIAS dilock_cpp_consul)
+    target_compile_features(dilock_cpp_consul PUBLIC cxx_std_20)
+    target_include_directories(dilock_cpp_consul PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(dilock_cpp_consul PUBLIC Dilock::redis ${DILOCK_CURL_TARGET}
+        PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+    set_target_properties(dilock_cpp_consul PROPERTIES
+        EXPORT_NAME consul CXX_EXTENSIONS OFF POSITION_INDEPENDENT_CODE ON)
+    if(MSVC)
+        target_compile_options(dilock_cpp_consul PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(dilock_cpp_consul PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
+    endif()
+endif()
 
 if(DILOCK_ENABLE_ASAN_UBSAN OR DILOCK_ENABLE_TSAN)
     if(MSVC)
@@ -133,6 +155,29 @@ if(DILOCK_BUILD_TESTS)
             target_compile_options(${test_target} PRIVATE ${DILOCK_SANITIZER_FLAGS})
             target_link_options(${test_target} PRIVATE ${DILOCK_SANITIZER_FLAGS})
         endforeach()
+    endif()
+endif()
+
+if(DILOCK_BUILD_TESTS AND DILOCK_BUILD_CONSUL)
+    add_executable(dilock_cpp_consul_contract_test tests/consul_contract_test.cpp)
+    target_compile_features(dilock_cpp_consul_contract_test PRIVATE cxx_std_20)
+    target_link_libraries(dilock_cpp_consul_contract_test PRIVATE Dilock::consul)
+    add_test(NAME dilock_cpp_consul_contract COMMAND dilock_cpp_consul_contract_test)
+    if(MSVC)
+        target_compile_options(dilock_cpp_consul_contract_test PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(dilock_cpp_consul_contract_test PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
+    endif()
+
+    add_executable(dilock_cpp_consul_integration tests/consul_integration.cpp)
+    target_compile_features(dilock_cpp_consul_integration PRIVATE cxx_std_20)
+    target_link_libraries(dilock_cpp_consul_integration PRIVATE Dilock::consul)
+    add_test(NAME dilock_cpp_consul_integration COMMAND dilock_cpp_consul_integration)
+    set_tests_properties(dilock_cpp_consul_integration PROPERTIES SKIP_RETURN_CODE 77)
+    if(MSVC)
+        target_compile_options(dilock_cpp_consul_integration PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(dilock_cpp_consul_integration PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
     endif()
 endif()
 
@@ -231,9 +276,16 @@ if(DILOCK_BUILD_ETCD)
         DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/DilockCpp/etcd")
 endif()
 
+if(DILOCK_BUILD_CONSUL)
+    install(TARGETS dilock_cpp_consul EXPORT DilockCppTargets
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif()
+
 if(DILOCK_BUILD_C_API)
-    if(NOT DILOCK_BUILD_ETCD)
-        message(FATAL_ERROR "DILOCK_BUILD_C_API requires DILOCK_BUILD_ETCD=ON so the C ABI exposes the configured Redis and etcd profiles together")
+    if(NOT DILOCK_BUILD_ETCD OR NOT DILOCK_BUILD_CONSUL)
+        message(FATAL_ERROR "DILOCK_BUILD_C_API requires DILOCK_BUILD_ETCD=ON and DILOCK_BUILD_CONSUL=ON so the C ABI exposes all three profiles")
     endif()
     add_library(dilock_c ../c/src/dilock_c.cpp)
     add_library(Dilock::c ALIAS dilock_c)
@@ -241,7 +293,7 @@ if(DILOCK_BUILD_C_API)
     target_include_directories(dilock_c PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../c/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-    target_link_libraries(dilock_c PUBLIC Dilock::redis Dilock::etcd PRIVATE Threads::Threads)
+    target_link_libraries(dilock_c PUBLIC Dilock::redis Dilock::etcd Dilock::consul PRIVATE Threads::Threads)
     # Static C ABI consumers may link with a C or Fortran driver, which does
     # not add the C++ standard library implicitly. Propagate the first
     # toolchain-provided C++ runtime library with the exported target.
@@ -265,7 +317,7 @@ if(DILOCK_BUILD_C_API)
         target_compile_options(dilock_c PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion)
     endif()
 
-    foreach(backend IN ITEMS redis etcd)
+    foreach(backend IN ITEMS redis etcd consul)
         add_executable(dilock_c_${backend}_quickstart ../c/examples/${backend}_quickstart.c)
         target_link_libraries(dilock_c_${backend}_quickstart PRIVATE Dilock::c)
         set_target_properties(dilock_c_${backend}_quickstart PROPERTIES

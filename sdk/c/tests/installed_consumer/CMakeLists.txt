@@ -22,3 +22,13 @@ set_target_properties(dilock_installed_c17_etcd_consumer PROPERTIES
 target_compile_options(dilock_installed_c17_etcd_consumer PRIVATE
     -Wall -Wextra -Wpedantic -Werror)
 target_link_libraries(dilock_installed_c17_etcd_consumer PRIVATE Dilock::c)
+
+add_executable(dilock_installed_c17_consul_consumer consul_main.c)
+set_target_properties(dilock_installed_c17_consul_consumer PROPERTIES
+    C_STANDARD 17
+    C_STANDARD_REQUIRED ON
+    C_EXTENSIONS OFF
+    LINKER_LANGUAGE CXX)
+target_compile_options(dilock_installed_c17_consul_consumer PRIVATE
+    -Wall -Wextra -Wpedantic -Werror)
+target_link_libraries(dilock_installed_c17_consul_consumer PRIVATE Dilock::c)

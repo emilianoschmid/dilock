@@ -4,6 +4,8 @@ The C++ SDK provides synchronous Redis leases using the draft 1 identity and own
 
 An optional etcd profile uses etcd's native v3 gRPC Lock/Unlock and lease APIs. It is built only when `DILOCK_BUILD_ETCD=ON`; that build also requires Protobuf 3.21+, gRPC C++ 1.51+, and their CMake packages. The profile identifier is `etcd-native-lock-v1`. `try_acquire` throws `unsupported_capability`: etcd has no native try-lock RPC, and a deadline is not evidence of contention. TTLs are rounded up to whole seconds by etcd, so `effective_ttl()` reports the server-granted value. Each attempt owns a unique lease. Keepalive runs while queued; after acquisition it stops by default and continues only when `EtcdOptions::auto_renew` is true. The returned fence contains the epoch and a verified `create_revision`; applications must atomically register and enforce that fence at the protected resource.
 
+An optional Consul profile uses the HTTP KV/session APIs and is built with `-DDILOCK_BUILD_CONSUL=ON`; it requires libcurl. Each acquisition creates its own TTL session, uses `Behavior=release`, and confirms ownership with a linearizable KV read. The fence is `(coordination_epoch, LockIndex)` from that read. Keep lock KV entries: deleting and recreating one can reset its fencing counter. Metadata must be provisioned explicitly with `provision_consul_namespace`; provider creation only validates it. TLS verification is enabled, redirects are disabled, and ACL tokens are sent only in `X-Consul-Token`.
+
 Protobuf describes etcd's official gRPC messages; it is not a Dilock protocol or a service installed beside etcd. When building the optional profile from source, CMake runs `protoc` and the gRPC C++ plugin over the pinned etcd definitions, then compiles those generated stubs into Dilock. An installed-package consumer needs the normal Protobuf/gRPC link dependencies, and a dynamically linked application must deploy their runtime libraries. The etcd server needs no Dilock, Protobuf, or Lua installation. The default Redis-only profile does not use Protobuf or gRPC.
 
 Release first checks the exact opaque key and its lease, then sends `Unlock` for that key and revokes the acquisition's unique lease, within one cleanup deadline. It returns `released` only when the check confirms this acquisition owns the key and both `Unlock` and `LeaseRevoke` are positively acknowledged. An acknowledged revoke without both proofs returns `already_not_owned`, because the unique lease confirms this attempt can no longer own a lock; an etcd `NOT_FOUND` revoke or confirmed key absence also returns `already_not_owned`. Unresolved ownership or cleanup returns `unknown`. Repeated calls return the cached terminal outcome.
@@ -19,7 +21,7 @@ ctest --test-dir build/cpp -C Release --output-on-failure
 cmake --install build/cpp --prefix /path/to/stage
 ```
 
-Build the Redis-only local package with `conan create sdk/cpp --build=missing`. Conan keeps the etcd requirements out of this default profile. To include etcd, set `-o "&:with_etcd=True"`; that profile adds Protobuf 3.21.12 and gRPC 1.54.3 and exports both `Dilock::redis` and `Dilock::etcd`. The recipe pins redis-plus-plus 1.3.15, OpenSSL 3.5.8, and nlohmann-json 3.12.0. Nothing is published automatically.
+Build the Redis-only local package with `conan create sdk/cpp --build=missing`. Conan keeps optional dependencies out of this default profile. To include etcd, set `-o "&:with_etcd=True"`; for Consul set `-o "&:with_consul=True"`. The optional profiles add Protobuf/gRPC or libcurl and export `Dilock::etcd` or `Dilock::consul` alongside `Dilock::redis`. The recipe pins redis-plus-plus 1.3.15, OpenSSL 3.5.8, and nlohmann-json 3.12.0. Nothing is published automatically.
 
 ## Example
 
@@ -61,6 +63,8 @@ example intentionally exercises independent-client contention or handoff.
 Create the namespace metadata once during deployment with `dilock::provision_redis_namespace`. It uses create-if-absent; an existing mismatch is an error. Application code must not silently create or repair metadata.
 
 For etcd, provision `/dilock/namespaces/<namespace>/meta` before constructing `EtcdProvider`, with `protocol_major: 1`, `identity_scheme: "sha256-framed-utf8-v1"`, `profile: "etcd-native-lock-v1"`, the approved `coordination_epoch`, and `fixed_lease_ms: null`. The SDK validates but never creates or repairs this metadata. See [`etcd.hpp`](include/dilock/etcd.hpp) for cancellation, timeout, lifetime and thread-safety details and [the etcd profile contract](../../spec/backends/ETCD.md) for fencing and recovery assumptions.
+
+For Consul, use `ConsulOptions` and `provision_consul_namespace` in a separately authorized deployment utility. See [`consul.hpp`](include/dilock/consul.hpp) and [the Consul profile contract](../../spec/backends/CONSUL.md) for TTL limits, cleanup, token handling, and the required lock-key retention rule.
 
 ## Lifetime and errors
 

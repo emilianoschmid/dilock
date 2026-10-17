@@ -7,7 +7,7 @@ $ast = [System.Management.Automation.Language.Parser]::ParseFile(
     (Resolve-Path -LiteralPath $modulePath).Path, [ref] $tokens, [ref] $parseErrors)
 if ($parseErrors.Count -ne 0) { throw "Module parse failed: $($parseErrors[0].Message)" }
 
-foreach ($functionName in @('New-DilockRedisProvider', 'New-DilockEtcdProvider')) {
+foreach ($functionName in @('New-DilockRedisProvider', 'New-DilockEtcdProvider', 'New-DilockConsulProvider')) {
     $provider = $ast.Find({
         param($node)
         $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
@@ -47,4 +47,4 @@ foreach ($expected in @{
     }
 }
 
-Write-Output 'PASS Redis and etcd provider default and complete-policy source regressions.'
+Write-Output 'PASS Redis, etcd and Consul provider defaults and complete-policy source regressions.'

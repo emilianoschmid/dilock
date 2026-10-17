@@ -8,7 +8,7 @@ This table is a **target design**, not a report of implemented support.
 | etcd native Lock | planned for v0.1 | distinct server lease per acquisition + native Lock RPC | creation revision, within a managed cluster epoch | Quorum required; pause and external-resource fencing still matter. |
 | NATS JetStream KV | experimental follow-up | CAS and a validated fixed bucket-TTL profile | not advertised initially | TTL refresh, stale reads, retries, markers and recovery must be tested. |
 | PostgreSQL | roadmap | session/transaction advisory locks | no generic fence | Pooling/session lifetime is not a Redis TTL. |
-| Consul | roadmap | session + KV acquisition | requires its own design | Session invalidation and lock delay need explicit semantics. |
+| Consul HTTP/KV session | draft-1 profile in `spec/backends/CONSUL.md`; implementation and local lifecycle evidence across all 33 active routes are tracked in `docs/plans/CONSUL-ALL-SDKS.md` | TTL session + KV acquire/release | per-key `LockIndex`, conditional on retaining the lock entry | Single-node local validation does not establish cross-language interoperability, quorum behavior or failover; see the profile. |
 | Kafka | out of scope | no selected general-purpose locking protocol | not applicable | A consumer group is not a named-resource mutex API. |
 
 All participants must use the same coordinator, database/bucket, namespace, protocol and compatible configuration. Matching resource names on different backends do not interact. Changing backend or namespace is a coordinated migration, never a local fallback.

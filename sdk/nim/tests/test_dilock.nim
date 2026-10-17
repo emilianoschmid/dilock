@@ -15,6 +15,15 @@ suite "Dilock Nim C ABI binding":
     check ord(alreadyNotOwned) == 1
     check ord(releaseUnknown) == 2
 
+  test "Consul provider rejects NUL before calling the C ABI":
+    var rejected = false
+    try:
+      discard connectConsul("http://127.0.0.1:8500\0ignored", "default", "epoch")
+    except DilockError as error:
+      check error.status == dsInvalidArgument
+      rejected = true
+    check rejected
+
   test "successful ABI calls without an owning handle fail closed":
     var value = 7
     check requireOutputHandle(addr value, "test handle") == addr value
@@ -83,18 +92,24 @@ suite "Dilock Nim C ABI binding":
   test "destroy accepts nil handles and use of a nil handle is reported":
     var redisProvider: RedisProvider
     var etcdProvider: EtcdProvider
+    var consulProvider: ConsulProvider
     var redisLock: RedisLock
     var etcdLock: EtcdLock
     var redisLease: RedisLease
     var etcdLease: EtcdLease
+    var consulLock: ConsulLock
+    var consulLease: ConsulLease
     var cancellation: Cancellation
 
     redisProvider.destroy()
     etcdProvider.destroy()
+    consulProvider.destroy()
     redisLock.destroy()
     etcdLock.destroy()
+    consulLock.destroy()
     redisLease.destroy()
     etcdLease.destroy()
+    consulLease.destroy()
     cancellation.destroy()
 
     var rejected = 0
@@ -105,6 +120,11 @@ suite "Dilock Nim C ABI binding":
       inc rejected
     try:
       discard etcdProvider.lock("resource")
+    except DilockError as error:
+      check error.status == dsInvalidArgument
+      inc rejected
+    try:
+      discard consulProvider.lock("resource")
     except DilockError as error:
       check error.status == dsInvalidArgument
       inc rejected
@@ -139,6 +159,11 @@ suite "Dilock Nim C ABI binding":
       check error.status == dsInvalidArgument
       inc rejected
     try:
+      discard consulLease.release()
+    except DilockError as error:
+      check error.status == dsInvalidArgument
+      inc rejected
+    try:
       discard redisLease.renew(1000)
     except DilockError as error:
       check error.status == dsInvalidArgument
@@ -148,4 +173,4 @@ suite "Dilock Nim C ABI binding":
     except DilockError as error:
       check error.status == dsInvalidArgument
       inc rejected
-    check rejected == 10
+    check rejected == 12

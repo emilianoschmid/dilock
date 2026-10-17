@@ -6,11 +6,13 @@ open System.Threading.Tasks
 open System.Runtime.ExceptionServices
 open Dilock
 open Dilock.Etcd
+open Dilock.Consul
 open Dilock.Redis
 
 type ConfiguredBackend =
     | ConfiguredRedis of string
     | ConfiguredEtcd of string
+    | ConfiguredConsul of string
 
 let requiredEnvironment name =
     match Environment.GetEnvironmentVariable(name) with
@@ -20,21 +22,25 @@ let requiredEnvironment name =
 let resolveBackend () =
     let redisEndpoint = requiredEnvironment "DILOCK_REDIS_URL"
     let etcdEndpoint = requiredEnvironment "DILOCK_ETCD_ENDPOINT"
+    let consulEndpoint = requiredEnvironment "DILOCK_CONSUL_ENDPOINT"
     let requested =
         requiredEnvironment "DILOCK_BACKEND"
         |> Option.map (fun value -> value.Trim().ToLowerInvariant())
 
-    match requested, redisEndpoint, etcdEndpoint with
-    | Some "redis", Some endpoint, _ -> Some (ConfiguredRedis endpoint)
-    | Some "redis", None, _ -> invalidOp "DILOCK_BACKEND=redis requires DILOCK_REDIS_URL; no other coordinator will be selected."
-    | Some "etcd", _, Some endpoint -> Some (ConfiguredEtcd endpoint)
-    | Some "etcd", _, None -> invalidOp "DILOCK_BACKEND=etcd requires DILOCK_ETCD_ENDPOINT; no other coordinator will be selected."
-    | Some backend, _, _ -> invalidOp (sprintf "Unsupported DILOCK_BACKEND '%s'; choose redis or etcd." backend)
-    | None, Some _, Some _ ->
-        invalidOp "Both Redis and etcd endpoints are configured; set DILOCK_BACKEND=redis or DILOCK_BACKEND=etcd to select explicitly."
-    | None, Some endpoint, None -> Some (ConfiguredRedis endpoint)
-    | None, None, Some endpoint -> Some (ConfiguredEtcd endpoint)
-    | None, None, None -> None
+    match requested, redisEndpoint, etcdEndpoint, consulEndpoint with
+    | Some "redis", Some endpoint, _, _ -> Some (ConfiguredRedis endpoint)
+    | Some "redis", None, _, _ -> invalidOp "DILOCK_BACKEND=redis requires DILOCK_REDIS_URL; no other coordinator will be selected."
+    | Some "etcd", _, Some endpoint, _ -> Some (ConfiguredEtcd endpoint)
+    | Some "etcd", _, None, _ -> invalidOp "DILOCK_BACKEND=etcd requires DILOCK_ETCD_ENDPOINT; no other coordinator will be selected."
+    | Some "consul", _, _, _ ->
+        Some (consulEndpoint |> Option.map ConfiguredConsul
+                              |> Option.defaultWith (fun () -> invalidOp "DILOCK_BACKEND=consul requires DILOCK_CONSUL_ENDPOINT; no other coordinator will be selected."))
+    | Some backend, _, _, _ -> invalidOp (sprintf "Unsupported DILOCK_BACKEND '%s'; choose redis, etcd or consul." backend)
+    | None, Some endpoint, None, None -> Some (ConfiguredRedis endpoint)
+    | None, None, Some endpoint, None -> Some (ConfiguredEtcd endpoint)
+    | None, None, None, Some endpoint -> Some (ConfiguredConsul endpoint)
+    | None, None, None, None -> None
+    | None, _, _, _ -> invalidOp "Set DILOCK_BACKEND when multiple coordinator endpoints are configured."
 
 let observeCleanup (observation: CleanupObservation) =
     if observation.Outcome = ReleaseOutcome.Unknown then
@@ -174,6 +180,15 @@ let runEtcd endpoint namespaceName epoch cancellationToken = task {
     do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "etcd" cancellationToken)
 }
 
+let runConsul endpoint namespaceName epoch cancellationToken = task {
+    let options = ConsulProviderOptions(Endpoint = endpoint, Namespace = namespaceName,
+                                        ExpectedEpoch = epoch,
+                                        Token = Environment.GetEnvironmentVariable("CONSUL_HTTP_TOKEN"),
+                                        CleanupObserver = observeCleanup)
+    let! provider = ConsulProvider.ConnectAsync(options, cancellationToken)
+    do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "Consul" cancellationToken)
+}
+
 let identity = ResourceIdentity.Hash("default", "fsharp/consumer")
 require (identity.Length = 64) "Dilock identity API is unavailable."
 verifyPolicyComposition ()
@@ -188,8 +203,12 @@ match resolveBackend (), requiredEnvironment "DILOCK_NAMESPACE", requiredEnviron
     runEtcd endpoint (defaultArg namespaceName "default") epoch CancellationToken.None
     |> fun work -> work.GetAwaiter().GetResult()
     printfn "F# consumer and etcd operation passed."
+| Some (ConfiguredConsul endpoint), namespaceName, Some epoch ->
+    runConsul endpoint (defaultArg namespaceName "default") epoch CancellationToken.None
+    |> fun work -> work.GetAwaiter().GetResult()
+    printfn "F# consumer and Consul operation passed."
 | Some (ConfiguredRedis endpoint), _, Some epoch ->
     runExample endpoint epoch CancellationToken.None |> fun work -> work.GetAwaiter().GetResult()
     printfn "F# consumer and Redis operation passed."
 | _ ->
-    printfn "F# consumer API passed; live Redis/etcd NOT_RUN (configure one backend endpoint and DILOCK_EPOCH)."
+    printfn "F# consumer API passed; no live backend run (configure DILOCK_BACKEND, its endpoint and DILOCK_EPOCH)."

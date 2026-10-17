@@ -1,6 +1,6 @@
 defmodule Dilock do
   @moduledoc """
-  Distributed leases backed by Redis or etcd. A lease is advisory: expiry does not
+  Distributed leases backed by Redis, etcd, or Consul. A lease is advisory: expiry does not
   stop a paused process, and Redis does not provide a strong fencing token.
   """
 

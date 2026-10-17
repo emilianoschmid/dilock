@@ -6,7 +6,7 @@ include(CTest)
 
 find_package(DilockCpp CONFIG REQUIRED)
 if(NOT TARGET Dilock::c)
-  message(FATAL_ERROR "Install DilockCpp with DILOCK_BUILD_C_API=ON and both backend profiles")
+  message(FATAL_ERROR "Install DilockCpp with DILOCK_BUILD_C_API=ON and Redis, etcd and Consul profiles")
 endif()
 
 add_library(DilockFortran dilock_fortran.f90)
@@ -29,6 +29,8 @@ add_executable(dilock_fortran_etcd_example examples/etcd_quickstart.f90)
 target_link_libraries(dilock_fortran_etcd_example PRIVATE DilockFortran)
 add_executable(dilock_fortran_etcd_configured_example examples/etcd_configured_quickstart.f90)
 target_link_libraries(dilock_fortran_etcd_configured_example PRIVATE DilockFortran)
+add_executable(dilock_fortran_consul_example examples/consul_quickstart.f90)
+target_link_libraries(dilock_fortran_consul_example PRIVATE DilockFortran)
 if(BUILD_TESTING)
   enable_language(C)
   # Building this executable is the compile/link consumer smoke. Running it

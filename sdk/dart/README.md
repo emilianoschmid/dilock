@@ -1,7 +1,7 @@
 # Dilock — Dart
 
-This directory contains the Dart shared contract, Redis adapter and etcd
-adapter. The local syntax sample in `../../examples/style/dart/` is only a
+This directory contains the Dart shared contract, Redis, etcd and Consul
+adapters. The local syntax sample in `../../examples/style/dart/` is only a
 design reference and does not implement distributed locking.
 
 The Redis package implements canonical draft 1 identity, validates
@@ -16,6 +16,12 @@ fencing. Generated etcd v3.7.2 gRPC stubs are included. Run `dart analyze`,
 `dart format`, and `dart test` before using a build. A substitute transaction
 protocol would not interoperate with `etcd-native-lock-v1`. See
 [`etcd/README.md`](etcd/README.md) for details.
+
+The Consul package uses `dart:io` HTTP(S), explicitly provisioned namespace
+metadata, one TTL session per acquisition, owner-checked cleanup and the
+retained KV key's `LockIndex` as its epoch-scoped fence. Lock keys must not be
+deleted, because Consul can reset their counters. See
+[`consul/README.md`](consul/README.md) for the API and test profile.
 
 Run `dart pub get --offline`, `dart analyze`, `dart test`, and `dart doc` in
 each implemented package. An exact etcd installed-package consumer and external

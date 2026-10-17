@@ -1,8 +1,8 @@
 # Dilock Fortran facade
 
-This module uses ISO_C_BINDING to call the versioned Dilock C ABI. Redis and
-etcd implementations remain in the existing native adapters; this package does
-not implement another protocol. The C ABI and both backend profiles must be
+This module uses ISO_C_BINDING to call the versioned Dilock C ABI. Redis, etcd
+and Consul implementations remain in the existing native adapters; this package does
+not implement another protocol. The C ABI and Redis, etcd and Consul profiles must be
 built and installed first, as described in [`sdk/c/README.md`](../c/README.md).
 This SDK installs a CMake package exporting `DilockFortran::fortran`; the
 consumer must be built with a Fortran compiler compatible with the one that
@@ -22,6 +22,14 @@ cmake --build build/fortran-consumer --parallel
 The downstream consumer resolves the installed Fortran package without using
 the SDK source tree. Running a lock example also needs a reachable backend and
 pre-provisioned namespace metadata.
+
+Consul metadata is provisioned explicitly before `consul_open`; normal provider
+construction never creates or repairs it. Pass the agent URL, namespace and
+expected epoch, with an optional ACL token. `consul_fence` returns the verified
+`(epoch, LockIndex)` pair; the protected resource must enforce it atomically.
+Retain Consul lock KV keys so `LockIndex` cannot reset. See
+[`consul_quickstart.f90`](examples/consul_quickstart.f90) for the C ABI wrapper
+flow and fence retrieval.
 
 ```fortran
 program redis_example

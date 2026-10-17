@@ -4,6 +4,7 @@
             [dilock.clojure.test-config :as config]
             [dilock.clojure.core :as dilock])
   (:import [org.dilock.redis RedisProvider AcquireOptions]
+           [org.dilock.consul ConsulProvider]
            [redis.clients.jedis RedisClient]
            [java.util.concurrent Executors TimeUnit]))
 
@@ -69,6 +70,35 @@
               (finally
                 (.close first-lease)
                 (.shutdownNow executor)))))))))
+
+(when (config/configured-value? (System/getenv "DILOCK_CONSUL_ENDPOINT"))
+  (deftest consul-live-two-provider-scope-and-fence
+    (let [endpoint (System/getenv "DILOCK_CONSUL_ENDPOINT")
+          namespace (System/getenv "DILOCK_NAMESPACE")
+          epoch (System/getenv "DILOCK_COORDINATION_EPOCH")
+          resource (str "resource/" (test-id "consul"))]
+      (when-not (and (config/configured-value? namespace)
+                     (config/configured-value? epoch))
+        (throw (IllegalStateException. "DILOCK_NAMESPACE and DILOCK_COORDINATION_EPOCH are required")))
+      (dilock/with-provider [first-provider (dilock/consul-provider endpoint namespace epoch)]
+        (dilock/with-provider [second-provider (dilock/consul-provider endpoint namespace epoch)]
+          (let [first-lock (.lock first-provider resource)
+                second-lock (.lock second-provider resource)
+                options (AcquireOptions. 2000 10000)
+                first-lease (.acquire first-lock options)]
+            (try
+              (let [first-fence (.fence first-lease)]
+                (is (= epoch (.epoch first-fence)))
+                (is (pos? (.lockIndex first-fence)))
+                (is (.isEmpty (.tryAcquire second-lock))
+                    "an independent provider must observe ordinary contention")
+                (is (= "RELEASED" (str (.release first-lease))))
+                (dilock/with-consul-lock [successor second-provider resource options]
+                  (let [next-fence (.fence successor)]
+                    (is (= epoch (.epoch next-fence)))
+                    (is (> (.lockIndex next-fence) (.lockIndex first-fence))))))
+              (finally
+                (.close first-lease)))))))))
 
 (when (config/configured-value? (System/getenv "DILOCK_ETCD_URL"))
   (deftest etcd-live-renewing-scope-retains-lock-past-initial-ttl

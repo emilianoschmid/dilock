@@ -5,6 +5,7 @@ Imports System.Threading.Tasks
 Imports System.Runtime.ExceptionServices
 Imports Dilock
 Imports Dilock.Etcd
+Imports Dilock.Consul
 Imports Dilock.Redis
 
 Module Program
@@ -86,8 +87,9 @@ Module Program
         Dim endpoint = Environment.GetEnvironmentVariable("DILOCK_REDIS_URL")
         Dim epoch = Environment.GetEnvironmentVariable("DILOCK_EPOCH")
         Dim etcdEndpoint = Environment.GetEnvironmentVariable("DILOCK_ETCD_ENDPOINT")
+        Dim consulEndpoint = Environment.GetEnvironmentVariable("DILOCK_CONSUL_ENDPOINT")
         Dim namespaceName = Environment.GetEnvironmentVariable("DILOCK_NAMESPACE")
-        Dim selectedBackend = ResolveConfiguredBackend(endpoint, etcdEndpoint)
+        Dim selectedBackend = ResolveConfiguredBackend(endpoint, etcdEndpoint, consulEndpoint)
         If selectedBackend <> "none" AndAlso String.IsNullOrWhiteSpace(epoch) Then
             Throw New InvalidOperationException(
                 "A selected Dilock backend requires DILOCK_EPOCH; no coordinator connection was attempted.")
@@ -100,8 +102,15 @@ Module Program
             Return
         End If
 
+        If selectedBackend = "consul" AndAlso Not String.IsNullOrWhiteSpace(epoch) Then
+            If String.IsNullOrWhiteSpace(namespaceName) Then namespaceName = "default"
+            Await RunConsulAsync(consulEndpoint, namespaceName, epoch)
+            Console.WriteLine("Visual Basic consumer and Consul operation passed.")
+            Return
+        End If
+
         If selectedBackend = "none" OrElse String.IsNullOrWhiteSpace(epoch) Then
-            Console.WriteLine("Visual Basic consumer API passed; live Redis/etcd NOT_RUN (configure one backend endpoint and DILOCK_EPOCH).")
+            Console.WriteLine("Visual Basic consumer API passed; no live backend run (configure DILOCK_BACKEND, its endpoint and DILOCK_EPOCH).")
             Return
         End If
 
@@ -119,18 +128,19 @@ Module Program
     End Function
 
     Private Function ResolveConfiguredBackend(redisEndpoint As String,
-                                               etcdEndpoint As String) As String
+                                               etcdEndpoint As String,
+                                               consulEndpoint As String) As String
         Dim requested = Environment.GetEnvironmentVariable("DILOCK_BACKEND")
         Dim hasRedis = Not String.IsNullOrWhiteSpace(redisEndpoint)
         Dim hasEtcd = Not String.IsNullOrWhiteSpace(etcdEndpoint)
+        Dim hasConsul = Not String.IsNullOrWhiteSpace(consulEndpoint)
 
         If String.IsNullOrWhiteSpace(requested) Then
-            If hasRedis AndAlso hasEtcd Then
-                Throw New InvalidOperationException(
-                    "Both Redis and etcd endpoints are configured; set DILOCK_BACKEND=redis or DILOCK_BACKEND=etcd to select explicitly.")
-            End If
+            Dim configured = If(hasRedis, 1, 0) + If(hasEtcd, 1, 0) + If(hasConsul, 1, 0)
+            If configured > 1 Then Throw New InvalidOperationException("Set DILOCK_BACKEND when multiple coordinator endpoints are configured.")
             If hasRedis Then Return "redis"
             If hasEtcd Then Return "etcd"
+            If hasConsul Then Return "consul"
             Return "none"
         End If
 
@@ -147,9 +157,14 @@ Module Program
                         "DILOCK_BACKEND=etcd requires DILOCK_ETCD_ENDPOINT; no other coordinator will be selected.")
                 End If
                 Return "etcd"
+            Case "consul"
+                If Not hasConsul Then
+                    Throw New InvalidOperationException("DILOCK_BACKEND=consul requires DILOCK_CONSUL_ENDPOINT; no other coordinator will be selected.")
+                End If
+                Return "consul"
             Case Else
                 Throw New InvalidOperationException(
-                    "Unsupported DILOCK_BACKEND; choose redis or etcd.")
+                    "Unsupported DILOCK_BACKEND; choose redis, etcd or consul.")
         End Select
     End Function
 
@@ -163,6 +178,20 @@ Module Program
         Dim provider = Await EtcdProvider.ConnectAsync(options, CancellationToken.None)
         Await WithAsyncDisposeAsync(provider, Async Function()
             Await VerifyLeaseLifecycleAsync(provider, "etcd", CancellationToken.None)
+        End Function)
+    End Function
+
+    Private Async Function RunConsulAsync(endpoint As String, namespaceName As String, epoch As String) As Task
+        Dim options = New ConsulProviderOptions With {
+            .Endpoint = endpoint,
+            .Namespace = namespaceName,
+            .ExpectedEpoch = epoch,
+            .Token = Environment.GetEnvironmentVariable("CONSUL_HTTP_TOKEN"),
+            .CleanupObserver = AddressOf ObserveCleanup
+        }
+        Dim provider = Await ConsulProvider.ConnectAsync(options, CancellationToken.None)
+        Await WithAsyncDisposeAsync(provider, Async Function()
+            Await VerifyLeaseLifecycleAsync(provider, "Consul", CancellationToken.None)
         End Function)
     End Function
 

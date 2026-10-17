@@ -52,6 +52,21 @@ pub const EtcdProviderOptions = struct {
     auto_renew: bool = false,
 };
 
+/// Consul HTTP, ACL and timing settings. The coordination epoch must be
+/// provisioned explicitly and remain stable for the lifetime of protected
+/// resources.
+pub const ConsulProviderOptions = struct {
+    endpoint: [*:0]const u8 = "http://127.0.0.1:8500",
+    namespace: [*:0]const u8 = "default",
+    coordination_epoch: [*:0]const u8 = "",
+    acl_token: [*:0]const u8 = "",
+    rpc_timeout_ms: i64 = 2000,
+    cleanup_timeout_ms: i64 = 2000,
+    poll_interval_ms: i64 = 50,
+    default_wait_ms: i64 = 5000,
+    default_lease_ms: i64 = 30000,
+};
+
 fn nativeRedisOptions(config: RedisProviderOptions) c.dilock_redis_options {
     var options: c.dilock_redis_options = undefined;
     c.dilock_redis_options_init(&options);
@@ -87,6 +102,28 @@ fn nativeEtcdOptions(config: EtcdProviderOptions) c.dilock_etcd_options {
     options.default_lease_ms = config.default_lease_ms;
     options.auto_renew = @intFromBool(config.auto_renew);
     return options;
+}
+
+fn nativeConsulOptions(config: ConsulProviderOptions) c.dilock_consul_options {
+    var options: c.dilock_consul_options = undefined;
+    c.dilock_consul_options_init(&options);
+    options.endpoint = config.endpoint;
+    options.name_space = config.namespace;
+    options.coordination_epoch = config.coordination_epoch;
+    options.acl_token = config.acl_token;
+    options.rpc_timeout_ms = config.rpc_timeout_ms;
+    options.cleanup_timeout_ms = config.cleanup_timeout_ms;
+    options.poll_interval_ms = config.poll_interval_ms;
+    options.default_wait_ms = config.default_wait_ms;
+    options.default_lease_ms = config.default_lease_ms;
+    return options;
+}
+
+pub fn provisionConsulNamespace(config: ConsulProviderOptions) Failure!void {
+    try ensureAbi();
+    var options = nativeConsulOptions(config);
+    var detail: c.dilock_error = undefined;
+    try check(c.dilock_consul_provision_namespace(&options, &detail), &detail);
 }
 
 fn ensureAbi() Failure!void {
@@ -442,6 +479,152 @@ pub const EtcdLease = struct {
     }
 };
 
+pub const ConsulProvider = struct {
+    raw: ?*c.dilock_consul_provider,
+
+    pub fn connect(endpoint: [*:0]const u8, namespace: [*:0]const u8, epoch: [*:0]const u8) Failure!ConsulProvider {
+        return connectWithOptions(.{
+            .endpoint = endpoint,
+            .namespace = namespace,
+            .coordination_epoch = epoch,
+        });
+    }
+
+    pub fn connectWithOptions(config: ConsulProviderOptions) Failure!ConsulProvider {
+        try ensureAbi();
+        var options = nativeConsulOptions(config);
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_consul_provider = null;
+        try check(c.dilock_consul_provider_create(&options, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_consul_provider, raw) };
+    }
+
+    pub fn lock(self: *ConsulProvider, resource: [*:0]const u8) Failure!ConsulLock {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_consul_lock = null;
+        try check(c.dilock_consul_lock_create(self.raw orelse return error.InvalidArgument, resource, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_consul_lock, raw) };
+    }
+
+    pub fn deinit(self: *ConsulProvider) void {
+        if (self.raw) |raw| c.dilock_consul_provider_destroy(raw);
+        self.raw = null;
+    }
+};
+
+pub const ConsulLock = struct {
+    raw: ?*c.dilock_consul_lock,
+
+    pub fn acquireDefault(self: *ConsulLock) Failure!ConsulLease {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_consul_lease = null;
+        try check(c.dilock_consul_acquire_default(self.raw orelse return error.InvalidArgument, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_consul_lease, raw) };
+    }
+
+    pub fn acquire(self: *ConsulLock, wait_ms: i64, lease_ms: i64) Failure!ConsulLease {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_consul_lease = null;
+        try check(c.dilock_consul_acquire(self.raw orelse return error.InvalidArgument, wait_ms, lease_ms, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_consul_lease, raw) };
+    }
+
+    pub fn acquireCancellable(self: *ConsulLock, wait_ms: i64, lease_ms: i64, cancellation: *Cancellation) Failure!ConsulLease {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_consul_lease = null;
+        try check(c.dilock_consul_acquire_with_cancellation(self.raw orelse return error.InvalidArgument, wait_ms, lease_ms, cancellation.raw orelse return error.InvalidArgument, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_consul_lease, raw) };
+    }
+
+    pub fn acquireDefaultCancellable(self: *ConsulLock, cancellation: *Cancellation) Failure!ConsulLease {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_consul_lease = null;
+        try check(c.dilock_consul_acquire_default_with_cancellation(self.raw orelse return error.InvalidArgument, cancellation.raw orelse return error.InvalidArgument, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_consul_lease, raw) };
+    }
+
+    /// Returns null only for ordinary contention.
+    pub fn tryAcquire(self: *ConsulLock, lease_ms: i64) Failure!?ConsulLease {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_consul_lease = null;
+        const status = c.dilock_consul_try_acquire(self.raw orelse return error.InvalidArgument, lease_ms, &raw, &detail);
+        if (status == c.DILOCK_STATUS_BUSY) return null;
+        try check(status, &detail);
+        return .{ .raw = try requireHandle(c.dilock_consul_lease, raw) };
+    }
+
+    pub fn deinit(self: *ConsulLock) void {
+        if (self.raw) |raw| c.dilock_consul_lock_destroy(raw);
+        self.raw = null;
+    }
+};
+
+/// Owns its epoch allocation. Do not copy; release it once with `deinit`.
+pub const ConsulFence = struct {
+    epoch: []const u8,
+    lock_index: u64,
+    storage: []u8,
+    allocator: std.mem.Allocator,
+
+    pub fn deinit(self: *ConsulFence) void {
+        self.allocator.free(self.storage);
+        self.epoch = &.{};
+        self.storage = &.{};
+    }
+};
+
+pub const ConsulLease = struct {
+    raw: ?*c.dilock_consul_lease,
+
+    pub fn isValid(self: *const ConsulLease) bool {
+        return if (self.raw) |raw| c.dilock_consul_lease_is_valid(raw) != 0 else false;
+    }
+
+    pub fn effectiveTtlMs(self: *const ConsulLease) Failure!i64 {
+        var detail: c.dilock_error = undefined;
+        var ttl_ms: i64 = 0;
+        try check(c.dilock_consul_lease_effective_ttl_ms(self.raw orelse return error.InvalidArgument, &ttl_ms, &detail), &detail);
+        return ttl_ms;
+    }
+
+    pub fn fence(self: *const ConsulLease, allocator: std.mem.Allocator) (Failure || std.mem.Allocator.Error)!ConsulFence {
+        var detail: c.dilock_error = undefined;
+        var value: c.dilock_consul_fence = .{ .lock_index = 0, .coordination_epoch_bytes = 0 };
+        const raw = self.raw orelse return error.InvalidArgument;
+        const probe = c.dilock_consul_lease_fence(raw, &value, null, 0, &detail);
+        if (probe != c.DILOCK_STATUS_INVALID_ARGUMENT) try check(probe, &detail);
+        const capacity = std.math.add(usize, value.coordination_epoch_bytes, 1) catch return error.Internal;
+        const storage = try allocator.alloc(u8, capacity);
+        errdefer allocator.free(storage);
+        try check(c.dilock_consul_lease_fence(raw, &value, storage.ptr, storage.len, &detail), &detail);
+        return .{
+            .epoch = storage[0..value.coordination_epoch_bytes],
+            .lock_index = value.lock_index,
+            .storage = storage,
+            .allocator = allocator,
+        };
+    }
+
+    pub fn renew(self: *ConsulLease) Failure!bool {
+        var detail: c.dilock_error = undefined;
+        var renewed: i32 = 0;
+        try check(c.dilock_consul_lease_renew(self.raw orelse return error.InvalidArgument, &renewed, &detail), &detail);
+        return renewed != 0;
+    }
+
+    pub fn release(self: *ConsulLease) Failure!ReleaseOutcome {
+        var detail: c.dilock_error = undefined;
+        var result: c.dilock_release_outcome = undefined;
+        try check(c.dilock_consul_lease_release(self.raw orelse return error.InvalidArgument, &result, &detail), &detail);
+        return outcome(result);
+    }
+
+    pub fn deinit(self: *ConsulLease) void {
+        if (self.raw) |raw| c.dilock_consul_lease_destroy(raw);
+        self.raw = null;
+    }
+};
+
 test "configured provider options preserve all C ABI settings" {
     const testing = std.testing;
     const redis = RedisProviderOptions{
@@ -501,6 +684,28 @@ test "configured provider options preserve all C ABI settings" {
     try testing.expectEqual(@as(i64, 7000), native_etcd.default_wait_ms);
     try testing.expectEqual(@as(i64, 60000), native_etcd.default_lease_ms);
     try testing.expectEqual(@as(i32, 1), native_etcd.auto_renew);
+
+    const consul = ConsulProviderOptions{
+        .endpoint = "http://consul.internal:8500",
+        .namespace = "payments",
+        .coordination_epoch = "epoch-9",
+        .acl_token = "local-test-token",
+        .rpc_timeout_ms = 850,
+        .cleanup_timeout_ms = 750,
+        .poll_interval_ms = 20,
+        .default_wait_ms = 6500,
+        .default_lease_ms = 55000,
+    };
+    const native_consul = nativeConsulOptions(consul);
+    try testing.expectEqualStrings("http://consul.internal:8500", std.mem.span(native_consul.endpoint));
+    try testing.expectEqualStrings("payments", std.mem.span(native_consul.name_space));
+    try testing.expectEqualStrings("epoch-9", std.mem.span(native_consul.coordination_epoch));
+    try testing.expectEqualStrings("local-test-token", std.mem.span(native_consul.acl_token));
+    try testing.expectEqual(@as(i64, 850), native_consul.rpc_timeout_ms);
+    try testing.expectEqual(@as(i64, 750), native_consul.cleanup_timeout_ms);
+    try testing.expectEqual(@as(i64, 20), native_consul.poll_interval_ms);
+    try testing.expectEqual(@as(i64, 6500), native_consul.default_wait_ms);
+    try testing.expectEqual(@as(i64, 55000), native_consul.default_lease_ms);
 }
 
 test "default provider options stay aligned with C ABI initializers" {
@@ -542,4 +747,19 @@ test "default provider options stay aligned with C ABI initializers" {
     try testing.expectEqual(expected_etcd.default_wait_ms, actual_etcd.default_wait_ms);
     try testing.expectEqual(expected_etcd.default_lease_ms, actual_etcd.default_lease_ms);
     try testing.expectEqual(expected_etcd.auto_renew, actual_etcd.auto_renew);
+
+    var expected_consul: c.dilock_consul_options = undefined;
+    c.dilock_consul_options_init(&expected_consul);
+    const actual_consul = nativeConsulOptions(.{});
+    try testing.expectEqualStrings(std.mem.span(expected_consul.endpoint), std.mem.span(actual_consul.endpoint));
+    try testing.expectEqualStrings(std.mem.span(expected_consul.name_space), std.mem.span(actual_consul.name_space));
+    try testing.expectEqualStrings(std.mem.span(expected_consul.coordination_epoch), std.mem.span(actual_consul.coordination_epoch));
+    try testing.expectEqualStrings(std.mem.span(expected_consul.acl_token), std.mem.span(actual_consul.acl_token));
+    try testing.expectEqual(expected_consul.cleanup_callback, actual_consul.cleanup_callback);
+    try testing.expectEqual(expected_consul.cleanup_user_data, actual_consul.cleanup_user_data);
+    try testing.expectEqual(expected_consul.rpc_timeout_ms, actual_consul.rpc_timeout_ms);
+    try testing.expectEqual(expected_consul.cleanup_timeout_ms, actual_consul.cleanup_timeout_ms);
+    try testing.expectEqual(expected_consul.poll_interval_ms, actual_consul.poll_interval_ms);
+    try testing.expectEqual(expected_consul.default_wait_ms, actual_consul.default_wait_ms);
+    try testing.expectEqual(expected_consul.default_lease_ms, actual_consul.default_lease_ms);
 }

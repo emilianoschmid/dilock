@@ -1,19 +1,20 @@
 # Dilock C ABI
 
-The C SDK is a versioned ABI facade over the existing C++ Redis and etcd
-implementations. It does not contain a second lock protocol. Build it with the
-native C++ SDK and both backend profiles:
+The C SDK is a versioned ABI facade over the existing C++ Redis, etcd and
+Consul implementations. It does not contain a second lock protocol. Build it
+with the native C++ SDK and the optional profiles:
 
 ```sh
 cmake -S sdk/cpp -B build/dilock-c \
-  -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_C_API=ON -DDILOCK_BUILD_TESTS=ON
+  -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_CONSUL=ON \
+  -DDILOCK_BUILD_C_API=ON -DDILOCK_BUILD_TESTS=ON
 cmake --build build/dilock-c
 ctest --test-dir build/dilock-c --output-on-failure
 cmake --install build/dilock-c --prefix "$PWD/.local/dilock-c"
 ```
 
 The CMake export provides `Dilock::c`, which links the native C++ runtime and
-the Redis/etcd profiles. Applications compile their public source as C17 and
+the Redis/etcd/Consul profiles. Applications compile their public source as C17 and
 link with CMake; the final link must include a C++ runtime. No separate C
 package has been published.
 
@@ -61,7 +62,11 @@ int main(void) {
 endpoint defaults. The Redis quickstart accepts `DILOCK_REDIS_HOST`; the etcd
 quickstart accepts `DILOCK_ETCD_ENDPOINT` as a raw gRPC target such as
 `127.0.0.1:2379`. Both accept `DILOCK_EPOCH`. Supply the expected coordination
-epoch explicitly. An etcd
+epoch explicitly. A Consul provider is analogous; configure `endpoint`, `name_space`,
+`coordination_epoch` and optionally `acl_token`, then use `dilock_consul_acquire_default`.
+Consul metadata must be provisioned out of band with profile `consul-kv-session-v1`;
+the C ABI returns the verified `(epoch, LockIndex)` fence. Keep lock KV entries so
+Consul cannot reset their fence counter. An etcd
 provider is analogous; configure `endpoint`, `name_space` and
 `coordination_epoch`, then use `dilock_etcd_acquire_default`. etcd metadata must
 be provisioned out of band with profile `etcd-native-lock-v1`; etcd
@@ -69,9 +74,10 @@ be provisioned out of band with profile `etcd-native-lock-v1`; etcd
 
 ## Full configuration and outcomes
 
-The `dilock_redis_options` and `dilock_etcd_options` structs expose endpoint,
-namespace, expected epoch, TLS (etcd), per-RPC and cleanup limits, default wait
-and lease, etcd auto-renew, and an optional cleanup callback. The callback's
+The `dilock_redis_options`, `dilock_etcd_options` and `dilock_consul_options`
+structs expose endpoint, namespace, expected epoch, TLS (etcd), ACL token
+(Consul), per-RPC and cleanup limits, default wait and lease, etcd auto-renew,
+and an optional cleanup callback. The callback's
 user-data pointer must remain valid until every provider, resource handle, and
 lease created from those options is destroyed and all pending cleanup callbacks
 have returned; destroying the provider alone does not end that lifetime. The
@@ -97,8 +103,9 @@ accessor returns the epoch in a caller-provided buffer and the verified
 `create_revision`; the buffer needs one extra byte for the trailing NUL. If
 the buffer is null or too small, the accessor returns `INVALID_ARGUMENT` while
 still reporting the fence revision and required epoch byte count, so the caller
-can allocate and retry. The protected resource still has to enforce that fence
-atomically.
+can allocate and retry. The Consul fence accessor returns the verified
+`LockIndex` and epoch through the same buffer convention. The protected
+resource still has to enforce that fence atomically.
 
 Providers own their transports. Resource handles and leases retain shared native
 state, so several resources can share one provider and transport pool. They are
@@ -109,27 +116,32 @@ needed before destruction. API/ABI version is
 returned by `dilock_c_abi_version`; enum numeric values and struct layout are
 versioned from ABI 1 and are not promised stable across a future major ABI.
 
-The minimal runnable source files are in `examples/`. Redis namespace metadata
+The minimal runnable source files are in `examples/`. The Consul quickstart reads
+`DILOCK_CONSUL_ENDPOINT`, `DILOCK_CONSUL_TOKEN` and `DILOCK_EPOCH`; provision its
+metadata out of band first, and retain every Consul lock KV key. Redis namespace metadata
 can be provisioned with `dilock_redis_provision_namespace` from a separately
 authorized deployment utility. etcd provisioning remains an operator step.
 Real-backend conformance is separate from the C17 translation-unit smoke test.
-This SDK is not ready for publication until its C17 consumer, Redis/etcd live
+This SDK is not ready for publication until its C17 consumer, Redis/etcd/Consul live
 tests, package consumer, supported-platform builds and release gates pass.
 
 The quickstart targets have two modes. With the CMake build configured as above,
 run them without arguments for `*_options_init` defaults (5-second wait,
 30-second lease, 2-second RPC/cleanup), or pass any argument for the example's
 fully set `billing` policy (10-second wait, 60-second lease, 1-second
-RPC/cleanup, plus Redis database/host or etcd auto-renew settings):
+RPC/cleanup, plus Redis database/host, etcd auto-renew, or Consul endpoint/token settings):
 
 ```sh
 cmake -S sdk/cpp -B build/dilock-c \
-  -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_C_API=ON -DDILOCK_BUILD_TESTS=ON
-cmake --build build/dilock-c --target dilock_c_redis_quickstart dilock_c_etcd_quickstart
+  -DDILOCK_BUILD_ETCD=ON -DDILOCK_BUILD_CONSUL=ON \
+  -DDILOCK_BUILD_C_API=ON -DDILOCK_BUILD_TESTS=ON
+cmake --build build/dilock-c --target dilock_c_redis_quickstart dilock_c_etcd_quickstart dilock_c_consul_quickstart
 build/dilock-c/dilock_c_redis_quickstart
 build/dilock-c/dilock_c_redis_quickstart configured
 build/dilock-c/dilock_c_etcd_quickstart
 build/dilock-c/dilock_c_etcd_quickstart configured
+build/dilock-c/dilock_c_consul_quickstart
+build/dilock-c/dilock_c_consul_quickstart configured
 ```
 
 Both modes still require the matching namespace metadata and deployment epoch;

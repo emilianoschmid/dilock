@@ -94,6 +94,21 @@ The fencing value is the
 coordination epoch plus observed key `create_revision`; downstream systems
 must enforce it if stale work must be rejected.
 
+## Experimental Consul adapter
+
+`dilock_consul_provider()` uses Consul's HTTP KV and session APIs. Namespace
+metadata must already be provisioned with profile `consul-kv-session-v1` and
+the approved epoch. Use `dilock_consul_provision_namespace()` only in the
+explicit operator setup step; it creates the metadata key with `CAS=0` and
+never overwrites an existing key. Each attempt owns a fresh Consul session.
+`dilock_consul_acquire()` waits within a finite budget, while
+`dilock_consul_try_acquire()` performs one attempt. Renew long-running work
+explicitly with `dilock_consul_renew()` and check its result. The fence is the
+exact decimal `LockIndex` string plus `coordination_epoch`; protected storage
+must enforce it. Call `dilock_consul_release()` and
+`dilock_consul_close()` explicitly. `curl` verifies TLS certificates and does
+not follow redirects. ACL tokens are sent only in `X-Consul-Token`.
+
 `dilock_etcd_release()` linearly ranges the exact opaque lock key and checks
 that its lease ID matches this acquisition before calling native `Unlock`.
 `"released"` requires that ownership proof plus positive acknowledgements from

@@ -10,10 +10,13 @@ import {
 } from "@dilock/core";
 import { RedisLock, RedisProvider } from "@dilock/redis";
 import { EtcdLock, EtcdProvider, UnsupportedCapabilityError } from "@dilock/etcd";
+import { ConsulLock, ConsulProvider } from "@dilock/consul";
 
 test("public JavaScript imports reuse the TypeScript runtime packages", () => {
   assert.equal(typeof RedisProvider.connect, "function");
   assert.equal(typeof EtcdProvider.connect, "function");
+  assert.equal(typeof ConsulProvider.connect, "function");
+  assert.equal(typeof ConsulLock.prototype.acquire, "function");
   assert.equal(typeof AcquisitionTimeoutError, "function");
   assert.equal(typeof UnsupportedCapabilityError, "function");
 });

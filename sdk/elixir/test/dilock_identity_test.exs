@@ -47,6 +47,13 @@ defmodule Dilock.IdentityTest do
     assert :ok = Dilock.Identity.validate_metadata(raw, "redis-single-authority-v1", "cluster-a")
 
     assert {:error, :protocol_mismatch} =
+             Dilock.Identity.validate_metadata(
+               Jason.encode!(Map.put(metadata, "future_field", "unsupported")),
+               "redis-single-authority-v1",
+               "cluster-a"
+             )
+
+    assert {:error, :protocol_mismatch} =
              Dilock.Identity.validate_metadata(raw, "etcd-native-lock-v1", "cluster-a")
 
     assert {:error, :protocol_mismatch} =

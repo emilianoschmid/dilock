@@ -7,7 +7,8 @@
 (defn -main [& _]
   (let [namespaces (cond-> ['dilock.clojure.core-test]
                      (or (config/configured-value? (System/getenv "DILOCK_REDIS_URL"))
-                         (config/configured-value? (System/getenv "DILOCK_ETCD_URL")))
+                         (config/configured-value? (System/getenv "DILOCK_ETCD_URL"))
+                         (config/configured-value? (System/getenv "DILOCK_CONSUL_ENDPOINT")))
                      (conj 'dilock.clojure.live-test))
         {:keys [fail error]} (apply test/run-tests namespaces)]
     (when (pos? (+ fail error))

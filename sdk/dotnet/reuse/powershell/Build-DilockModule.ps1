@@ -33,7 +33,7 @@ try {
         $assemblySourceDirectory = Join-Path $temporaryPath 'publish'
         & dotnet publish $bundleProject --configuration Release --no-restore `
             --output $assemblySourceDirectory -p:UseAppHost=false --verbosity minimal
-        if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for the combined Redis/etcd dependency bundle: $LASTEXITCODE" }
+        if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for the combined backend dependency bundle: $LASTEXITCODE" }
     }
     else {
         $assemblySourceDirectory = (Resolve-Path -LiteralPath $RuntimeAssemblyDirectory -ErrorAction Stop).Path
@@ -43,7 +43,7 @@ try {
         Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $libraryStage $file.Name)
     }
 
-    foreach ($required in @('Dilock.Runtime.Bundle.dll', 'Dilock.Core.dll', 'Dilock.Redis.dll', 'Dilock.Etcd.dll')) {
+    foreach ($required in @('Dilock.Runtime.Bundle.dll', 'Dilock.Core.dll', 'Dilock.Redis.dll', 'Dilock.Etcd.dll', 'Dilock.Consul.dll')) {
         if (-not (Test-Path -LiteralPath (Join-Path $libraryStage $required) -PathType Leaf)) {
             throw "Published backend closure did not produce required assembly $required"
         }

@@ -106,6 +106,52 @@ as `Acquisition_unknown`.
 The etcd `with_lease` scope has the same optional `~on_release` callback and
 cleanup-observation behavior as the Redis scope.
 
+## Consul (optional package)
+
+Consul ships as a separate `dilock-consul` package under `consul/`. It uses
+the Consul HTTP API with `cohttp-lwt-unix`, and does not add dependencies to
+the Redis/etcd package. From `sdk/ocaml`, install the existing `dilock`
+package first, then install `consul/` as the optional package:
+
+```sh
+opam install .
+cd consul
+opam install .
+```
+
+Provisioning is explicit and regular connect only accepts a linearizable read
+of compatible metadata. Keep the same namespace and coordination epoch across
+all participants. Consul TTLs are rounded up to whole seconds; supported
+leases range from 10 seconds to 24 hours. Fences contain the epoch and the
+per-key `LockIndex`. Retain `dilock/locks/*` KV entries: deleting a lock key
+can reset its fencing counter. A fence must be atomically enforced by the
+protected resource; the lock alone cannot prevent stale external writes.
+
+```ocaml
+open Lwt.Infix
+
+let run () =
+  let options = {
+    Consul.(defaults "prod-east-1") with
+    endpoint = "http://127.0.0.1:8500";
+    namespace = "reports";
+  } in
+  Consul.provision_namespace options >>= fun () ->
+  Consul.connect options >>= fun provider ->
+  Consul.lock provider "daily" >>= fun resource ->
+  Consul.with_lease resource options.default_acquisition (fun lease ->
+    let fence = Consul.fence lease in
+    ignore fence;
+    Lwt.return_unit) >>= fun () ->
+  Consul.close provider
+```
+
+The direct Consul package currently has source-level contract and opt-in live
+tests. Set `DILOCK_TEST_CONSUL_ENDPOINT` to enable the single-node lifecycle
+runner; optionally set `DILOCK_TEST_CONSUL_NAMESPACE`,
+`DILOCK_TEST_CONSUL_EPOCH`, and `DILOCK_TEST_CONSUL_TOKEN`. See
+`consul/test/consul_contract.ml` and `consul/test/live_consul.ml`.
+
 The current etcd transport is plaintext HTTP/2 only; configure an appropriately
 isolated/trusted endpoint. This preview does not enable TLS, authentication, or
 automatic coordinator fallback. Its HTTP/2 headers include the configured

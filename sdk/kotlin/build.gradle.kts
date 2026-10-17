@@ -21,6 +21,7 @@ dependencies {
         exclude(group = "redis.clients", module = "jedis")
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
     }
+    compileOnly("org.dilock:dilock-consul:0.1.0") { exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind") }
     compileOnly("org.dilock:dilock-etcd:0.1.0") {
         exclude(group = "io.etcd", module = "jetcd-grpc")
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
@@ -30,6 +31,7 @@ dependencies {
         exclude(group = "redis.clients", module = "jedis")
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
     }
+    testImplementation("org.dilock:dilock-consul:0.1.0")
     testImplementation("org.dilock:dilock-etcd:0.1.0") {
         exclude(group = "io.etcd", module = "jetcd-grpc")
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
@@ -54,7 +56,8 @@ kotlin {
 java { withSourcesJar() }
 
 val liveBackendEndpointsConfigured = providers.environmentVariable("DILOCK_TEST_REDIS_ENDPOINT").isPresent ||
-    providers.environmentVariable("DILOCK_TEST_ETCD_ENDPOINT").isPresent
+    providers.environmentVariable("DILOCK_TEST_ETCD_ENDPOINT").isPresent ||
+    providers.environmentVariable("DILOCK_TEST_CONSUL_ENDPOINT").isPresent
 
 tasks.test {
     useJUnitPlatform()

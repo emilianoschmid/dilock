@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "DilockCore", targets: ["DilockCore"]),
         .library(name: "DilockRedis", targets: ["DilockRedis"]),
         .library(name: "DilockEtcd", targets: ["DilockEtcd"]),
+        .library(name: "DilockConsul", targets: ["DilockConsul"]),
         .library(name: "DilockSwiftWorkerSupport", targets: ["DilockSwiftWorkerSupport"]),
         .executable(name: "dilock-swift-worker", targets: ["DilockSwiftWorker"]),
     ],
@@ -62,6 +63,7 @@ let package = Package(
             ],
             path: "sdk/swift/Sources/DilockEtcd"
         ),
+        .target(name: "DilockConsul", dependencies: ["DilockCore"], path: "sdk/swift/Sources/DilockConsul"),
         .executableTarget(
             name: "DilockSwiftWorker",
             dependencies: [
@@ -94,6 +96,7 @@ let package = Package(
             dependencies: ["DilockCore", "DilockEtcd"],
             path: "sdk/swift/Tests/DilockEtcdTests"
         ),
+        .testTarget(name: "DilockConsulTests", dependencies: ["DilockCore", "DilockConsul"], path: "sdk/swift/Tests/DilockConsulTests"),
         .testTarget(
             name: "DilockSwiftWorkerTests",
             dependencies: ["DilockSwiftWorkerSupport"],

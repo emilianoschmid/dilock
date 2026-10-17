@@ -5,3 +5,6 @@ find_package(DilockFortran 0.1 CONFIG REQUIRED)
 
 add_executable(dilock_fortran_installed_consumer main.f90)
 target_link_libraries(dilock_fortran_installed_consumer PRIVATE DilockFortran::fortran)
+
+add_executable(dilock_fortran_consul_api_consumer consul_api_consumer.f90)
+target_link_libraries(dilock_fortran_consul_api_consumer PRIVATE DilockFortran::fortran)

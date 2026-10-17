@@ -1,0 +1,12 @@
+services:
+  consul:
+    image: hashicorp/consul@sha256:4e75df3d9d5f8f4d3222322907c9a8e323bc313fc7b248943f93b8f9c64565a7
+    command: ["agent", "-dev", "-client=0.0.0.0"]
+    ports:
+      - "127.0.0.1:28500:8500"
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 2s
+      timeout: 2s
+      retries: 15

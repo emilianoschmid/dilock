@@ -6,6 +6,7 @@ int main(void) {
     dilock_error error = {0};
     dilock_redis_options redis;
     dilock_etcd_options etcd;
+    dilock_consul_options consul;
     dilock_redis_provider *redis_provider = (dilock_redis_provider *)(uintptr_t)1;
     dilock_etcd_provider *etcd_provider = (dilock_etcd_provider *)(uintptr_t)1;
     dilock_redis_lock *redis_lock = (dilock_redis_lock *)(uintptr_t)1;
@@ -19,10 +20,14 @@ int main(void) {
     if (dilock_c_abi_version() != DILOCK_C_ABI_VERSION) return 1;
     dilock_redis_options_init(&redis);
     dilock_etcd_options_init(&etcd);
+    dilock_consul_options_init(&consul);
     dilock_redis_options_init(NULL);
     dilock_etcd_options_init(NULL);
+    dilock_consul_options_init(NULL);
     if (redis.port != 6379 || redis.default_wait_ms != 5000 || redis.default_lease_ms != 30000) return 2;
     if (etcd.default_wait_ms != 5000 || etcd.default_lease_ms != 30000) return 3;
+    if (consul.default_wait_ms != 5000 || consul.default_lease_ms != 30000 ||
+        consul.poll_interval_ms <= 0 || consul.endpoint == NULL) return 18;
     if (redis.coordination_epoch == NULL || redis.coordination_epoch[0] != '\0') return 4;
 
     /* Exercise the linked ABI boundary without requiring either backend. Bad
@@ -31,6 +36,9 @@ int main(void) {
         redis_provider != NULL || error.code != DILOCK_STATUS_INVALID_ARGUMENT || error.message[0] == '\0') return 6;
     if (dilock_etcd_provider_create(NULL, &etcd_provider, &error) != DILOCK_STATUS_INVALID_ARGUMENT ||
         etcd_provider != NULL || error.code != DILOCK_STATUS_INVALID_ARGUMENT || error.message[0] == '\0') return 7;
+    dilock_consul_provider *consul_provider = (dilock_consul_provider *)(uintptr_t)1;
+    if (dilock_consul_provider_create(NULL, &consul_provider, &error) != DILOCK_STATUS_INVALID_ARGUMENT ||
+        consul_provider != NULL || error.code != DILOCK_STATUS_INVALID_ARGUMENT || error.message[0] == '\0') return 19;
     if (dilock_redis_provider_create(&redis, NULL, &error) != DILOCK_STATUS_INVALID_ARGUMENT ||
         error.code != DILOCK_STATUS_INVALID_ARGUMENT || error.message[0] == '\0') return 15;
     if (dilock_etcd_provider_create(&etcd, NULL, &error) != DILOCK_STATUS_INVALID_ARGUMENT ||
@@ -71,5 +79,13 @@ int main(void) {
     (void)&dilock_etcd_try_acquire;
     (void)&dilock_etcd_lease_release;
     (void)&dilock_etcd_lease_fence;
+    (void)&dilock_consul_provider_create;
+    (void)&dilock_consul_lock_create;
+    (void)&dilock_consul_acquire_default;
+    (void)&dilock_consul_acquire_default_with_cancellation;
+    (void)&dilock_consul_try_acquire;
+    (void)&dilock_consul_lease_fence;
+    (void)&dilock_consul_lease_renew;
+    (void)&dilock_consul_lease_release;
     return DILOCK_STATUS_BUSY == 1 && DILOCK_RELEASE_UNKNOWN == 2 ? 0 : 5;
 }

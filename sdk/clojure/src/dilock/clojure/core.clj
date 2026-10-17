@@ -1,8 +1,9 @@
 (ns dilock.clojure.core
   "Small Clojure scope helpers over Dilock's Java SDK. Backend behavior and
-  wire semantics remain in the Java Redis and etcd modules."
+  wire semantics remain in the Java Redis, etcd, and Consul modules."
   (:import [org.dilock.redis RedisProvider RedisLease$ReleaseOutcome AcquireOptions DilockException DilockException$Kind]
-           [org.dilock.etcd EtcdProvider EtcdLease$ReleaseOutcome]))
+           [org.dilock.etcd EtcdProvider EtcdLease$ReleaseOutcome]
+           [org.dilock.consul ConsulProvider ConsulLease$ReleaseOutcome]))
 
 (defn redis-provider
   "Connect to one Redis authority and validate its pre-provisioned namespace.
@@ -19,6 +20,11 @@
    (EtcdProvider/connect endpoint namespace epoch))
   ([endpoint epoch]
    (EtcdProvider/connect endpoint epoch)))
+
+(defn consul-provider
+  "Connect to one Consul agent and validate explicitly provisioned metadata."
+  ([endpoint namespace epoch] (ConsulProvider/connect endpoint namespace epoch))
+  ([endpoint epoch] (ConsulProvider/connect endpoint epoch)))
 
 (defmacro with-resource
   "Evaluate body with a Java AutoCloseable bound to binding; close it on every exit."
@@ -63,7 +69,8 @@
                          (catch Throwable error {:error error}))
         cleanup-error (or (:error cleanup-result)
                           (when-not (or (= RedisLease$ReleaseOutcome/RELEASED (:outcome cleanup-result))
-                                        (= EtcdLease$ReleaseOutcome/RELEASED (:outcome cleanup-result)))
+                                        (= EtcdLease$ReleaseOutcome/RELEASED (:outcome cleanup-result))
+                                        (= ConsulLease$ReleaseOutcome/RELEASED (:outcome cleanup-result)))
                             (DilockException.
                              DilockException$Kind/LEASE_LOST
                              (str "Scoped lease release did not return RELEASED: "
@@ -104,6 +111,14 @@
          ~@body)
       `(with-lease [~binding (.lock ~provider ~resource) ~options]
          ~@body))))
+
+(defmacro with-consul-lock
+  "Acquire and release one Consul KV session lock; provider remains caller-owned."
+  [[binding provider resource & [options]] & body]
+  (let [lock `(.lock ~provider ~resource)]
+    (if options
+      `(with-lease [~binding ~lock ~options] ~@body)
+      `(with-lease [~binding ~lock] ~@body))))
 
 (defmacro with-etcd-renewing-lock
   "Acquire and scope an etcd lock with automatic renewal while held.

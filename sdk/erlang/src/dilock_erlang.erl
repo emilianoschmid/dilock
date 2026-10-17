@@ -5,8 +5,10 @@
     defaults/0,
     start_redis/1,
     start_etcd/1,
+    start_consul/1,
     redis_child_spec/1,
     etcd_child_spec/1,
+    consul_child_spec/1,
     lock/3,
     try_acquire/1,
     try_acquire/2,
@@ -38,6 +40,12 @@ start_etcd(Options) ->
         Options,
         [endpoint, namespace, epoch, rpc_timeout_ms, cleanup_timeout_ms, cleanup_observer, name]
     ).
+start_consul(Options) ->
+    start_provider(
+        'Elixir.Dilock.Consul',
+        Options,
+        [endpoint, namespace, epoch, token, rpc_timeout_ms, cleanup_timeout_ms, cleanup_observer, name]
+    ).
 
 %% Return the backend's standard OTP child specification without starting it.
 %% This lets an Erlang application keep provider lifetime under its supervisor.
@@ -53,6 +61,13 @@ etcd_child_spec(Options) ->
         'Elixir.Dilock.Etcd',
         Options,
         [endpoint, namespace, epoch, rpc_timeout_ms, cleanup_timeout_ms, cleanup_observer, name]
+    ).
+
+consul_child_spec(Options) ->
+    provider_child_spec(
+        'Elixir.Dilock.Consul',
+        Options,
+        [endpoint, namespace, epoch, token, rpc_timeout_ms, cleanup_timeout_ms, cleanup_observer, name]
     ).
 
 lock(Provider, Namespace, Resource) when is_pid(Provider) ->
@@ -130,7 +145,11 @@ safe_close(Lease) ->
 
 close_lease_process(Lease) -> 'Elixir.Dilock.Lease':close(Lease).
 
-fence(Ownership) when is_map(Ownership) -> 'Elixir.Dilock.Etcd':fence(Ownership).
+fence(Ownership) when is_map(Ownership) ->
+    case maps:is_key(lock_index, Ownership) of
+        true -> 'Elixir.Dilock.Consul':fence(Ownership);
+        _ -> 'Elixir.Dilock.Etcd':fence(Ownership)
+    end.
 
 start_provider(Module, Options, AllowedKeys) when is_list(Options) ->
     case normalize_options(Options, AllowedKeys) of
@@ -188,6 +207,7 @@ normalize_option(_Entry, _AllowedKeys) -> {error, invalid_configuration}.
 normalize_allowed_option(endpoint, Value) -> normalize_string_option(endpoint, Value);
 normalize_allowed_option(namespace, Value) -> normalize_string_option(namespace, Value);
 normalize_allowed_option(epoch, Value) -> normalize_string_option(epoch, Value);
+normalize_allowed_option(token, Value) -> normalize_string_option(token, Value);
 normalize_allowed_option(cleanup_observer, Value) when is_function(Value, 1) ->
     {ok, {cleanup_observer, Value}};
 normalize_allowed_option(cleanup_observer, _Value) -> {error, invalid_configuration};

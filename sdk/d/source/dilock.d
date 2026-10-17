@@ -67,6 +67,20 @@ struct EtcdProviderOptions {
     bool autoRenew = false;
 }
 
+/// Consul HTTP agent, ACL and timing configuration. Namespace metadata must
+/// be provisioned out of band before provider construction.
+struct ConsulProviderOptions {
+    string endpoint = "http://127.0.0.1:8500";
+    string nameSpace = "default";
+    string coordinationEpoch;
+    string aclToken;
+    Duration rpcTimeout = dur!"msecs"(2000);
+    Duration cleanupTimeout = dur!"msecs"(2000);
+    Duration pollInterval = dur!"msecs"(50);
+    Duration defaultWait = dur!"msecs"(5000);
+    Duration defaultLease = dur!"msecs"(30000);
+}
+
 extern(C) {
     struct CError { int32_t code; char[384] message; }
     struct RedisOptions {
@@ -83,48 +97,76 @@ extern(C) {
         int64_t rpc_timeout_ms; int64_t cleanup_timeout_ms; int64_t safety_margin_ms;
         int64_t default_wait_ms; int64_t default_lease_ms; int32_t auto_renew;
     }
+    struct CConsulOptions {
+        const(char)* endpoint; const(char)* name_space; const(char)* coordination_epoch;
+        const(char)* acl_token;
+        extern(C) void function(int, int, const(char)*, void*) cleanup_callback; void* cleanup_user_data;
+        int64_t rpc_timeout_ms; int64_t cleanup_timeout_ms; int64_t poll_interval_ms;
+        int64_t default_wait_ms; int64_t default_lease_ms;
+    }
     struct CEtcdFence { int64_t create_revision; size_t coordination_epoch_bytes; }
+    struct CConsulFence { ulong lock_index; size_t coordination_epoch_bytes; }
     struct CRedisProvider { }
     struct CRedisLock { }
     struct CRedisLease { }
     struct CEtcdProvider { }
     struct CEtcdLock { }
     struct CEtcdLease { }
+    struct CConsulProvider { }
+    struct CConsulLock { }
+    struct CConsulLease { }
     struct CCancellation { }
 
     uint32_t dilock_c_abi_version();
     void dilock_redis_options_init(RedisOptions*);
     void dilock_etcd_options_init(EtcdOptions*);
+    void dilock_consul_options_init(CConsulOptions*);
     Status dilock_redis_provider_create(RedisOptions*, CRedisProvider**, CError*);
     void dilock_redis_provider_destroy(CRedisProvider*);
     Status dilock_etcd_provider_create(EtcdOptions*, CEtcdProvider**, CError*);
     void dilock_etcd_provider_destroy(CEtcdProvider*);
+    Status dilock_consul_provider_create(CConsulOptions*, CConsulProvider**, CError*);
+    void dilock_consul_provider_destroy(CConsulProvider*);
     Status dilock_redis_lock_create(CRedisProvider*, const(char)*, CRedisLock**, CError*);
     Status dilock_etcd_lock_create(CEtcdProvider*, const(char)*, CEtcdLock**, CError*);
     void dilock_redis_lock_destroy(CRedisLock*);
     void dilock_etcd_lock_destroy(CEtcdLock*);
+    Status dilock_consul_lock_create(CConsulProvider*, const(char)*, CConsulLock**, CError*);
+    void dilock_consul_lock_destroy(CConsulLock*);
     Status dilock_redis_acquire_default(CRedisLock*, CRedisLease**, CError*);
     Status dilock_redis_acquire_default_with_cancellation(CRedisLock*, CCancellation*, CRedisLease**, CError*);
     Status dilock_redis_acquire(CRedisLock*, int64_t, int64_t, CRedisLease**, CError*);
     Status dilock_etcd_acquire_default(CEtcdLock*, CEtcdLease**, CError*);
     Status dilock_etcd_acquire_default_with_cancellation(CEtcdLock*, CCancellation*, CEtcdLease**, CError*);
     Status dilock_etcd_acquire(CEtcdLock*, int64_t, int64_t, CEtcdLease**, CError*);
+    Status dilock_consul_acquire_default(CConsulLock*, CConsulLease**, CError*);
+    Status dilock_consul_acquire_default_with_cancellation(CConsulLock*, CCancellation*, CConsulLease**, CError*);
+    Status dilock_consul_acquire(CConsulLock*, int64_t, int64_t, CConsulLease**, CError*);
     Status dilock_redis_try_acquire(CRedisLock*, int64_t, CRedisLease**, CError*);
     Status dilock_etcd_try_acquire(CEtcdLock*, int64_t, CEtcdLease**, CError*);
+    Status dilock_consul_try_acquire(CConsulLock*, int64_t, CConsulLease**, CError*);
     int32_t dilock_redis_lease_is_valid(const(CRedisLease)*);
     int32_t dilock_etcd_lease_is_valid(const(CEtcdLease)*);
+    int32_t dilock_consul_lease_is_valid(const(CConsulLease)*);
     Status dilock_redis_lease_release(CRedisLease*, CReleaseOutcome*, CError*);
     Status dilock_redis_lease_renew(CRedisLease*, int64_t, int32_t*, CError*);
     Status dilock_etcd_lease_release(CEtcdLease*, CReleaseOutcome*, CError*);
+    Status dilock_consul_lease_release(CConsulLease*, CReleaseOutcome*, CError*);
     Status dilock_etcd_lease_effective_ttl_ms(const(CEtcdLease)*, int64_t*, CError*);
+    Status dilock_consul_lease_effective_ttl_ms(const(CConsulLease)*, int64_t*, CError*);
+    Status dilock_consul_lease_renew(CConsulLease*, int32_t*, CError*);
     void dilock_redis_lease_destroy(CRedisLease*);
     void dilock_etcd_lease_destroy(CEtcdLease*);
+    void dilock_consul_lease_destroy(CConsulLease*);
     Status dilock_etcd_lease_fence(const(CEtcdLease)*, CEtcdFence*, char*, size_t, CError*);
+    Status dilock_consul_lease_fence(const(CConsulLease)*, CConsulFence*, char*, size_t, CError*);
+    Status dilock_consul_provision_namespace(CConsulOptions*, CError*);
     CCancellation* dilock_cancellation_create(CError*);
     void dilock_cancellation_request(CCancellation*);
     void dilock_cancellation_destroy(CCancellation*);
     Status dilock_redis_acquire_with_cancellation(CRedisLock*, int64_t, int64_t, CCancellation*, CRedisLease**, CError*);
     Status dilock_etcd_acquire_with_cancellation(CEtcdLock*, int64_t, int64_t, CCancellation*, CEtcdLease**, CError*);
+    Status dilock_consul_acquire_with_cancellation(CConsulLock*, int64_t, int64_t, CCancellation*, CConsulLease**, CError*);
 }
 
 class DilockException : Exception {
@@ -239,6 +281,34 @@ private EtcdOptions toNativeOptions(EtcdProviderOptions config) @trusted {
     options.default_lease_ms = wholeMilliseconds(config.defaultLease, "etcd default lease");
     options.auto_renew = config.autoRenew ? 1 : 0;
     return options;
+}
+
+private CConsulOptions toNativeOptions(ConsulProviderOptions config) @trusted {
+    validateCStringInput(config.endpoint, "Consul endpoint");
+    validateCStringInput(config.nameSpace, "namespace");
+    validateCStringInput(config.coordinationEpoch, "coordination epoch");
+    validateCStringInput(config.aclToken, "Consul ACL token");
+
+    CConsulOptions options;
+    dilock_consul_options_init(&options);
+    options.endpoint = config.endpoint.toStringz;
+    options.name_space = config.nameSpace.toStringz;
+    options.coordination_epoch = config.coordinationEpoch.toStringz;
+    options.acl_token = config.aclToken.toStringz;
+    options.rpc_timeout_ms = wholeMilliseconds(config.rpcTimeout, "Consul RPC timeout");
+    options.cleanup_timeout_ms = wholeMilliseconds(config.cleanupTimeout, "Consul cleanup timeout");
+    options.poll_interval_ms = wholeMilliseconds(config.pollInterval, "Consul poll interval");
+    options.default_wait_ms = wholeMilliseconds(config.defaultWait, "Consul default wait");
+    options.default_lease_ms = wholeMilliseconds(config.defaultLease, "Consul default lease");
+    return options;
+}
+
+/// Creates metadata with CAS=0. Application provider creation never provisions it.
+void provisionConsulNamespace(ConsulProviderOptions config) @trusted {
+    verifyAbi();
+    auto options = toNativeOptions(config);
+    CError error;
+    check(dilock_consul_provision_namespace(&options, &error), error);
 }
 
 struct RedisProvider {
@@ -379,6 +449,85 @@ struct EtcdProvider {
     private this(CEtcdProvider* value) { raw = value; }
 }
 
+struct ConsulProvider {
+    private CConsulProvider* raw;
+    @disable this(this);
+
+    static ConsulProvider connect(string endpoint, string namespace, string epoch,
+                                  string aclToken = "") @trusted {
+        ConsulProviderOptions config;
+        config.endpoint = endpoint;
+        config.nameSpace = namespace;
+        config.coordinationEpoch = epoch;
+        config.aclToken = aclToken;
+        return connect(config);
+    }
+
+    static ConsulProvider connect(ConsulProviderOptions config) @trusted {
+        verifyAbi();
+        auto options = toNativeOptions(config);
+        CError error;
+        CConsulProvider* value;
+        check(dilock_consul_provider_create(&options, &value, &error), error);
+        return ConsulProvider(value);
+    }
+
+    ConsulLock lock(string resource) @trusted {
+        validateCStringInput(resource, "resource");
+        CConsulLock* value;
+        CError error;
+        check(dilock_consul_lock_create(raw, resource.toStringz, &value, &error), error);
+        return ConsulLock(value);
+    }
+
+    void destroy() @trusted { if (raw !is null) { dilock_consul_provider_destroy(raw); raw = null; } }
+    private this(CConsulProvider* value) { raw = value; }
+}
+
+struct ConsulLock {
+    private CConsulLock* raw;
+    @disable this(this);
+    private this(CConsulLock* value) { raw = value; }
+
+    ConsulLease acquireDefault() @trusted {
+        CConsulLease* value; CError error;
+        check(dilock_consul_acquire_default(raw, &value, &error), error);
+        return ConsulLease(value);
+    }
+    ConsulLease acquireDefault(ref Cancellation cancellation) @trusted {
+        if (cancellation.raw is null)
+            throw new DilockException(Status.invalidArgument, "cancellation handle has been destroyed");
+        CConsulLease* value; CError error;
+        check(dilock_consul_acquire_default_with_cancellation(raw, cancellation.raw, &value, &error), error);
+        return ConsulLease(value);
+    }
+    ConsulLease acquire(long waitMs, long leaseMs) @trusted {
+        CConsulLease* value; CError error;
+        check(dilock_consul_acquire(raw, waitMs, leaseMs, &value, &error), error);
+        return ConsulLease(value);
+    }
+    ConsulLease acquire(long waitMs, long leaseMs, ref Cancellation cancellation) @trusted {
+        if (cancellation.raw is null)
+            throw new DilockException(Status.invalidArgument, "cancellation handle has been destroyed");
+        CConsulLease* value; CError error;
+        check(dilock_consul_acquire_with_cancellation(raw, waitMs, leaseMs, cancellation.raw, &value, &error), error);
+        return ConsulLease(value);
+    }
+    /// The output lease must be empty; false means only acknowledged contention.
+    bool tryAcquire(long leaseMs, ref ConsulLease lease) @trusted {
+        if (lease.raw !is null)
+            throw new DilockException(Status.invalidArgument,
+                "tryAcquire output lease must be empty; release or destroy its current lease first");
+        CConsulLease* value; CError error;
+        auto status = dilock_consul_try_acquire(raw, leaseMs, &value, &error);
+        if (status == Status.busy) return false;
+        check(status, error);
+        lease = ConsulLease(value);
+        return true;
+    }
+    void destroy() @trusted { if (raw !is null) { dilock_consul_lock_destroy(raw); raw = null; } }
+}
+
 struct EtcdLock {
     private CEtcdLock* raw;
     @disable this(this);
@@ -472,6 +621,54 @@ struct EtcdLease {
     void destroy() @trusted { if (raw !is null) { dilock_etcd_lease_destroy(raw); raw = null; } }
 }
 
+struct ConsulFence { string epoch; ulong lockIndex; }
+
+struct ConsulLease {
+    private CConsulLease* raw;
+    @disable this(this);
+    private this(CConsulLease* value) { raw = value; }
+    bool isValid() const @trusted { return raw !is null && dilock_consul_lease_is_valid(raw) != 0; }
+    long effectiveTtlMs() const @trusted {
+        if (raw is null)
+            throw new DilockException(Status.invalidArgument, "lease has been destroyed");
+        int64_t value;
+        CError error;
+        check(dilock_consul_lease_effective_ttl_ms(raw, &value, &error), error);
+        return value;
+    }
+    bool renew() @trusted {
+        if (raw is null)
+            throw new DilockException(Status.invalidArgument, "lease has been destroyed");
+        int32_t renewed;
+        CError error;
+        check(dilock_consul_lease_renew(raw, &renewed, &error), error);
+        return renewed != 0;
+    }
+    ConsulFence fence() @trusted {
+        if (raw is null)
+            throw new DilockException(Status.invalidArgument, "lease has been destroyed");
+        ConsulFence value;
+        CConsulFence rawFence;
+        CError error;
+        auto probe = dilock_consul_lease_fence(raw, &rawFence, null, 0, &error);
+        if (probe != Status.invalidArgument) check(probe, error);
+        auto epochBytes = rawFence.coordination_epoch_bytes;
+        auto epoch = new char[epochBytes + 1];
+        check(dilock_consul_lease_fence(raw, &rawFence, epoch.ptr, epoch.length, &error), error);
+        if (rawFence.coordination_epoch_bytes != epochBytes)
+            throw new DilockException(Status.protocolMismatch, "C ABI fence epoch length changed during retrieval");
+        value.epoch = epoch[0 .. epochBytes].idup;
+        value.lockIndex = rawFence.lock_index;
+        return value;
+    }
+    ReleaseOutcome release() @trusted {
+        CReleaseOutcome value; CError error;
+        check(dilock_consul_lease_release(raw, &value, &error), error);
+        return releaseOutcomeFromC(cast(int)value);
+    }
+    void destroy() @trusted { if (raw !is null) { dilock_consul_lease_destroy(raw); raw = null; } }
+}
+
 struct Cancellation {
     private CCancellation* raw;
     @disable this(this);
@@ -561,6 +758,19 @@ unittest {
 }
 
 unittest {
+    auto lock = ConsulLock(cast(CConsulLock*) 1);
+    auto lease = ConsulLease(cast(CConsulLease*) 2);
+    bool rejected;
+    try {
+        lock.tryAcquire(30000, lease);
+    } catch (DilockException error) {
+        rejected = error.status == Status.invalidArgument;
+    }
+    assert(rejected, "Consul tryAcquire must reject a non-empty output lease");
+    assert(lease.raw == cast(CConsulLease*) 2, "rejected Consul tryAcquire must preserve existing ownership");
+}
+
+unittest {
     validateCStringInput("resource", "resource");
     bool rejected;
     try {
@@ -602,6 +812,17 @@ unittest {
         rejected = error.status == Status.invalidArgument;
     }
     assert(rejected, "reading effective TTL from a destroyed etcd lease must fail explicitly");
+}
+
+unittest {
+    auto lease = ConsulLease(null);
+    bool rejected;
+    try {
+        lease.fence();
+    } catch (DilockException error) {
+        rejected = error.status == Status.invalidArgument;
+    }
+    assert(rejected, "reading the fence from a destroyed Consul lease must fail explicitly");
 }
 
 unittest {
@@ -662,15 +883,20 @@ unittest {
     assert(dilock_c_abi_version() == 1);
     RedisOptions redis;
     EtcdOptions etcd;
+    CConsulOptions consul;
     dilock_redis_options_init(&redis);
     dilock_etcd_options_init(&etcd);
+    dilock_consul_options_init(&consul);
     assert(redis.default_wait_ms == 5000 && redis.default_lease_ms == 30000);
     assert(etcd.default_wait_ms == 5000 && etcd.default_lease_ms == 30000);
+    assert(consul.default_wait_ms == 5000 && consul.default_lease_ms == 30000);
+    assert(consul.poll_interval_ms == 50);
 }
 
 unittest {
     auto redisDefaults = RedisProviderOptions.init;
     auto etcdDefaults = EtcdProviderOptions.init;
+    auto consulDefaults = ConsulProviderOptions.init;
     assert(redisDefaults.host == "127.0.0.1" && redisDefaults.port == 6379);
     assert(redisDefaults.nameSpace == "default" && redisDefaults.database == 0);
     assert(redisDefaults.rpcTimeout.total!"msecs" == 2000);
@@ -686,9 +912,17 @@ unittest {
     assert(etcdDefaults.safetyMargin.total!"msecs" == 25);
     assert(etcdDefaults.defaultWait.total!"msecs" == 5000);
     assert(etcdDefaults.defaultLease.total!"msecs" == 30000);
+    assert(consulDefaults.endpoint == "http://127.0.0.1:8500");
+    assert(consulDefaults.nameSpace == "default");
+    assert(consulDefaults.rpcTimeout.total!"msecs" == 2000);
+    assert(consulDefaults.cleanupTimeout.total!"msecs" == 2000);
+    assert(consulDefaults.pollInterval.total!"msecs" == 50);
+    assert(consulDefaults.defaultWait.total!"msecs" == 5000);
+    assert(consulDefaults.defaultLease.total!"msecs" == 30000);
 
     auto redisNative = toNativeOptions(redisDefaults);
     auto etcdNative = toNativeOptions(etcdDefaults);
+    auto consulNative = toNativeOptions(consulDefaults);
     assert(redisNative.rpc_timeout_ms == 2000 && redisNative.cleanup_timeout_ms == 2000);
     assert(redisNative.safety_margin_ms == 25 && redisNative.poll_interval_ms == 25);
     assert(redisNative.default_wait_ms == 5000 && redisNative.default_lease_ms == 30000);
@@ -696,6 +930,11 @@ unittest {
     assert(etcdNative.safety_margin_ms == 25);
     assert(etcdNative.default_wait_ms == 5000 && etcdNative.default_lease_ms == 30000);
     assert(etcdNative.auto_renew == 0);
+    assert(consulNative.endpoint.fromStringz == "http://127.0.0.1:8500");
+    assert(consulNative.name_space.fromStringz == "default");
+    assert(consulNative.rpc_timeout_ms == 2000 && consulNative.cleanup_timeout_ms == 2000);
+    assert(consulNative.poll_interval_ms == 50);
+    assert(consulNative.default_wait_ms == 5000 && consulNative.default_lease_ms == 30000);
 }
 
 unittest {
@@ -813,4 +1052,14 @@ unittest {
         rejected = error.status == Status.invalidArgument;
     }
     assert(rejected, "PEM values with embedded NUL must fail before the C ABI");
+
+    ConsulProviderOptions consulConfig;
+    consulConfig.aclToken = "bad\0token";
+    rejected = false;
+    try {
+        toNativeOptions(consulConfig);
+    } catch (DilockException error) {
+        rejected = error.status == Status.invalidArgument;
+    }
+    assert(rejected, "Consul tokens with embedded NUL must fail before the C ABI");
 }

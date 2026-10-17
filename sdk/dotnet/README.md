@@ -1,12 +1,12 @@
 # Dilock — C# / .NET
 
-Status: draft-1 core contract, Redis and native etcd adapters, JSONL worker backend selection, Release builds and single-member local etcd integration tests implemented. The tested etcd path covers native wait/cancel, unique leases, revision ordering, stale release isolation and keepalive past TTL. Quorum, leader failover, resource-side atomic fencing, cross-language conformance and production readiness remain unverified.
+Status: draft-1 core contract, Redis, native etcd and draft Consul HTTP/KV session adapters, JSONL worker backend selection, Release builds and single-member local backend integration tests implemented. Consul uses 10-second-minimum TTL sessions and exposes a per-key `LockIndex` fence whose safety depends on retaining each lock entry. The tested backends do not establish quorum, leader failover, resource-side atomic fencing, cross-language conformance or production readiness.
 
 Design: Small interfaces; sealed implementations; Task; CancellationToken; IAsyncDisposable; immutable options.
 
 The provider owns one Redis authority, its leases, renewal and cleanup. Explicitly `await using` the provider and leases; handles may be reused. Calls are thread-safe; lease mutations are serialized. `try_acquire` returns null only for acknowledged contention. `CancellationToken` before send cancels locally. After a dispatched mutation, a lost acknowledgement or unconfirmed owner cleanup is `AcquisitionUnknown`; when Redis acknowledged acquisition and cancellation cleanup is confirmed, cancellation is reported as `OperationCanceledException`. Cleanup has a bounded independent budget. `await using` performs best-effort disposal and reports non-`Released` cleanup through the configured observer; call `ReleaseAsync` and inspect its result when the acknowledgement matters. `Lost` withdraws local permission but cannot stop stale work. Auto-renewal is opt-in. Strong fencing is rejected for Redis. Process crashes use the server TTL fallback. Redis strict mutual exclusion assumes one writable authority that preserves lock state; asynchronous replica promotion can lose a held key and is unsupported for this guarantee. Use resource-side fencing enforced atomically when failover safety is required.
 
-Build: `dotnet build sdk/dotnet/Worker/Worker.csproj -c Release`. Redis client `StackExchange.Redis` is pinned to 3.3.1. etcd details and local integration test instructions are in `Dilock.Etcd/README.md`. The artifacts are local-only; NuGet owner names and publication are not set up.
+Build: `dotnet build sdk/dotnet/Worker/Worker.csproj -c Release`. Redis client `StackExchange.Redis` is pinned to 3.3.1. etcd details and local integration test instructions are in `Dilock.Etcd/README.md`; Consul configuration and limits are in `Dilock.Consul/README.md`. The artifacts are local-only; NuGet owner names and publication are not set up.
 
 ## Quick use
 

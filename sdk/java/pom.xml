@@ -20,6 +20,7 @@
     <module>core</module>
     <module>redis</module>
     <module>etcd</module>
+    <module>consul</module>
   </modules>
 
   <properties>
@@ -36,6 +37,7 @@
       <dependency><groupId>org.dilock</groupId><artifactId>dilock-core</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>org.dilock</groupId><artifactId>dilock-redis</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>org.dilock</groupId><artifactId>dilock-etcd</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>org.dilock</groupId><artifactId>dilock-consul</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>redis.clients</groupId><artifactId>jedis</artifactId><version>${jedis.version}</version></dependency>
       <dependency><groupId>io.etcd</groupId><artifactId>jetcd-grpc</artifactId><version>${jetcd.version}</version></dependency>
       <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>${jackson.version}</version></dependency>

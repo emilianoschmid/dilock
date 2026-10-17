@@ -2,7 +2,7 @@ name: dilock
 version: 0.1.0
 crystal: "~> 1.21.0"
 license: Apache-2.0
-description: Crystal Redis client with an experimental etcd C ABI facade
+description: Crystal Redis client with experimental etcd and Consul C ABI facades
 dependencies:
   redis:
     github: jgaskins/redis

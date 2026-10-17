@@ -10,7 +10,7 @@ Use Node.js 22 or newer. From this directory, run `npm install --offline
 --ignore-scripts --no-audit --no-fund`, then `npm test` and
 `npm run check:examples`. The test imports the public package entry points and
 checks shared identity behavior without starting a coordinator. The examples
-below require real, pre-provisioned Redis or etcd namespace metadata.
+below require real, pre-provisioned Redis, etcd, or Consul namespace metadata.
 
 ## Redis quick start
 

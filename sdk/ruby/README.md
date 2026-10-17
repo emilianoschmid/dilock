@@ -1,6 +1,6 @@
 # Dilock for Ruby
 
-Dilock implements the draft 1 Redis single-authority lease and etcd native-lock profiles. It is a client library, not a coordinator service. The Ruby SDK uses the maintained `redis` Ruby client and the official gRPC Ruby transport with wire-compatible bindings generated from the etcd v3.7.2 API subset. No coordinator-side script installation is required: Redis runs the bundled owner-checked Lua scripts as ordinary `EVAL` requests.
+Dilock implements the draft 1 Redis single-authority lease, etcd native-lock, and Consul KV/session profiles. It is a client library, not a coordinator service. The Ruby SDK uses the maintained `redis` Ruby client and the official gRPC Ruby transport with wire-compatible bindings generated from the etcd v3.7.2 API subset. The Consul adapter uses Ruby's standard-library HTTP client and requires no additional gem. No coordinator-side script installation is required: Redis runs the bundled owner-checked Lua scripts as ordinary `EVAL` requests.
 
 This candidate requires Ruby 3.2 or later. Add `dilock` to a Bundler dependency set; backend clients are declared runtime dependencies. The candidate gem version is `0.1.0`. The RubyGems name and owner have not been verified, and no gem is configured for automatic publication.
 
@@ -133,6 +133,32 @@ end
 ```
 
 The provider owns its gRPC channels. `EtcdFence` contains an approved epoch and the server creation revision; applications must have the protected resource atomically enforce it. A revision is not an eternal sequence after snapshot restore. No lease expiry stops a paused Ruby process. TLS credentials are optional but required when the endpoint is HTTPS and the server is configured for TLS.
+
+## Consul
+
+Consul namespace metadata must be provisioned explicitly before connecting. Consul sessions require a TTL from 10 seconds through 24 hours; the SDK rounds the configured lease up to whole seconds and includes a conservative local safety margin. Every attempt creates its own session. The KV lock entry remains in place after release so Consul's `LockIndex` cannot reset.
+
+```ruby
+require 'dilock'
+
+Dilock::ConsulProvider.provision_namespace!(
+  'http://127.0.0.1:8500', namespace: 'billing', epoch: 'consul-cluster-incarnation-1'
+)
+provider = Dilock::ConsulProvider.connect(
+  'http://127.0.0.1:8500', namespace: 'billing', epoch: 'consul-cluster-incarnation-1',
+  token: ENV['CONSUL_HTTP_TOKEN']
+)
+begin
+  provider.lock('invoice-reconciliation').with_lease do |lease|
+    fence = lease.fence
+    puts "Consul fence: #{fence.epoch}/#{fence.lock_index}"
+  end
+ensure
+  provider.close
+end
+```
+
+`ConsulFence` is the pair `(epoch, LockIndex)` and must be enforced atomically by the protected resource. Session release behavior does not stop a paused process from resuming stale work. The adapter does not delete lock keys, and applications must not remove them during normal operation.
 
 ## Errors and concurrency
 

@@ -1,14 +1,14 @@
 # Dilock Kotlin/JVM SDK
 
-This Kotlin/JVM facade reuses the production Java Redis and etcd engines. It does
+This Kotlin/JVM facade reuses the production Java Redis, etcd, and Consul engines. It does
 not contain another lock protocol, transport, or local-lock fallback. JVM 21 is
 the configured target; this is not a Kotlin Multiplatform SDK. The Maven
 coordinate `org.dilock:dilock-kotlin:0.1.0` is a local candidate only. No
 publication is configured or authorized.
 
-The facade depends on the Java core and Kotlin coroutines. Redis and etcd Java
+The facade depends on the Java core and Kotlin coroutines. Redis, etcd, and Consul Java
 adapters are compile-only optional integrations: consumers must add
-`org.dilock:dilock-redis` or `org.dilock:dilock-etcd` (or both) explicitly.
+`org.dilock:dilock-redis`, `org.dilock:dilock-etcd`, or `org.dilock:dilock-consul` explicitly.
 This keeps backend client dependencies out of a single-backend consumer.
 
 ## Redis quickstart

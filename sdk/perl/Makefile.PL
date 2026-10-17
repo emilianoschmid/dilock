@@ -12,6 +12,8 @@ WriteMakefile(
         'Digest::SHA' => 0,
         'Encode'     => 0,
         'JSON::PP'   => 0,
+        'HTTP::Tiny' => 0,
+        'MIME::Base64' => 0,
     },
     TEST_REQUIRES => {
         'Test::More' => 0,

@@ -104,6 +104,12 @@
         "resolved": "10.0.5",
         "contentHash": "8/ZHN/j2y1t+7McdCf1wXku2/c7wtrGLz3WQabIoPuLAn3bHDWT6YOJYreJq8sCMPSo6c8iVYXUdLlFGX5PEqw=="
       },
+      "dilock.consul": {
+        "type": "Project",
+        "dependencies": {
+          "Dilock.Core": "[0.1.0-dev.1, )"
+        }
+      },
       "dilock.core": {
         "type": "Project"
       },

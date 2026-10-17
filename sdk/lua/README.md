@@ -3,7 +3,8 @@
 This README documents the OpenResty/ngx_lua adapter in `lib/`. The separate
 standalone Lua 5.1/LuaJIT Redis package is experimental and lives under
 [`generic/`](generic/README.md); it has its own dependencies and validation
-scope. Neither implementation changes or replaces the other.
+scope. It also provides a LuaSocket Consul adapter. Neither implementation
+changes or replaces the other.
 
 The separate [`luajit-etcd/`](luajit-etcd/README.md) package is a synchronous
 LuaJIT bridge over the installed Dilock C ABI. It is experimental and has separate dependencies; it does not make the
@@ -42,6 +43,54 @@ release uses an embedded Redis Lua script sent with `EVAL`; Redis already
 contains the Lua engine, so operators do not install a separate Lua service or
 manually load Dilock scripts. Redis ACLs must allow the required commands,
 including `EVAL`.
+
+## Experimental Consul adapter (OpenResty)
+
+The OpenResty route is `require("dilock_consul")`. It uses `resty.http` over
+cosockets, so calls that perform Consul I/O must run in an ngx_lua request
+phase with cosockets enabled. Provide `lua-resty-http` and its
+`lua-resty-openssl` dependency in `lua_package_path`.
+Configure an Nginx `resolver` for Consul hostnames in the `http` or `server`
+context; Docker's embedded DNS is `127.0.0.11`.
+HTTPS verifies certificates by default; `verify_tls = false` is an explicit
+opt out. ACL tokens are sent in `X-Consul-Token`.
+
+Provision the namespace through `consul.provision(config)` during an explicit
+operator setup request. It uses Consul KV `CAS=0`; regular `consul.new(config)`
+only checks the provisioned metadata and epoch. Each acquisition attempt owns
+a Consul session. `handle:try_acquire(lease_ms)` makes one attempt, while
+`handle:acquire({wait_ms, lease_ms})` retries within a finite wait budget.
+Renew long-running work with `lease:renew()` and treat a failed renewal as
+lease loss. `lease.fence` contains the coordination epoch and exact decimal
+LockIndex. `lease:release()` verifies the same session and LockIndex before
+releasing; call `provider:close()` when finished. Protected storage must
+atomically enforce the fence.
+
+The deterministic OpenResty contract fixture is `test/consul_spec.lua`. For
+live evidence, run `test/nginx.consul.integration.conf` with a disposable,
+already-provisioned namespace and the `DILOCK_CONSUL_*` environment values;
+request `/consul-integration` and require its `PASS` response. The handler
+checks acknowledged contention, same-session renewal, exact fencing, release,
+and successor handoff.
+
+```lua
+local consul = require "dilock_consul"
+local provider, err = consul.new({
+    endpoint = "https://consul.internal:8501",
+    namespace = "billing",
+    epoch = assert(os.getenv("DILOCK_COORDINATION_EPOCH")),
+    token = os.getenv("DILOCK_CONSUL_TOKEN"),
+    rpc_timeout_ms = 1500,
+    cleanup_timeout_ms = 1500,
+})
+assert(provider, err)
+local lock = assert(provider:lock("invoice:42"))
+local lease, status = lock:acquire({ wait_ms = 5000, lease_ms = 30000 })
+assert(lease, status)
+local outcome, release_status = lease:release()
+assert(outcome == "released", release_status)
+assert(provider:close())
+```
 
 The short example uses loopback, the default namespace and timeouts, and a
 30-second requested lease. The fully configured request below shows all

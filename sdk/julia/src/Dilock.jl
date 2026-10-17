@@ -4,11 +4,15 @@ using Redis
 using SHA
 using Random
 using JSON3
+using HTTP
+using Base64
 
 export Provider, Lease, lock, try_acquire, acquire, release!, renew!, with_lease,
        resource_id, LeaseBusy, WaitTimeout, AcquisitionUnknown, BackendUnavailable, ProtocolMismatch,
        UnsupportedCapability, OperationCancelled, LeaseLost, ReleaseUnknown,
        EtcdProvider, EtcdHandle, EtcdLease, fence
+export ConsulProvider, ConsulHandle, ConsulLease, provision_consul_namespace, connect_consul
+export valid, effective_ttl_ms
 
 struct LeaseBusy <: Exception end
 struct WaitTimeout <: Exception end
@@ -305,6 +309,8 @@ function with_lease(f::Function, handle::Handle; on_release=nothing, kwargs...)
 end
 
 include("Etcd.jl")
-using .Etcd: EtcdProvider, EtcdHandle, EtcdLease, fence
+using .Etcd: EtcdProvider, EtcdHandle, EtcdLease
+import .Etcd: fence
+include("Consul.jl")
 
 end

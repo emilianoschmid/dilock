@@ -5,14 +5,15 @@ require_relative 'lib/dilock/version'
 Gem::Specification.new do |spec|
   spec.name = 'dilock'
   spec.version = Dilock::VERSION
-  spec.summary = 'Distributed leases for Redis and etcd'
-  spec.description = 'A small Ruby library implementing the Dilock draft 1 Redis and etcd lease profiles.'
+  spec.summary = 'Distributed leases for Redis, etcd, and Consul'
+  spec.description = 'A small Ruby library implementing the Dilock draft 1 Redis, etcd, and Consul lease profiles.'
   spec.authors = ['Dilock contributors']
   spec.license = 'Apache-2.0'
   spec.required_ruby_version = '>= 3.2'
   spec.files = %w[
     README.md
     LICENSE
+    examples/consul.rb
     bin/dilock-worker
     lib/dilock.rb
     lib/dilock/version.rb
@@ -39,6 +40,7 @@ Gem::Specification.new do |spec|
     lib/dilock/etcd/proto/UPSTREAM.md
     lib/dilock/etcd/proto/LICENSE-etcd-api
     lib/dilock/etcd/proto/LICENSE-etcd-server
+    lib/dilock/consul.rb
   ]
   spec.require_paths = ['lib']
   spec.bindir = 'bin'

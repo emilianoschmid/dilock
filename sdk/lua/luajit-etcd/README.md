@@ -73,3 +73,30 @@ insecure gRPC credentials. Namespace metadata must be provisioned beforehand.
 
 This bridge remains experimental. Build and test it against the exact
 LuaJIT, native ABI, and etcd client versions used by your application.
+
+## Consul facade
+
+The same LuaJIT rock also provides `dilock_consul_luajit`, a synchronous
+facade over the shared C ABI Consul engine. This keeps Consul session/KV
+semantics, exact `LockIndex` fencing, and bounded cleanup in the native
+backend. Provision namespace metadata explicitly with `dilock.provision()`
+when operating the namespace, then create normal providers with `dilock.new()`.
+
+```lua
+local consul = require "dilock_consul_luajit"
+local provider = assert(consul.new({
+    endpoint = "http://127.0.0.1:8500",
+    namespace = "billing",
+    epoch = assert(os.getenv("DILOCK_COORDINATION_EPOCH")),
+}))
+local lock = assert(provider:lock("invoice:42"))
+local result = assert(lock:with_lock(function(lease)
+    return update_invoice(lease.fence.coordination_epoch, lease.fence.lock_index)
+end))
+assert(provider:close())
+```
+
+`try_acquire`, `acquire`, `lease:is_valid()`, `lease:renew()`, and
+`lease:release()` are available. Fences preserve the full unsigned 64-bit
+index as a decimal string. The C ABI provider validates existing metadata;
+ordinary provider construction never provisions or repairs it.

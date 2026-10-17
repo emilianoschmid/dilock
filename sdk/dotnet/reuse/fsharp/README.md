@@ -1,10 +1,10 @@
 # Dilock F# consumer
 
-This executable reuses the maintained .NET Redis and etcd SDKs; it does not implement a second
+This executable reuses the maintained .NET Redis, etcd and Consul SDKs; it does not implement a second
 lock engine. The easy path uses the SDK's `default` namespace and common wait/lease defaults.
-Configure `DILOCK_REDIS_URL` or `DILOCK_ETCD_ENDPOINT`, plus the provisioned
+Configure `DILOCK_REDIS_URL`, `DILOCK_ETCD_ENDPOINT` or `DILOCK_CONSUL_ENDPOINT`, plus the provisioned
 `DILOCK_EPOCH`, to run a backend operation. If both endpoints are configured, set
-`DILOCK_BACKEND=redis` or `DILOCK_BACKEND=etcd`; the consumer fails closed rather than
+`DILOCK_BACKEND=redis`, `DILOCK_BACKEND=etcd` or `DILOCK_BACKEND=consul`; the consumer fails closed rather than
 silently choosing a coordinator. An explicit backend also requires its matching endpoint.
 If a backend is selected without `DILOCK_EPOCH`, the consumer exits before connecting.
 Etcd accepts an optional `DILOCK_NAMESPACE` (default `default`). When backend configuration
@@ -12,12 +12,13 @@ is absent, the executable performs only its local identity checks.
 
 `Program.fs` checks default/custom policy composition and pre-cancelled connection behavior without
 backend access. Its `withAsyncDispose` helper awaits `IAsyncDisposable` and preserves a body or
-cancellation exception if cleanup also throws. When configured, it also runs a bounded semantic lifecycle against Redis or etcd:
+cancellation exception if cleanup also throws. When configured, it also runs a bounded semantic lifecycle against Redis, etcd or Consul:
 two handles share one provider, a queued contender is cancelled, the owner remains held, repeated
 release returns the same acknowledged result, and a successor acquires after release. F# task
 expressions do not provide C#'s `await using` syntax, so `try/finally` explicitly disposes both
 lease and provider. The configured
-path uses immutable public options:
+path uses immutable public options. Consul additionally reads the optional ACL token from
+`CONSUL_HTTP_TOKEN` and only accepts TTLs from 10 seconds through 24 hours:
 
 ### Quick path: Redis defaults
 

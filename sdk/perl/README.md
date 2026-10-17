@@ -179,6 +179,40 @@ EV::run;
 $provider->close;
 ```
 
+## Consul
+
+`Dilock::Consul` is an optional synchronous HTTP adapter built on `HTTP::Tiny`;
+it does not change the Redis or etcd constructors. Provision the namespace
+explicitly, then connect and acquire using the same namespace and coordination
+epoch as other clients. Session TTLs round up to whole seconds and must be
+between 10 seconds and 24 hours. The fence is `{ epoch, lock_index }`; Consul
+lock KV entries under `dilock/locks/` must be retained or `LockIndex` may reset.
+The protected resource must atomically enforce the fence. Call `renew` while
+holding a lease; the adapter confirms the session and unchanged `LockIndex`.
+
+```perl
+use Dilock::Consul;
+
+my $provider = Dilock::Consul->new(
+    endpoint => $ENV{CONSUL_HTTP_ADDR} // 'http://127.0.0.1:8500',
+    namespace => 'billing', coordination_epoch => 'prod-east-1',
+    acl_token => $ENV{CONSUL_HTTP_TOKEN},
+);
+$provider->provision_namespace; # operator-controlled setup step
+$provider->connect;
+my $handle = $provider->lock('invoice:42');
+my $lease = $handle->acquire(wait_ms => 5_000, lease_ms => 30_000);
+my $fence = $lease->fence;
+# Atomically check/register $fence at the protected resource.
+$lease->release;
+$provider->close;
+```
+
+The offline Consul adapter test uses a mocked HTTP transport. Set
+`DILOCK_TEST_CONSUL_ENDPOINT` to enable the single-agent lifecycle test; optional
+variables are `DILOCK_TEST_CONSUL_NAMESPACE`, `DILOCK_TEST_CONSUL_EPOCH`, and
+`DILOCK_TEST_CONSUL_TOKEN`.
+
 ## Dependencies and tests
 
 Install only the optional backend dependencies used by the application. The

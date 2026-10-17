@@ -27,4 +27,28 @@ int hs_dilock_etcd_lease_fence(void *lease, int64_t *revision, char *epoch,
 int hs_dilock_etcd_lease_release(void *lease, int *outcome, char *message);
 void hs_dilock_etcd_lease_destroy(void *lease);
 
+int hs_dilock_consul_provider_create(
+    const char *endpoint, const char *name_space, const char *epoch, const char *token,
+    int64_t rpc_timeout_ms, int64_t cleanup_timeout_ms, int64_t poll_interval_ms,
+    int64_t default_wait_ms, int64_t default_lease_ms, void **out, char *message);
+int hs_dilock_consul_namespace_provision(
+    const char *endpoint, const char *name_space, const char *epoch, const char *token,
+    int64_t rpc_timeout_ms, int64_t cleanup_timeout_ms, int64_t poll_interval_ms,
+    int64_t default_wait_ms, int64_t default_lease_ms, char *message);
+void hs_dilock_consul_provider_destroy(void *provider);
+int hs_dilock_consul_lock_create(void *provider, const char *resource,
+                                 void **out, char *message);
+void hs_dilock_consul_lock_destroy(void *lock);
+int hs_dilock_consul_acquire(void *lock, int64_t wait_ms, int64_t lease_ms,
+                             void *cancellation, void **out, char *message);
+int hs_dilock_consul_try_acquire(void *lock, int64_t lease_ms,
+                                 void **out, char *message);
+int hs_dilock_consul_lease_valid(void *lease);
+int hs_dilock_consul_lease_ttl_ms(void *lease, int64_t *ttl_ms, char *message);
+int hs_dilock_consul_lease_fence(void *lease, uint64_t *lock_index, char *epoch,
+                                 size_t epoch_capacity, char *message);
+int hs_dilock_consul_lease_renew(void *lease, int *renewed, char *message);
+int hs_dilock_consul_lease_release(void *lease, int *outcome, char *message);
+void hs_dilock_consul_lease_destroy(void *lease);
+
 #endif

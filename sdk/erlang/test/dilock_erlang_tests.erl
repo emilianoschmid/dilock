@@ -88,6 +88,15 @@ duplicate_provider_option_test() ->
             {rpc_timeout_ms, 1000},
             {rpc_timeout_ms, 2000}
         ])
+    ),
+    ?assertEqual(
+        {error, invalid_configuration},
+        dilock_erlang:start_consul([
+            {endpoint, "http://127.0.0.1:8500"},
+            {epoch, "first-epoch"},
+            {token, "first-token"},
+            {token, "second-token"}
+        ])
     ).
 
 cleanup_observer_option_test() ->
@@ -106,6 +115,14 @@ cleanup_observer_option_test() ->
     ]),
     { 'Elixir.Dilock.Provider', start_link, [EtcdOptions] } = maps:get(start, EtcdSpec),
     ?assertEqual(Observer, proplists:get_value(cleanup_observer, EtcdOptions)),
+    ConsulSpec = dilock_erlang:consul_child_spec([
+        {endpoint, "http://127.0.0.1:8500/"},
+        {epoch, "consul-epoch"},
+        {token, "consul-token"}
+    ]),
+    { 'Elixir.Dilock.Provider', start_link, [ConsulOptions] } = maps:get(start, ConsulSpec),
+    ?assertEqual(<<"consul-token">>, proplists:get_value(token, ConsulOptions)),
+    ?assertEqual('Elixir.Dilock.Consul', proplists:get_value(backend, ConsulOptions)),
     ?assertEqual(
         {error, invalid_configuration},
         dilock_erlang:redis_child_spec([
@@ -193,8 +210,10 @@ public_facade_exports_test() ->
     {module, dilock_erlang} = code:ensure_loaded(dilock_erlang),
     ?assert(erlang:function_exported(dilock_erlang, start_redis, 1)),
     ?assert(erlang:function_exported(dilock_erlang, start_etcd, 1)),
+    ?assert(erlang:function_exported(dilock_erlang, start_consul, 1)),
     ?assert(erlang:function_exported(dilock_erlang, redis_child_spec, 1)),
     ?assert(erlang:function_exported(dilock_erlang, etcd_child_spec, 1)),
+    ?assert(erlang:function_exported(dilock_erlang, consul_child_spec, 1)),
     ?assert(erlang:function_exported(dilock_erlang, ownership, 1)),
     ?assert(erlang:function_exported(dilock_erlang, with_lease, 2)),
     ?assert(erlang:function_exported(dilock_erlang, with_acquired_lease, 2)),
@@ -221,6 +240,15 @@ provider_child_spec_test() ->
     ]),
     { 'Elixir.Dilock.Provider', start_link, [EtcdStartOptions] } = maps:get(start, EtcdSpec),
     ?assertEqual('Elixir.Dilock.Etcd', proplists:get_value(backend, EtcdStartOptions)),
+    ConsulSpec = dilock_erlang:consul_child_spec([
+        {endpoint, "http://127.0.0.1:8500"},
+        {namespace, "jobs"},
+        {epoch, "consul-epoch"},
+        {token, "consul-token"}
+    ]),
+    { 'Elixir.Dilock.Provider', start_link, [ConsulStartOptions] } = maps:get(start, ConsulSpec),
+    ?assertEqual(<<"consul-token">>, proplists:get_value(token, ConsulStartOptions)),
+    ?assertEqual('Elixir.Dilock.Consul', proplists:get_value(backend, ConsulStartOptions)),
     ?assertEqual({error, invalid_configuration}, dilock_erlang:redis_child_spec(not_a_list)),
     ?assertEqual(
         {error, invalid_configuration},

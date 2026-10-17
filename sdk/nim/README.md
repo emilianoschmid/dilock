@@ -1,7 +1,7 @@
 # Dilock Nim binding
 
-This is a thin Nim binding to the local C ABI over the existing C++ Redis and
-etcd engines. It is a source candidate, not a standalone protocol
+This is a thin Nim binding to the local C ABI over the existing C++ Redis,
+etcd and Consul engines. It is a source candidate, not a standalone protocol
 implementation. C ABI version 1 is still an internal candidate, so this
 binding is experimental and must not be treated as a stable Nimble package.
 
@@ -17,6 +17,33 @@ withLease lease, lock.acquireDefault():
   if not lease.isValid():
     raise newException(IOError, "Redis lease is no longer valid")
 ```
+
+Consul uses an HTTP agent endpoint, explicit metadata provisioning, and an
+optional ACL token. Its lease TTL defaults to 30 seconds. The token is read
+from deployment configuration and never belongs in source control:
+
+```nim
+import std/os
+
+let endpoint = getEnv("DILOCK_CONSUL_ENDPOINT", "http://127.0.0.1:8500")
+let provider = connectConsul(endpoint, "billing", "local-consul-epoch",
+                             aclToken = getEnv("DILOCK_CONSUL_TOKEN"))
+defer: provider.destroy()
+let lock = provider.lock("invoice/42/reconcile")
+defer: lock.destroy()
+withLease lease, lock.acquireDefault():
+  let fence = lease.fence()
+  echo fence.epoch, ":", fence.lockIndex
+  if lease.release() != ReleaseOutcome.released:
+    raise newException(IOError, "Consul release was not confirmed")
+```
+
+Provision matching metadata before connecting with
+`provisionConsulNamespace(endpoint, namespace, epoch, aclToken)`, or use a
+separate deployment tool. The API uses KV CAS=0 and verifies an existing value;
+normal `connectConsul` never provisions or repairs metadata. Every attempt owns
+a separate Consul session. Retain lock KV keys because deleting a key can reset
+its `LockIndex` fence. HTTPS uses system certificate verification.
 
 Use `lock.acquire(waitMs, leaseMs)` for a per-attempt policy. `defer` / the
 `withLease` template invoke C handle destruction on normal and exceptional
@@ -55,7 +82,9 @@ manual `lease.renew` acknowledgement.
 The full policy currently configurable through Nim is the acquisition wait and
 requested lease duration. Redis connection configuration accepts an optional
 username, password and database. Etcd accepts a raw gRPC target, namespace,
-expected epoch and optional TLS PEM values. The TLS values are PEM contents,
+expected epoch and optional TLS PEM values. Consul accepts an agent URL,
+namespace, expected epoch and optional ACL token. TTLs must be 10 seconds to 24
+hours; the default lease remains 30 seconds. The TLS values are PEM contents,
 not filenames; load them from the deployment's secret/configuration provider
 and avoid logging them. This facade still does not expose Redis TLS.
 
@@ -151,6 +180,15 @@ Then run `nimble test` from this directory. The examples require explicitly
 provisioned Redis/etcd metadata and should be run only against authorized local
 test authorities. `DILOCK_REDIS_HOST` and `DILOCK_ETCD_ENDPOINT` override the
 example connection targets; both default to loopback.
+
+The Consul live consumer is `tests/test_live_consul.nim`; it expects a
+pre-provisioned disposable namespace and validates contention, renewal, release,
+handoff, and fencing:
+
+```sh
+nim c -r --path:src --passC:-I<abi-prefix>/include \
+  --passL:-L<abi-prefix>/lib --passL:-ldilock_c tests/test_live_consul.nim
+```
 
 The C ABI and this facade are experimental and are not presented as a
 production-ready package.

@@ -1,18 +1,19 @@
 # Dilock PHP SDK
 
-The PHP source tree contains synchronous Redis and etcd adapters. Both backends are experimental. Package identity and distribution are not configured; do not treat this source tree as a supported release package.
+The PHP source tree contains synchronous Redis, etcd and Consul adapters. All backends remain experimental; package identity and distribution are not configured.
 
 ## Runtime and backends
 
 - PHP 8.1 or later.
 - Redis: phpredis (`ext-redis`); one configured standalone authority, no transparent coordinator switch or strong fencing.
 - etcd: `ext-grpc`, `grpc/grpc` and `google/protobuf`; native etcd v3.7.2 Lock and Lease RPCs, with an epoch-scoped `create_revision` fence.
+- Consul: built-in HTTP streams, one TTL session per acquisition, exact owner verification and an epoch-scoped retained-key `LockIndex` fence. Lock entries must not be deleted.
 
 The etcd protobuf messages were generated locally from the pinned, reduced etcd v3.7.2 protocol files under `proto/`. Their upstream notices and licenses are included. Generated service clients call the native gRPC services directly; the SDK does not use etcd's HTTP gateway, which does not expose the native Lock service.
 
 ## Quick start with defaults
 
-`RedisProvider::connect()` and `EtcdProvider::connect()` own one authority/channel and validate existing namespace metadata; they do not create or repair it. A provider can make reusable resource handles with `lock($name)`. `tryAcquire()` returns a lease or `null` only for confirmed contention; `acquire()` waits for the supplied finite budget and throws `WaitTimeout` when that budget expires after safe cleanup. Backend failures, protocol mismatch, unsupported capability and uncertain acquisition have distinct exception types.
+`RedisProvider::connect()`, `EtcdProvider::connect()` and `ConsulProvider::connect()` validate existing namespace metadata; they do not create or repair it. Use `ConsulProvider::provisionNamespace()` only for explicit CAS=0 provisioning. A provider can make reusable resource handles with `lock($name)`. `tryAcquire()` returns a lease or `null` only for confirmed contention; `acquire()` waits for the supplied finite budget and throws `WaitTimeout` when that budget expires after safe cleanup. Backend failures, protocol mismatch, unsupported capability and uncertain acquisition have distinct exception types.
 
 Always use explicit release or `withLease()`:
 
@@ -90,9 +91,35 @@ are suppressed. Call `release()` directly when the remote outcome must be
 inspected. Process termination bypasses cleanup; server lease expiry is the
 fallback.
 
+## Consul quick start
+
+Consul sessions require a TTL of at least 10 seconds. Provision metadata
+explicitly before connecting; ordinary startup never creates or repairs it.
+Retain lock KV entries because deleting one can reset its LockIndex.
+
+```php
+<?php
+use Dilock\ConsulProvider;
+
+$epoch = getenv('DILOCK_EPOCH') ?: throw new RuntimeException('DILOCK_EPOCH is required');
+$endpoint = getenv('DILOCK_CONSUL_URL') ?: 'http://127.0.0.1:8500';
+$token = getenv('DILOCK_CONSUL_TOKEN') ?: null;
+ConsulProvider::provisionNamespace($endpoint, $epoch, 'orders', $token);
+$provider = ConsulProvider::connect($endpoint, $epoch, 'orders', $token);
+try {
+    $provider->lock('invoice/4821')->withLease(static function ($lease): void {
+        $lease->ensureHeld();
+        $fence = $lease->fence();
+        // Enforce ($fence->epoch, $fence->lockIndex) atomically at the resource.
+    });
+} finally {
+    $provider->close();
+}
+```
+
 ## Namespace provisioning
 
-Provision metadata out of band and use the same approved epoch in every SDK. Redis key: `dilock:namespace:<namespace>:meta`; etcd key: `/dilock/namespaces/<namespace>/meta`. Its UTF-8 JSON value must contain:
+Provision metadata out of band and use the same approved epoch in every SDK. Redis key: `dilock:namespace:<namespace>:meta`; etcd and Consul key: `/dilock/namespaces/<namespace>/meta`. Its UTF-8 JSON value must contain:
 
 ```json
 {"protocol_major":1,"identity_scheme":"sha256-framed-utf8-v1","profile":"redis-single-authority-v1","coordination_epoch":"<approved-epoch>","fixed_lease_ms":null}

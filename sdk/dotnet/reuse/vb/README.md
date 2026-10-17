@@ -1,10 +1,12 @@
 # Dilock Visual Basic .NET consumer
 
-This executable consumes the existing .NET Redis and etcd SDKs rather than maintaining a separate
+This executable consumes the existing .NET Redis, etcd and Consul SDKs rather than maintaining a separate
 lock implementation. Its easy path uses the provisioned `default` namespace and the common
-five-second wait / thirty-second lease policy. Configure either `DILOCK_REDIS_URL` or
-`DILOCK_ETCD_ENDPOINT`, plus `DILOCK_EPOCH`, to run a live backend operation. If both endpoints
-are configured, set `DILOCK_BACKEND=redis` or `DILOCK_BACKEND=etcd`; the consumer fails closed
+five-second wait / thirty-second lease policy. For Consul, provision draft metadata first and set optional `CONSUL_HTTP_TOKEN` for ACLs.
+Configure one of `DILOCK_REDIS_URL`,
+`DILOCK_ETCD_ENDPOINT` or `DILOCK_CONSUL_ENDPOINT`, plus `DILOCK_EPOCH`, to run a live backend operation.
+If multiple endpoints are configured, set `DILOCK_BACKEND=redis`, `DILOCK_BACKEND=etcd` or
+`DILOCK_BACKEND=consul`; the consumer fails closed
 rather than silently choosing a coordinator. An explicit backend also requires its matching
 endpoint. If a backend is selected without `DILOCK_EPOCH`, the consumer exits before connecting.
 Etcd accepts an optional `DILOCK_NAMESPACE` (default `default`). Without backend settings
@@ -12,7 +14,7 @@ it performs only its local identity checks.
 
 The consumer checks default/custom policy composition and pre-cancelled connection behavior without
 backend access. Its `WithAsyncDisposeAsync` helper awaits `IAsyncDisposable` and preserves a body or
-cancellation exception if cleanup also throws. When configured, it also runs a bounded semantic lifecycle against Redis or etcd:
+cancellation exception if cleanup also throws. When configured, it also runs a bounded semantic lifecycle against Redis, etcd or Consul:
 two handles share one provider, a queued contender is cancelled, the owner remains held, repeated
 release returns the same acknowledged result, and a successor acquires after release. The samples
 use the async-scope helper because VB cannot await from a `Finally` block and has no C# `await using`

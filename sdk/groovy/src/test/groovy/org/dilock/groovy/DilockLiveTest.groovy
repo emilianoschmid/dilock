@@ -91,4 +91,39 @@ final class DilockLiveTest {
             }
         }
     }
+
+    @Test
+    void consulFacadeContendsAndReturnsIncreasingLockIndexFences() {
+        String endpoint = System.getenv('DILOCK_CONSUL_ENDPOINT')
+        String namespace = System.getenv('DILOCK_CONSUL_NAMESPACE')
+        String epoch = System.getenv('DILOCK_CONSUL_EPOCH')
+        assumeTrue(endpoint != null && !endpoint.isBlank(), 'DILOCK_CONSUL_ENDPOINT is unset')
+        assumeTrue(namespace != null && !namespace.isBlank(), 'DILOCK_CONSUL_NAMESPACE is unset')
+        assumeTrue(epoch != null && !epoch.isBlank(), 'DILOCK_CONSUL_EPOCH is unset')
+        String resource = "groovy-consul/${System.nanoTime()}"
+
+        Dilock.withConsul(endpoint, namespace, epoch) { first ->
+            Dilock.withConsul(endpoint, namespace, epoch) { second ->
+                def options = new AcquireOptions(2_000, 10_000)
+                def firstLease = first.lock(resource).acquire(options)
+                try {
+                    def firstFence = firstLease.fence()
+                    assertEquals(epoch, firstFence.epoch())
+                    assertTrue(firstFence.lockIndex() > 0)
+                    assertTrue(second.lock(resource).tryAcquire().isEmpty(),
+                            'an independent provider must observe ordinary contention')
+                    assertEquals('RELEASED', firstLease.release().toString())
+
+                    Dilock.withConsulLock(second, resource) { successor ->
+                        def nextFence = successor.fence()
+                        assertEquals(epoch, nextFence.epoch())
+                        assertTrue(nextFence.lockIndex() > firstFence.lockIndex(),
+                                'retained KV LockIndex must advance on handoff')
+                    }
+                } finally {
+                    firstLease.close()
+                }
+            }
+        }
+    }
 }

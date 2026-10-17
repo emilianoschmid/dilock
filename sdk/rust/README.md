@@ -1,11 +1,15 @@
 # Dilock Rust SDK
 
-This workspace contains shared Rust types (`dilock`), a Redis adapter
-(`dilock-redis`), an etcd adapter (`dilock-etcd`), and a JSON Lines conformance
-worker. Redis implements the single-authority Redis draft 1 profile. Etcd uses
-the native v3 Lock/Lease APIs and returns a cluster-epoch-scoped fence. Neither
-adapter provides exactly-once effects or a mechanism that stops a process
-after its lease expires.
+This workspace contains shared Rust types (`dilock`), Redis and etcd adapters,
+and `dilock-consul`, a synchronous Rust ownership facade over the optional
+Consul-enabled `dilock_c` ABI. The Consul crate uses the shared C++ engine; it
+is not a separate HTTP implementation. Build and install the C ABI with
+`DILOCK_BUILD_CONSUL=ON` and `DILOCK_BUILD_C_API=ON`, then set
+`DILOCK_C_LIB_DIR` to the directory containing `dilock_c` when building Rust.
+Async applications should call the synchronous facade on their runtime's
+blocking pool. C handles are thread-affine at this facade and are not `Send`.
+No adapter provides exactly-once effects or stops a paused process after its
+lease expires.
 
 ## Redis usage
 
@@ -81,6 +85,43 @@ two different resources can be held at once but are not acquired atomically.
 See [`Redis quickstart`](../../docs/examples/rust-redis/quickstart/README.md)
 and [`etcd quickstart`](../../docs/examples/rust-etcd/quickstart/README.md)
 for minimal and configured programs.
+
+## Consul C ABI facade
+
+`dilock-consul` exposes a reusable provider and handle, one non-cloneable lease
+per acquisition, cancellation (the atomic token can be shared with a cancelling
+thread), try-acquire, server-granted TTL, explicit
+release outcomes, and `(coordination_epoch, LockIndex)` fencing. Provision the
+namespace metadata explicitly before worker startup. Keep lock KV entries
+after release so their `LockIndex` cannot reset. ACL tokens are redacted from
+`ConsulOptions` debug output and should be loaded from the deployment secret
+manager. The Rust API preserves blocking native call semantics; use a blocking
+executor pool in async services.
+
+```rust
+use dilock_consul::{ConsulOptions, ConsulProvider, ReleaseOutcome};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let options = ConsulOptions {
+        namespace: "billing".into(),
+        coordination_epoch: "production-incarnation-1".into(),
+        ..ConsulOptions::default()
+    };
+    dilock_consul::provision_namespace(&options)?;
+    let provider = ConsulProvider::new(&options)?;
+    let lock = provider.lock("invoice/42/reconcile")?;
+    let mut lease = lock.acquire_default()?;
+    let fence = lease.fence()?;
+    // Atomically register and enforce (fence.coordination_epoch, fence.lock_index)
+    // at the protected resource before performing external side effects.
+    assert_eq!(lease.release()?, ReleaseOutcome::Released);
+    Ok(())
+}
+```
+
+The C ABI library is a native runtime dependency and must be discoverable by
+the platform loader when the consumer runs. This facade does not provide a
+Rust-only backend binary.
 
 ## Etcd native Lock usage
 

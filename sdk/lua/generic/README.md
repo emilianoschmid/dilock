@@ -77,3 +77,32 @@ single-authority profile.
 
 This SDK does not alter or replace the OpenResty integration. Verify the
 selected Lua runtime and Redis client in your own build environment.
+
+## Experimental Consul adapter
+
+The package also exports `require("dilock.consul")`. This Lua 5.1-compatible
+adapter uses LuaSocket HTTP and Consul KV sessions. It supports plain HTTP
+authorities only; HTTPS endpoints fail closed because this package has no
+verified TLS HTTP transport. Do not send ACL tokens over an untrusted network.
+Provision the namespace explicitly with `consul.provision(config)` using
+Consul CAS=0, then construct a provider with `consul.new(config)`; normal
+provider construction only validates existing metadata. Each attempt owns a
+unique Consul session. `handle:acquire({wait_ms, lease_ms})` waits finitely,
+`handle:try_acquire(lease_ms)` makes one attempt, and `lease:renew()` must be
+called explicitly for long work. `lease.fence` contains the epoch and exact
+decimal LockIndex. Call `lease:release()` and `provider:close()`; protected
+storage must atomically enforce that fence.
+
+```lua
+local consul = require "dilock.consul"
+local provider = assert(consul.new({
+    endpoint = "http://127.0.0.1:8500",
+    namespace = "billing",
+    epoch = assert(os.getenv("DILOCK_COORDINATION_EPOCH")),
+}))
+local lock = assert(provider:lock("invoice:42"))
+local result = assert(lock:with_lock(function(lease)
+    return update_invoice(lease.fence.coordination_epoch, lease.fence.lock_index)
+end, { wait_ms = 5000, lease_ms = 30000 }))
+assert(provider:close())
+```
