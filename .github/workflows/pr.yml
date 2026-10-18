@@ -377,6 +377,7 @@ jobs:
           DILOCK_NAMESPACE: ci-postgres-powershell
           DILOCK_EPOCH: ci-postgres-powershell-epoch
         run: |
+          dotnet restore sdk/dotnet/reuse/powershell/module/Dilock.Runtime.Bundle.csproj
           dotnet publish sdk/dotnet/reuse/powershell/module/Dilock.Runtime.Bundle.csproj --configuration Release --output .tools/ci/powershell-runtime --no-restore
           pwsh -NoProfile -File sdk/dotnet/reuse/powershell/Invoke-DilockExample.ps1 -Backend Postgres -SkipBuild -AssemblyDirectory "$GITHUB_WORKSPACE/.tools/ci/powershell-runtime"
 
@@ -478,6 +479,7 @@ jobs:
         with:
           version: 0.17.0
       - name: Run Zig PostgreSQL facade consumer
+        working-directory: sdk/zig
         env:
           DILOCK_POSTGRES_DSN: postgresql://postgres:postgres@127.0.0.1:5432/dilock
           LD_LIBRARY_PATH: ${{ github.workspace }}/.tools/ci/cabi-light-install/lib
@@ -750,6 +752,7 @@ jobs:
           mvn --batch-mode --no-transfer-progress --file sdk/java/pom.xml install
           -DskipTests -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
       - name: Run Scala 3 PostgreSQL facade suite
+        working-directory: sdk/scala
         env:
           DILOCK_POSTGRES_DSN: jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres
         run: |
@@ -759,6 +762,7 @@ jobs:
             -DdilockLocalMavenRepo="$GITHUB_WORKSPACE/.tools/m2repo" \
             -jar /tmp/sbt-launch.jar test
       - name: Run Scala 2.13 PostgreSQL facade suite
+        working-directory: sdk/scala
         env:
           DILOCK_POSTGRES_DSN: jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres
         run: >-
@@ -1018,7 +1022,7 @@ jobs:
             -v "$GITHUB_WORKSPACE:/workspace" \
             -w /workspace/sdk/dart/postgres \
             dart:stable \
-            bash -lc '
+            bash -c '
               set -euo pipefail
               dart --version
               dart pub get

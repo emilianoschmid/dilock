@@ -1,6 +1,8 @@
 /** Run the PostgreSQL advisory-session profile through the TypeScript/Node route. */
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 const require = createRequire(new URL("../sdk/typescript/packages/postgres/dist/index.js", import.meta.url));
@@ -190,6 +192,9 @@ try {
   report.error = String(error?.stack ?? error);
   throw error;
 } finally {
-  if (args.output) await (await import("node:fs/promises")).writeFile(args.output, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  if (args.output) {
+    await mkdir(dirname(resolve(args.output)), { recursive: true });
+    await writeFile(args.output, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  }
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }

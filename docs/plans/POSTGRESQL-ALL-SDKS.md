@@ -150,11 +150,11 @@ matrix are still required before the acceptance matrix is complete.
   non-reentrancy, old-session release rejection and authentication-failure
   checks. Both runners passed locally against PostgreSQL 16.15; these checks
   remain local evidence until their hosted CI jobs publish fresh reports.
-- The full expanded local reports are retained as
-  [`postgres-advisory-session-expanded-local-20261018.json`](../../validation/implementation/postgres-advisory-session-expanded-local-20261018.json)
+- The full expanded local reports are retained locally as
+  `validation/implementation/postgres-advisory-session-expanded-local-20261018.json`
   and
-  [`postgres-advisory-session-typescript-expanded-local-20261018.json`](../../validation/implementation/postgres-advisory-session-typescript-expanded-local-20261018.json);
-  they are explicitly local-only evidence.
+  `validation/implementation/postgres-advisory-session-typescript-expanded-local-20261018.json`;
+  they are ignored local-only evidence and are not repository artifacts.
 - The Python PostgreSQL contract suite now deterministically verifies that lost
   acquisition and release acknowledgements produce an unknown outcome and
   close the physical session; the six-test contract file passes in the pinned
@@ -167,20 +167,20 @@ matrix are still required before the acceptance matrix is complete.
   selected: signed advisory-key vector and real PostgreSQL contention,
   renewal, release and handoff against PostgreSQL 16.15.
   The retained report is
-  [`postgres-advisory-swift-local-20261018.json`](../../validation/implementation/postgres-advisory-swift-local-20261018.json).
+  `validation/implementation/postgres-advisory-swift-local-20261018.json`.
 - The Go `pgx` route also passed its live PostgreSQL test (`go test ./...`,
   1/1) against PostgreSQL 16.15; the retained report is
-  [`postgres-advisory-go-local-20261018.json`](../../validation/implementation/postgres-advisory-go-local-20261018.json).
+  `validation/implementation/postgres-advisory-go-local-20261018.json`.
 - The Python/TypeScript cross-language harness passed against one disposable
   PostgreSQL 16 instance in both directions: Python held while TypeScript
   observed contention, then TypeScript held while Python observed contention,
   followed by successful release. The retained report is
-  [`postgres-cross-language-local-20261018.json`](../../validation/implementation/postgres-cross-language-local-20261018.json).
+  `validation/implementation/postgres-cross-language-local-20261018.json`.
 - The C++ `libpq` route passed its real PostgreSQL integration target against
   PostgreSQL 16.15, covering transactional provisioning, contention,
   independent-resource progress, timeout, cancellation, renewal, release and
   handoff. The retained report is
-  [`postgres-advisory-cpp-local-20261018.json`](../../validation/implementation/postgres-advisory-cpp-local-20261018.json).
+  `validation/implementation/postgres-advisory-cpp-local-20261018.json`.
 - The shared C ABI facade routes passed locally for Crystal, D, Fortran, Lua,
   LuaJIT, Nim and OCaml against PostgreSQL 16.15. Nim initially exposed a
   runtime-baseline defect: libraries built on Ubuntu 24.04 required newer
@@ -190,6 +190,6 @@ matrix are still required before the acceptance matrix is complete.
   GHC 9.10.3/Cabal 3.14.1.1 on Debian bookworm; its CI job uses the same
   Ubuntu 22.04 build baseline because the consumer runs in Debian bookworm.
   The retained report is
-  [`postgres-advisory-cabi-facades-local-20261018.json`](../../validation/implementation/postgres-advisory-cabi-facades-local-20261018.json).
+  `validation/implementation/postgres-advisory-cabi-facades-local-20261018.json`.
 - These are local evidence only. Hosted CI, failover/recovery and production
   publication/readiness remain outside the achieved evidence boundary.

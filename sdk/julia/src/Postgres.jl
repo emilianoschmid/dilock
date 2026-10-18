@@ -69,12 +69,13 @@ end
 function provision_postgres_namespace(connection_string, namespace, epoch)
     resource_id(namespace, "validation")
     connection = LibPQ.Connection(connection_string)
+    insert_result = nothing
     try
         _postgres_result(connection, "BEGIN")
         try
             _postgres_result(connection, "SELECT pg_advisory_xact_lock(hashtextextended('dilock:namespace-meta:v1', 0))")
             _postgres_result(connection, "CREATE TABLE IF NOT EXISTS dilock_namespace_meta (namespace text PRIMARY KEY, protocol_major integer NOT NULL, identity_scheme text NOT NULL, profile text NOT NULL, coordination_epoch text NOT NULL, fixed_lease_ms bigint NULL)")
-            result = _postgres_result(connection,
+            insert_result = _postgres_result(connection,
                 "INSERT INTO dilock_namespace_meta (namespace, protocol_major, identity_scheme, profile, coordination_epoch, fixed_lease_ms) VALUES (\$1, 1, \$2, \$3, \$4, NULL) ON CONFLICT (namespace) DO NOTHING RETURNING namespace",
                 [namespace, POSTGRES_SCHEME, POSTGRES_PROFILE, epoch])
             _postgres_result(connection, "COMMIT")
@@ -83,7 +84,7 @@ function provision_postgres_namespace(connection_string, namespace, epoch)
             rethrow()
         end
         _postgres_validate_metadata(PostgresProvider(connection_string=connection_string, namespace=namespace, epoch=epoch), connection)
-        return LibPQ.num_rows(result) == 1 ? :created : :compatible_existing
+        return LibPQ.num_rows(insert_result) == 1 ? :created : :compatible_existing
     finally
         Base.close(connection)
     end

@@ -6,6 +6,7 @@ use 5.020;
 use DBI;
 use Digest::SHA qw(sha256_hex);
 use Encode qw(encode FB_CROAK);
+use Math::BigInt;
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 
 our $PROFILE = 'postgres-advisory-session-v1';
@@ -24,8 +25,10 @@ sub identity {
 sub advisory_key {
     my ($resource_id) = @_;
     die 'invalid resource identity' unless defined($resource_id) && $resource_id =~ /\A[0-9a-f]{64}\z/;
-    my ($high, $low) = unpack('N2', pack('H*', substr($resource_id, 0, 16)));
-    return $high >= 0x80000000 ? $high * 4294967296 + $low - 18446744073709551616 : $high * 4294967296 + $low;
+    my $unsigned = Math::BigInt->from_hex('0x' . substr($resource_id, 0, 16));
+    return $unsigned >= Math::BigInt->new('9223372036854775808')
+        ? $unsigned - Math::BigInt->new('18446744073709551616')
+        : $unsigned;
 }
 
 sub new {
