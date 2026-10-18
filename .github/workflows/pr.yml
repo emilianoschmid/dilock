@@ -714,7 +714,7 @@ jobs:
         run: >-
           python sdk/java/consumers/package_consumer.py
           --output .tools/java-postgres-package-consumer.json
-          --scratch .tools/java-postgres-package-consumer
+          --scratch "$RUNNER_TEMP/java-postgres-package-consumer"
           --maven-repo "$HOME/.m2/repository"
 
   postgres-advisory-scala:
