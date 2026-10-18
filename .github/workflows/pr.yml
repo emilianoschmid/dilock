@@ -718,7 +718,7 @@ jobs:
         run: |
           mvn --batch-mode --no-transfer-progress \
             -Dmaven.repo.local="$HOME/.m2/repository" \
-            --file sdk/java/pom.xml -pl postgres -am install -DskipTests
+            --file sdk/java/pom.xml install -DskipTests
           mvn --batch-mode --no-transfer-progress \
             -Dmaven.repo.local="$HOME/.m2/repository" \
             --file sdk/java/consumers/pom.xml package -DskipTests
