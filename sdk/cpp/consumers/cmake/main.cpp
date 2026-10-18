@@ -1,46 +1,29 @@
 #include <dilock/etcd.hpp>
+#include <dilock/postgres.hpp>
 #include <dilock/redis.hpp>
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <utility>
-
-namespace {
-
-std::string environment_or(const char* name, const char* fallback) {
-    const auto* value = std::getenv(name);
-    return value == nullptr || *value == '\0' ? fallback : value;
-}
-
-void require_released(dilock::ReleaseResult result, const char* backend) {
-    if (result != dilock::ReleaseResult::released) {
-        throw std::runtime_error(std::string(backend) + " package consumer release was not acknowledged");
-    }
-}
-
-} // namespace
 
 int main() {
     try {
-        dilock::RedisOptions options;
-        options.host = environment_or("DILOCK_REDIS_HOST", "127.0.0.1");
-        options.name_space = environment_or("DILOCK_NAMESPACE", "consumer");
-        options.coordination_epoch = environment_or("DILOCK_EPOCH", "local-consumer");
-        dilock::RedisProvider redis(std::move(options));
-        auto redis_lease = redis.lock("artifact-consumer/redis").acquire();
-        require_released(redis_lease.release(), "Redis");
+        // Exercise the public option types without requiring Redis, etcd or
+        // PostgreSQL services in an artifact-only package consumer.
+        const dilock::RedisOptions redis_options{};
+        const dilock::EtcdOptions etcd_options{};
+        const dilock::PostgresOptions postgres_options{};
+        if (redis_options.name_space.empty() || etcd_options.name_space.empty() || postgres_options.name_space.empty()) {
+            throw std::runtime_error("Dilock package consumer options were not initialized");
+        }
 
-        dilock::EtcdOptions etcd_options;
-        etcd_options.endpoint = environment_or("DILOCK_ETCD_ENDPOINT", "127.0.0.1:2379");
-        etcd_options.name_space = environment_or("DILOCK_NAMESPACE", "consumer");
-        etcd_options.coordination_epoch = environment_or("DILOCK_EPOCH", "local-consumer");
-        dilock::EtcdProvider etcd(std::move(etcd_options));
-        auto etcd_lease = etcd.lock("artifact-consumer/etcd").acquire();
-        require_released(etcd_lease.release(), "etcd");
+        const auto postgres_key = dilock::postgres_advisory_key(
+            "e0cdd484a99b6aee4162335939d2a2d128a490c097069fd85b2fc1e540a940b6");
+        if (postgres_key == 0) {
+            throw std::runtime_error("PostgreSQL package consumer returned an invalid advisory key");
+        }
 
-        std::cout << "Exact installed Dilock::redis and Dilock::etcd package consumer passed.\n";
+        std::cout << "Exact installed Dilock::redis, Dilock::etcd and Dilock::postgres package consumer passed.\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

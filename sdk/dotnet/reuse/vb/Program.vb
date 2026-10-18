@@ -7,6 +7,7 @@ Imports Dilock
 Imports Dilock.Etcd
 Imports Dilock.Consul
 Imports Dilock.Redis
+Imports Dilock.Postgres
 
 Module Program
     Private NotInheritable Class FaultingAsyncDisposable
@@ -88,8 +89,9 @@ Module Program
         Dim epoch = Environment.GetEnvironmentVariable("DILOCK_EPOCH")
         Dim etcdEndpoint = Environment.GetEnvironmentVariable("DILOCK_ETCD_ENDPOINT")
         Dim consulEndpoint = Environment.GetEnvironmentVariable("DILOCK_CONSUL_ENDPOINT")
+        Dim postgresEndpoint = Environment.GetEnvironmentVariable("DILOCK_POSTGRES_CONNECTION_STRING")
         Dim namespaceName = Environment.GetEnvironmentVariable("DILOCK_NAMESPACE")
-        Dim selectedBackend = ResolveConfiguredBackend(endpoint, etcdEndpoint, consulEndpoint)
+        Dim selectedBackend = ResolveConfiguredBackend(endpoint, etcdEndpoint, consulEndpoint, postgresEndpoint)
         If selectedBackend <> "none" AndAlso String.IsNullOrWhiteSpace(epoch) Then
             Throw New InvalidOperationException(
                 "A selected Dilock backend requires DILOCK_EPOCH; no coordinator connection was attempted.")
@@ -109,6 +111,13 @@ Module Program
             Return
         End If
 
+        If selectedBackend = "postgres" AndAlso Not String.IsNullOrWhiteSpace(epoch) Then
+            If String.IsNullOrWhiteSpace(namespaceName) Then namespaceName = "default"
+            Await RunPostgresAsync(postgresEndpoint, namespaceName, epoch)
+            Console.WriteLine("Visual Basic consumer and PostgreSQL operation passed.")
+            Return
+        End If
+
         If selectedBackend = "none" OrElse String.IsNullOrWhiteSpace(epoch) Then
             Console.WriteLine("Visual Basic consumer API passed; no live backend run (configure DILOCK_BACKEND, its endpoint and DILOCK_EPOCH).")
             Return
@@ -122,25 +131,28 @@ Module Program
         }
         Dim provider = Await RedisProvider.ConnectAsync(options, CancellationToken.None)
         Await WithAsyncDisposeAsync(provider, Async Function()
-            Await VerifyLeaseLifecycleAsync(provider, "Redis", CancellationToken.None)
+            Await VerifyLeaseLifecycleAsync(provider, "Redis", True, CancellationToken.None)
         End Function)
         Console.WriteLine("Visual Basic consumer and Redis operation passed.")
     End Function
 
     Private Function ResolveConfiguredBackend(redisEndpoint As String,
                                                etcdEndpoint As String,
-                                               consulEndpoint As String) As String
+                                               consulEndpoint As String,
+                                               postgresEndpoint As String) As String
         Dim requested = Environment.GetEnvironmentVariable("DILOCK_BACKEND")
         Dim hasRedis = Not String.IsNullOrWhiteSpace(redisEndpoint)
         Dim hasEtcd = Not String.IsNullOrWhiteSpace(etcdEndpoint)
         Dim hasConsul = Not String.IsNullOrWhiteSpace(consulEndpoint)
+        Dim hasPostgres = Not String.IsNullOrWhiteSpace(postgresEndpoint)
 
         If String.IsNullOrWhiteSpace(requested) Then
-            Dim configured = If(hasRedis, 1, 0) + If(hasEtcd, 1, 0) + If(hasConsul, 1, 0)
+            Dim configured = If(hasRedis, 1, 0) + If(hasEtcd, 1, 0) + If(hasConsul, 1, 0) + If(hasPostgres, 1, 0)
             If configured > 1 Then Throw New InvalidOperationException("Set DILOCK_BACKEND when multiple coordinator endpoints are configured.")
             If hasRedis Then Return "redis"
             If hasEtcd Then Return "etcd"
             If hasConsul Then Return "consul"
+            If hasPostgres Then Return "postgres"
             Return "none"
         End If
 
@@ -162,9 +174,14 @@ Module Program
                     Throw New InvalidOperationException("DILOCK_BACKEND=consul requires DILOCK_CONSUL_ENDPOINT; no other coordinator will be selected.")
                 End If
                 Return "consul"
+            Case "postgres"
+                If Not hasPostgres Then
+                    Throw New InvalidOperationException("DILOCK_BACKEND=postgres requires DILOCK_POSTGRES_CONNECTION_STRING; no other coordinator will be selected.")
+                End If
+                Return "postgres"
             Case Else
                 Throw New InvalidOperationException(
-                    "Unsupported DILOCK_BACKEND; choose redis, etcd or consul.")
+                    "Unsupported DILOCK_BACKEND; choose redis, etcd, consul or postgres.")
         End Select
     End Function
 
@@ -177,7 +194,7 @@ Module Program
         }
         Dim provider = Await EtcdProvider.ConnectAsync(options, CancellationToken.None)
         Await WithAsyncDisposeAsync(provider, Async Function()
-            Await VerifyLeaseLifecycleAsync(provider, "etcd", CancellationToken.None)
+            Await VerifyLeaseLifecycleAsync(provider, "etcd", True, CancellationToken.None)
         End Function)
     End Function
 
@@ -191,7 +208,20 @@ Module Program
         }
         Dim provider = Await ConsulProvider.ConnectAsync(options, CancellationToken.None)
         Await WithAsyncDisposeAsync(provider, Async Function()
-            Await VerifyLeaseLifecycleAsync(provider, "Consul", CancellationToken.None)
+            Await VerifyLeaseLifecycleAsync(provider, "Consul", True, CancellationToken.None)
+        End Function)
+    End Function
+
+    Private Async Function RunPostgresAsync(endpoint As String, namespaceName As String, epoch As String) As Task
+        Dim options = New PostgresProviderOptions With {
+            .ConnectionString = endpoint,
+            .Namespace = namespaceName,
+            .ExpectedEpoch = epoch,
+            .CleanupObserver = AddressOf ObserveCleanup
+        }
+        Dim provider = Await PostgresProvider.ConnectAsync(options, CancellationToken.None)
+        Await WithAsyncDisposeAsync(provider, Async Function()
+            Await VerifyLeaseLifecycleAsync(provider, "PostgreSQL", False, CancellationToken.None)
         End Function)
     End Function
 
@@ -241,6 +271,7 @@ Module Program
 
     Private Async Function VerifyLeaseLifecycleAsync(provider As ILockProvider,
                                                        backend As String,
+                                                       expectLeaseDuration As Boolean,
                                                        cancellationToken As CancellationToken) As Task
         Dim resource = "vb/semantic-" & Guid.NewGuid().ToString("N")
         ' Reusable resource handles share this provider and its backend client/channel.
@@ -249,7 +280,9 @@ Module Program
         Dim owner = Await ownerHandle.AcquireAsync(cancellationToken)
         Await WithAsyncDisposeAsync(owner, Async Function()
             Require(owner.State = LeaseState.Held, backend & " owner did not enter Held state.")
-            Require(owner.EffectiveLeaseMilliseconds = 30000L, backend & " default lease duration changed.")
+            If expectLeaseDuration Then
+                Require(owner.EffectiveLeaseMilliseconds = 30000L, backend & " default lease duration changed.")
+            End If
 
             Using cancellation As New CancellationTokenSource()
                 Dim policy = New AcquireOptions With {

@@ -11,6 +11,7 @@ import grpc
 import redis
 from dilock import Options, identity
 from dilock.etcd import EtcdProvider
+from dilock.postgres import PostgresProvider
 from dilock.redis import RedisProvider
 
 
@@ -42,8 +43,16 @@ def main() -> None:
         etcd_provider.lock("consumer/resource")
         await etcd_provider.aclose()
 
+        postgres_provider = PostgresProvider(
+            "postgresql://127.0.0.1:1/dilock", "consumer", "consumer-epoch"
+        )
+        postgres_provider.lock("consumer/resource")
+        await postgres_provider.aclose()
+
     asyncio.run(construct_and_close_providers())
-    if not redis.__version__ or not grpc.__version__:
+    import psycopg
+
+    if not redis.__version__ or not grpc.__version__ or not psycopg.__version__:
         raise AssertionError("optional backend dependencies were not installed")
     print(f"Installed Dilock consumer passed with {sys.version.split()[0]}.")
 

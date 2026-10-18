@@ -29,6 +29,7 @@ libraryDependencies ++= Seq(
   "org.dilock" % "dilock-redis" % "0.1.0" % Provided,
   "org.dilock" % "dilock-etcd" % "0.1.0" % Provided,
   "org.dilock" % "dilock-consul" % "0.1.0" % Provided,
+  "org.dilock" % "dilock-postgres" % "0.1.0" % Provided,
   "org.scalameta" %% "munit" % "1.0.4" % Test,
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.21.2" % Test
 )

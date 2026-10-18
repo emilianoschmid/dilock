@@ -61,7 +61,7 @@ jobs:
         with:
           node-version: '22.20.0'
       - name: Set up Python
-        if: matrix.sdk == 'python' || matrix.sdk == 'cpp'
+        if: matrix.sdk == 'python' || matrix.sdk == 'cpp' || matrix.sdk == 'typescript'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12.9'
@@ -82,6 +82,8 @@ jobs:
         if: matrix.sdk == 'cpp'
         working-directory: sdk/cpp
         run: |
+          sudo apt-get update
+          sudo apt-get install --yes libpq-dev
           python -m pip install --disable-pip-version-check 'conan==2.22.2'
           conan profile detect --force
           conan install conanfile.py --output-folder ../../.tools/ci/cpp-deps --build=missing -s build_type=Release
@@ -139,6 +141,11 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm test
+      - name: Verify TypeScript package consumers
+        id: test_typescript_consumers
+        if: matrix.sdk == 'typescript'
+        working-directory: sdk/typescript
+        run: python consumers/package_consumer.py --allow-network --output .tools/optional-package-consumer-report.json
       - name: Test Go SDK
         id: test_go
         if: matrix.sdk == 'go'
@@ -164,6 +171,7 @@ jobs:
           CPP_RESULT: ${{ steps.test_cpp.outcome }}
           PYTHON_RESULT: ${{ steps.test_python.outcome }}
           TYPESCRIPT_RESULT: ${{ steps.test_typescript.outcome }}
+          TYPESCRIPT_CONSUMER_RESULT: ${{ steps.test_typescript_consumers.outcome }}
           GO_RESULT: ${{ steps.test_go.outcome }}
           RUST_RESULT: ${{ steps.test_rust.outcome }}
           JAVA_RESULT: ${{ steps.test_java.outcome }}
@@ -179,11 +187,1166 @@ jobs:
             *) echo "Unexpected SDK matrix cell: $SDK" >&2; exit 1 ;;
           esac
           test "$result" = success
+          if [ "$SDK" = typescript ]; then
+            test "$TYPESCRIPT_CONSUMER_RESULT" = success
+          fi
+
+  postgres-advisory:
+    name: PostgreSQL advisory-session contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.9'
+      - name: Install PostgreSQL Python route
+        working-directory: sdk/python
+        run: python -m pip install --disable-pip-version-check '.[postgres]'
+      - name: Run real PostgreSQL contention and session-loss contract
+        env:
+          PYTHONPATH: sdk/python/src
+        run: >-
+          python conformance/postgres_advisory_session.py
+          --dsn "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+          --output validation/implementation/pr-postgres-advisory-session.json
+
+  postgres-advisory-typescript:
+    name: PostgreSQL advisory-session TypeScript route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.20.0'
+      - name: Install TypeScript SDK
+        working-directory: sdk/typescript
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build TypeScript PostgreSQL package
+        working-directory: sdk/typescript
+        run: npm run build
+      - name: Run real PostgreSQL TypeScript contention and session-loss contract
+        run: >-
+          node conformance/postgres_advisory_session.mjs
+          --dsn "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+          --output validation/implementation/pr-postgres-advisory-session-typescript.json
+
+  postgres-advisory-cross-language:
+    name: PostgreSQL advisory-session Python/TypeScript cross-language route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.9'
+      - name: Install PostgreSQL Python route
+        working-directory: sdk/python
+        run: python -m pip install --disable-pip-version-check '.[postgres]'
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.20.0'
+      - name: Install TypeScript SDK
+        working-directory: sdk/typescript
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build TypeScript PostgreSQL package
+        working-directory: sdk/typescript
+        run: npm run build
+      - name: Run Python/TypeScript PostgreSQL cross-language contract
+        env:
+          PYTHONPATH: sdk/python/src
+        run: >-
+          python conformance/postgres_cross_language.py
+          --dsn "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+          --output validation/implementation/pr-postgres-cross-language.json
+
+  postgres-advisory-dotnet:
+    name: PostgreSQL advisory-session .NET route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '8.0.416'
+      - name: Run real PostgreSQL .NET contention contract
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if dotnet run \
+              --project sdk/dotnet/Consumers/PostgresLiveConsumer/PostgresLiveConsumer.csproj \
+              --configuration Release \
+              -- \
+              "Host=127.0.0.1;Port=5432;Database=dilock;Username=postgres;Password=postgres" \
+              ci-postgres-dotnet \
+              ci-postgres-dotnet-epoch; then
+              exit 0
+            fi
+            [ "$attempt" -lt 5 ] && sleep 2
+          done
+          exit 1
+      - name: Provision PostgreSQL metadata for .NET facade consumers
+        run: >-
+          docker run --rm --network host postgres:16-alpine
+          psql "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+          -v ON_ERROR_STOP=1
+          -c "CREATE TABLE IF NOT EXISTS dilock_namespace_meta (namespace text PRIMARY KEY, protocol_major integer NOT NULL, identity_scheme text NOT NULL, profile text NOT NULL, coordination_epoch text NOT NULL, fixed_lease_ms bigint NULL); INSERT INTO dilock_namespace_meta(namespace, protocol_major, identity_scheme, profile, coordination_epoch, fixed_lease_ms) VALUES ('ci-postgres-dotnet-facades', 1, 'sha256-framed-utf8-v1', 'postgres-advisory-session-v1', 'ci-postgres-dotnet-facades-epoch', NULL), ('ci-postgres-powershell', 1, 'sha256-framed-utf8-v1', 'postgres-advisory-session-v1', 'ci-postgres-powershell-epoch', NULL) ON CONFLICT (namespace) DO NOTHING;"
+      - name: Run PostgreSQL F# and Visual Basic consumers
+        env:
+          DILOCK_BACKEND: postgres
+          DILOCK_POSTGRES_CONNECTION_STRING: Host=127.0.0.1;Port=5432;Database=dilock;Username=postgres;Password=postgres
+          DILOCK_NAMESPACE: ci-postgres-dotnet-facades
+          DILOCK_EPOCH: ci-postgres-dotnet-facades-epoch
+        run: |
+          dotnet run --project sdk/dotnet/reuse/fsharp/Dilock.FSharp.Consumer.fsproj --configuration Release
+          dotnet run --project sdk/dotnet/reuse/vb/Dilock.VisualBasic.Consumer.vbproj --configuration Release
+      - name: Run PostgreSQL PowerShell consumer
+        env:
+          DILOCK_POSTGRES_CONNECTION_STRING: Host=127.0.0.1;Port=5432;Database=dilock;Username=postgres;Password=postgres
+          DILOCK_NAMESPACE: ci-postgres-powershell
+          DILOCK_EPOCH: ci-postgres-powershell-epoch
+        run: |
+          dotnet restore sdk/dotnet/reuse/powershell/module/Dilock.Runtime.Bundle.csproj
+          dotnet publish sdk/dotnet/reuse/powershell/module/Dilock.Runtime.Bundle.csproj --configuration Release --output .tools/ci/powershell-runtime --no-restore
+          pwsh -NoProfile -File sdk/dotnet/reuse/powershell/Invoke-DilockExample.ps1 -Backend Postgres -SkipBuild -AssemblyDirectory "$GITHUB_WORKSPACE/.tools/ci/powershell-runtime"
+
+  postgres-advisory-cpp:
+    name: PostgreSQL advisory-session C++ route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.9'
+      - name: Install PostgreSQL client development headers
+        run: sudo apt-get update && sudo apt-get install --yes libpq-dev
+      - name: Install Conan and resolve C++ SDK dependencies
+        working-directory: sdk/cpp
+        run: |
+          python -m pip install --disable-pip-version-check 'conan==2.22.2'
+          conan profile detect --force
+          conan install conanfile.py --output-folder ../../.tools/ci/cpp-postgres-deps --build=missing -s build_type=Release
+      - name: Build C++ PostgreSQL route
+        run: |
+          cmake -S sdk/cpp -B .tools/ci/cpp-postgres-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/.tools/ci/cpp-postgres-deps/build/Release/generators/conan_toolchain.cmake" -DDILOCK_BUILD_TESTS=ON -DDILOCK_BUILD_ETCD=OFF -DDILOCK_BUILD_POSTGRES=ON -DDILOCK_BUILD_C_API=ON
+          cmake --build .tools/ci/cpp-postgres-build --parallel 2
+      - name: Run C++ PostgreSQL contract and live conformance
+        working-directory: .tools/ci/cpp-postgres-build
+        env:
+          DILOCK_POSTGRES_DSN: postgresql://postgres:postgres@127.0.0.1:5432/dilock
+        run: ctest --output-on-failure -R '^(dilock_cpp_postgres_(contract|integration)|dilock_c_postgres_integration)$'
+
+  postgres-advisory-cabi-facades:
+    name: PostgreSQL advisory-session C ABI facades
+    # The shared C ABI is consumed by older Debian-based language images
+    # (notably Nim/OCaml). Build it on the oldest supported runner baseline so
+    # glibc/libstdc++ symbols remain loadable by every facade consumer.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Python and PostgreSQL headers
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.9'
+      - name: Install C ABI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libpq-dev
+          python -m pip install --disable-pip-version-check 'conan==2.22.2'
+          conan profile detect --force
+          conan install sdk/cpp/conanfile.py --output-folder .tools/ci/cabi-light-deps --build=missing -s build_type=Release
+      - name: Build and install PostgreSQL C ABI
+        run: |
+          cmake -S sdk/cpp -B .tools/ci/cabi-light-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/.tools/ci/cabi-light-deps/build/Release/generators/conan_toolchain.cmake" \
+            -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=OFF -DDILOCK_BUILD_CONSUL=OFF \
+            -DDILOCK_BUILD_POSTGRES=ON -DDILOCK_BUILD_C_API=ON -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/.tools/ci/cabi-light-install"
+          cmake --build .tools/ci/cabi-light-build --parallel 2
+          cmake --install .tools/ci/cabi-light-build
+      - name: Set up Zig 0.17.0
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: 0.17.0
+      - name: Run Zig PostgreSQL facade consumer
+        working-directory: sdk/zig
+        env:
+          DILOCK_POSTGRES_DSN: postgresql://postgres:postgres@127.0.0.1:5432/dilock
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.tools/ci/cabi-light-install/lib
+        run: |
+          zig build test-postgres \
+            -Dc-include="$GITHUB_WORKSPACE/.tools/ci/cabi-light-install/include" \
+            -Dc-lib="$GITHUB_WORKSPACE/.tools/ci/cabi-light-install/lib"
+      - name: Run Crystal PostgreSQL facade consumer
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=postgresql://postgres:postgres@127.0.0.1:5432/dilock' \
+            -e 'LD_LIBRARY_PATH=/workspace/.tools/ci/cabi-light-install/lib' \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace/sdk/crystal \
+            crystallang/crystal:1.21.0 bash -c '
+              set -euo pipefail
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev >/dev/null
+              crystal tool format --check src/dilock/postgres.cr postgres_spec/dilock_postgres_spec.cr
+              crystal spec postgres_spec/dilock_postgres_spec.cr --link-flags "-L/workspace/.tools/ci/cabi-light-install/lib"
+            '
+      - name: Run Nim PostgreSQL facade consumer
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=postgresql://postgres:postgres@127.0.0.1:5432/dilock' \
+            -e 'LD_LIBRARY_PATH=/workspace/.tools/ci/cabi-light-install/lib' \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace/sdk/nim \
+            nimlang/nim:2.2.12 bash -c '
+              set -euo pipefail
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev >/dev/null
+              nim c -r --path:src --passC:-I/workspace/.tools/ci/cabi-light-install/include \
+                --passL:-L/workspace/.tools/ci/cabi-light-install/lib \
+                --passL:-Wl,-rpath-link,/workspace/.tools/ci/cabi-light-install/lib \
+                --passL:-lpq --passL:-ldilock_c tests/test_postgres_live.nim
+            '
+      - name: Run Fortran PostgreSQL C ABI consumer
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=postgresql://postgres:postgres@127.0.0.1:5432/dilock' \
+            -e 'LD_LIBRARY_PATH=/workspace/.tools/ci/cabi-light-install/lib' \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            rocker/r-ver:4.4.1 bash -lc '
+              set -euo pipefail
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev >/dev/null
+              rm -rf /tmp/dilock-fortran-link
+              mkdir -p /tmp/dilock-fortran-link
+              gfortran -c -ffunction-sections -fdata-sections -ffree-line-length-none \
+                sdk/fortran/dilock_fortran.f90 -J/tmp/dilock-fortran-link \
+                -o /tmp/dilock-fortran-link/dilock_fortran.o
+              gfortran -c -ffunction-sections -fdata-sections -ffree-line-length-none \
+                -I/tmp/dilock-fortran-link sdk/fortran/tests/postgres_live_consumer.f90 \
+                -o /tmp/dilock-fortran-link/postgres_live_consumer.o
+              gfortran -Wl,--gc-sections -o /tmp/dilock-fortran-link/postgres-live \
+                /tmp/dilock-fortran-link/dilock_fortran.o \
+                /tmp/dilock-fortran-link/postgres_live_consumer.o \
+                -L/workspace/.tools/ci/cabi-light-install/lib \
+                -Wl,-rpath,/workspace/.tools/ci/cabi-light-install/lib \
+                -ldilock_c -ldilock_cpp_postgres -ldilock_cpp -lpq -lstdc++
+              /tmp/dilock-fortran-link/postgres-live
+            '
+      - name: Run D PostgreSQL-only facade consumer
+        run: |
+          docker run --rm --network host --entrypoint /bin/sh \
+            -e 'DILOCK_POSTGRES_DSN=postgresql://postgres:postgres@127.0.0.1:5432/dilock' \
+            -e 'LD_LIBRARY_PATH=/workspace/.tools/ci/cabi-light-install/lib' \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace/sdk/d \
+            ghcr.io/dlang-dockerized/dmd@sha256:230ba91838564c6704d3db50766a46377ba014174d5c545d64e628ced1eb092b -lc '
+              set -euo pipefail
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev >/dev/null
+              dmd -I=source -of=/tmp/dilock-d-postgres \
+                source/dilock/postgres.d tests/postgres_live_cabi_consumer.d \
+                -L-L/workspace/.tools/ci/cabi-light-install/lib \
+                -L-ldilock_c -L-lpq -L-lstdc++ \
+                -L-rpath-link=/workspace/.tools/ci/cabi-light-install/lib
+              /tmp/dilock-d-postgres
+            '
+      - name: Run OCaml PostgreSQL ctypes consumer
+        run: |
+          docker run --rm --network host --user root \
+            -e 'DILOCK_POSTGRES_DSN=postgresql://postgres:postgres@127.0.0.1:5432/dilock' \
+            -e 'LD_LIBRARY_PATH=/workspace/.tools/ci/cabi-light-install/lib' \
+            -e 'LIBRARY_PATH=/workspace/.tools/ci/cabi-light-install/lib' \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace/sdk/ocaml \
+            ocaml/opam:debian-12-ocaml-5.2 bash -lc '
+              set -euo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev >/dev/null
+              chmod -R a+rwX /workspace/sdk/ocaml
+              su -s /bin/bash opam -c "cd /workspace/sdk/ocaml && \
+                opam update && \
+                opam install --yes --deps-only ./dilock.opam ./postgres/dilock-postgres.opam && \
+                LIBRARY_PATH=/workspace/.tools/ci/cabi-light-install/lib \
+                  opam exec -- dune build postgres/test/postgres_live.exe && \
+                /workspace/sdk/ocaml/_build/default/postgres/test/postgres_live.exe"
+            '
+      - name: Run LuaJIT PostgreSQL facade consumer
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=postgresql://postgres:postgres@127.0.0.1:5432/dilock' \
+            -e 'DILOCK_C_LIBRARY=/workspace/.tools/ci/cabi-light-install/lib/libdilock_c.so' \
+            -e 'LD_LIBRARY_PATH=/workspace/.tools/ci/cabi-light-install/lib' \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace/sdk/lua/luajit-etcd \
+            debian:trixie-slim sh -c '
+              set -euo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq luajit libpq-dev >/dev/null
+              LUA_PATH="/workspace/sdk/lua/luajit-etcd/lib/?.lua;;" luajit test/postgres_live.lua
+            '
+      - name: Run generic LuaSQL PostgreSQL consumer
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_HOST=127.0.0.1' \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace/sdk/lua/generic \
+            debian:trixie-slim sh -c '
+              set -euo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install --no-install-recommends -y -qq \
+                lua5.4 lua-sql-postgres lua-socket lua-dkjson lua-system lua-luaossl >/dev/null
+              LUA_PATH="/workspace/sdk/lua/generic/lib/?.lua;;" lua5.4 test/live_postgres.lua
+            '
+
+  postgres-advisory-haskell:
+    name: PostgreSQL advisory-session Haskell C ABI route
+    # The Haskell consumer runs in Debian bookworm and loads the shared C ABI;
+    # keep the build baseline compatible with that older glibc/libstdc++.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Python and PostgreSQL headers
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.9'
+      - name: Install C ABI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libpq-dev
+          python -m pip install --disable-pip-version-check 'conan==2.22.2'
+          conan profile detect --force
+          conan install sdk/cpp/conanfile.py --output-folder .tools/ci/haskell-cabi-deps --build=missing -s build_type=Release
+      - name: Build and install PostgreSQL C ABI
+        run: |
+          cmake -S sdk/cpp -B .tools/ci/haskell-cabi-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/.tools/ci/haskell-cabi-deps/build/Release/generators/conan_toolchain.cmake" \
+            -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=OFF -DDILOCK_BUILD_CONSUL=OFF \
+            -DDILOCK_BUILD_POSTGRES=ON -DDILOCK_BUILD_C_API=ON -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/.tools/ci/haskell-cabi-install"
+          cmake --build .tools/ci/haskell-cabi-build --parallel 2
+          cmake --install .tools/ci/haskell-cabi-build
+      - name: Build and run Haskell PostgreSQL consumer
+        run: |
+          docker run --rm --network host --user root \
+            -e 'DILOCK_POSTGRES_DSN=postgresql://postgres:postgres@127.0.0.1:5432/dilock' \
+            -e 'LD_LIBRARY_PATH=/workspace/.tools/ci/haskell-cabi-install/lib' \
+            -e 'LIBRARY_PATH=/workspace/.tools/ci/haskell-cabi-install/lib' \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace/sdk/haskell \
+            haskell:9.10-bookworm bash -lc '
+              set -euo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              export PATH=/opt/ghc/9.10.3/bin:$PATH
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev >/dev/null
+              cabal update
+              cabal build -fpostgres-c-abi exe:dilock-postgres-cabi-live
+              bin=$(cabal list-bin -fpostgres-c-abi exe:dilock-postgres-cabi-live)
+              "$bin"
+            '
+
+  postgres-advisory-java:
+    name: PostgreSQL advisory-session Java route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21.0.12+8.0.LTS'
+          cache: maven
+      - name: Run real PostgreSQL Java contention contract
+        env:
+          DILOCK_POSTGRES_DSN: jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -Dmaven.repo.local="$HOME/.m2/repository"
+          --file sdk/java/pom.xml -pl postgres -am test
+      - name: Populate Maven cache for offline artifact consumer
+        run: |
+          mvn --batch-mode --no-transfer-progress \
+            -Dmaven.repo.local="$HOME/.m2/repository" \
+            --file sdk/java/pom.xml install -DskipTests
+          mvn --batch-mode --no-transfer-progress \
+            -Dmaven.repo.local="$HOME/.m2/repository" \
+            --file sdk/java/consumers/pom.xml package -DskipTests
+          mvn --batch-mode --no-transfer-progress \
+            -Dmaven.repo.local="$HOME/.m2/repository" \
+            org.apache.maven.plugins:maven-dependency-plugin:3.9.0:help -Ddetail=false
+      - name: Verify Java PostgreSQL artifact consumer
+        run: >-
+          python sdk/java/consumers/package_consumer.py
+          --output .tools/java-postgres-package-consumer.json
+          --scratch "$RUNNER_TEMP/java-postgres-package-consumer"
+          --maven-repo "$HOME/.m2/repository"
+
+  postgres-advisory-scala:
+    name: PostgreSQL advisory-session Scala 2.13/3 route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21.0.12+8.0.LTS'
+          cache: maven
+      - name: Build Java provider artifacts into the workspace Maven repository
+        run: >-
+          mvn --batch-mode --no-transfer-progress --file sdk/java/pom.xml install
+          -DskipTests -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
+      - name: Run Scala 3 PostgreSQL facade suite
+        working-directory: sdk/scala
+        env:
+          DILOCK_POSTGRES_DSN: jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres
+        run: |
+          curl --fail --silent --show-error --location --output /tmp/sbt-launch.jar \
+            https://repo1.maven.org/maven2/org/scala-sbt/sbt-launch/1.10.7/sbt-launch-1.10.7.jar
+          java -Dsbt.log.noformat=true \
+            -DdilockLocalMavenRepo="$GITHUB_WORKSPACE/.tools/m2repo" \
+            -jar /tmp/sbt-launch.jar test
+      - name: Run Scala 2.13 PostgreSQL facade suite
+        working-directory: sdk/scala
+        env:
+          DILOCK_POSTGRES_DSN: jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres
+        run: >-
+          java -Dsbt.log.noformat=true
+          -DdilockLocalMavenRepo=$GITHUB_WORKSPACE/.tools/m2repo
+          -jar /tmp/sbt-launch.jar '++2.13.18' test
+
+  postgres-advisory-kotlin:
+    name: PostgreSQL advisory-session Kotlin route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21.0.12+8.0.LTS'
+          cache: maven
+      - name: Build Java provider artifacts into the workspace Maven repository
+        run: >-
+          mvn --batch-mode --no-transfer-progress --file sdk/java/pom.xml install
+          -DskipTests -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
+      - name: Run Kotlin PostgreSQL facade suite
+        run: |
+          mkdir -p .tools/gradle-home-kotlin
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres' \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -v "$GITHUB_WORKSPACE/.tools/gradle-home-kotlin:/gradle-home" \
+            -w /workspace \
+            gradle:8.14-jdk21 \
+            gradle -g /gradle-home --no-daemon --console=plain --project-dir sdk/kotlin test
+
+  postgres-advisory-groovy:
+    name: PostgreSQL advisory-session Groovy route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21.0.12+8.0.LTS'
+          cache: maven
+      - name: Build Java provider artifacts into the workspace Maven repository
+        run: >-
+          mvn --batch-mode --no-transfer-progress --file sdk/java/pom.xml install
+          -DskipTests -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
+      - name: Run Groovy PostgreSQL facade suite
+        env:
+          DILOCK_POSTGRES_DSN: jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres
+        run: >-
+          mvn --batch-mode --no-transfer-progress --file sdk/groovy/pom.xml test
+          -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
+
+  postgres-advisory-go:
+    name: PostgreSQL advisory-session Go route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.0'
+          cache: false
+      - name: Run real PostgreSQL Go contention contract
+        working-directory: sdk/go
+        env:
+          DILOCK_POSTGRES_DSN: postgresql://postgres:postgres@127.0.0.1:5432/dilock
+        run: go test -mod=readonly ./postgres -run TestPostgresLiveContentionAndHandoff -count=1
+
+  postgres-advisory-rust:
+    name: PostgreSQL advisory-session Rust route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.99.0 --profile minimal
+      - name: Install pinned protoc for Rust package verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=31.1
+          archive="protoc-${version}-linux-x86_64.zip"
+          download="$RUNNER_TEMP/$archive"
+          install_dir="$RUNNER_TEMP/protoc-${version}"
+          curl --fail --location --retry 0 \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v${version}/${archive}" \
+            --output "$download"
+          echo "96553041f1a91ea0efee963cb16f462f5985b4d65365f3907414c360044d8065  $download" | sha256sum --check --status
+          mkdir -p "$install_dir"
+          unzip -q "$download" -d "$install_dir"
+          test -x "$install_dir/bin/protoc"
+          "$install_dir/bin/protoc" --version | grep -Fx "libprotoc $version"
+          echo "PROTOC=$install_dir/bin/protoc" >> "$GITHUB_ENV"
+          echo "$install_dir/bin" >> "$GITHUB_PATH"
+      - name: Set up Python for Conan
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12.9'
+      - name: Build PostgreSQL C ABI for the Rust artifact link check
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libpq-dev
+          python -m pip install --disable-pip-version-check 'conan==2.22.2'
+          conan profile detect --force
+          conan install sdk/cpp/conanfile.py --output-folder .tools/ci/rust-cabi-deps --build=missing -s build_type=Release
+          cmake -S sdk/cpp -B .tools/ci/rust-cabi-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/.tools/ci/rust-cabi-deps/build/Release/generators/conan_toolchain.cmake" \
+            -DDILOCK_BUILD_TESTS=OFF -DDILOCK_BUILD_ETCD=OFF -DDILOCK_BUILD_CONSUL=OFF \
+            -DDILOCK_BUILD_POSTGRES=ON -DDILOCK_BUILD_C_API=ON -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/.tools/ci/rust-cabi-install"
+          cmake --build .tools/ci/rust-cabi-build --parallel 2
+          cmake --install .tools/ci/rust-cabi-build
+      - name: Run real PostgreSQL Rust contention contract
+        working-directory: sdk/rust
+        env:
+          DILOCK_POSTGRES_DSN: host=127.0.0.1 port=5432 user=postgres password=postgres dbname=dilock
+        run: cargo +1.99.0 test --locked -p dilock-postgres --test live -- --nocapture
+      - name: Fetch Rust registry archives for offline package verification
+        working-directory: sdk/rust
+        run: cargo +1.99.0 fetch --locked
+      - name: Verify exact Rust PostgreSQL crate artifacts
+        env:
+          RUSTUP_TOOLCHAIN: 1.99.0
+        run: >-
+          python sdk/rust/consumers/package_consumer.py
+          --output .tools/ci/rust-postgres-package-consumer.json
+          --scratch .tools/ci/rust-postgres-package-consumer
+          --cargo-home "$HOME/.cargo"
+          --rustup-home "$HOME/.rustup"
+          --dilock-c-lib-dir "$GITHUB_WORKSPACE/.tools/ci/rust-cabi-install"
+
+  postgres-advisory-elixir:
+    name: PostgreSQL advisory-session Elixir and Erlang routes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build and test Elixir and Erlang PostgreSQL routes
+        run: |
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace/sdk/elixir \
+            elixir:1.18-otp-27 \
+            bash -lc '
+              set -euo pipefail
+              elixir --version
+              mix local.hex --force
+              mix deps.get
+              mix compile
+              mkdir -p /workspace/.tools/ci/elixir-erlang-beam
+              erlc -o /workspace/.tools/ci/elixir-erlang-beam /workspace/sdk/erlang/src/dilock_erlang.erl
+              DILOCK_POSTGRES_DSN="postgresql://postgres:postgres@127.0.0.1:5432/dilock" \
+                DILOCK_ERLANG_BEAM=/workspace/.tools/ci/elixir-erlang-beam \
+                mix test test/postgres_contract_test.exs test/postgres_live_test.exs test/dilock_erlang_postgres_live_test.exs
+            '
+
+  postgres-advisory-dart:
+    name: PostgreSQL advisory-session Dart route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build and test Dart PostgreSQL route
+        run: |
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace/sdk/dart/postgres \
+            dart:stable \
+            bash -c '
+              set -euo pipefail
+              dart --version
+              dart pub get
+              DILOCK_POSTGRES_PORT=5432 dart analyze
+              DILOCK_POSTGRES_PORT=5432 dart test
+            '
+
+  postgres-advisory-swift:
+    name: PostgreSQL advisory-session Swift route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build and test Swift PostgreSQL route
+        run: |
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace/sdk/swift \
+            swift:6.1 \
+            bash -lc '
+              set -euo pipefail
+              swift --version
+              DILOCK_POSTGRES_PORT=5432 swift test --disable-xctest --filter DilockPostgresTests
+            '
+
+  postgres-advisory-julia:
+    name: PostgreSQL advisory-session Julia route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build and test Julia PostgreSQL route
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=host=127.0.0.1 port=5432 dbname=dilock user=postgres password=postgres' \
+            -e JULIA_DEPOT_PATH=/tmp/julia-depot \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace/sdk/julia \
+            julia:1.10 \
+            julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
+
+  postgres-advisory-php:
+    name: PostgreSQL advisory-session PHP route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build and test PHP PostgreSQL route
+        run: |
+          docker run --rm --network host \
+            -e DILOCK_POSTGRES_DSN='pgsql:host=127.0.0.1;port=5432;dbname=dilock' \
+            -e DILOCK_POSTGRES_USER=postgres \
+            -e DILOCK_POSTGRES_PASSWORD=postgres \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace/sdk/php \
+            php:8.4-cli-bookworm \
+            bash -lc '
+              set -euo pipefail
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev libzip-dev unzip wget >/dev/null
+              docker-php-ext-install -j2 pdo_pgsql zip
+              wget -qO- https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+              composer install --no-interaction --prefer-dist --no-progress
+              vendor/bin/phpunit --filter Postgres
+            '
+
+  postgres-advisory-ruby:
+    name: PostgreSQL advisory-session Ruby route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build and test Ruby PostgreSQL route
+        run: |
+          docker run --rm --network host \
+            -e DILOCK_POSTGRES_URL=postgresql://postgres:postgres@127.0.0.1:5432/dilock \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace/sdk/ruby \
+            ruby:3.3-bookworm \
+            bash -lc '
+              set -euo pipefail
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev >/dev/null
+              bundle config set without "development"
+              bundle install --jobs 4 --retry 3
+              ruby -Itest test/postgres_live_test.rb
+            '
+
+  postgres-advisory-perl:
+    name: PostgreSQL advisory-session Perl route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build and test Perl PostgreSQL route
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=DBI:Pg:host=127.0.0.1;port=5432;dbname=dilock' \
+            -e DILOCK_POSTGRES_USER=postgres \
+            -e DILOCK_POSTGRES_PASSWORD=postgres \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace/sdk/perl \
+            debian:bookworm \
+            bash -lc '
+              set -euo pipefail
+              apt-get update -qq
+              apt-get install -y -qq make perl libdbi-perl libdbd-pg-perl >/dev/null
+              perl Makefile.PL
+              make test TEST_FILES="t/postgres_integration.t"
+            '
+
+  postgres-advisory-r:
+    name: PostgreSQL advisory-session R route
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build and test R PostgreSQL route
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=host=127.0.0.1 port=5432 dbname=dilock user=postgres password=postgres' \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace/sdk/r \
+            rocker/r-ver:4.4.2 \
+            bash -lc '
+              set -euo pipefail
+              apt-get update -qq
+              apt-get install -y -qq libpq-dev libssl-dev libcurl4-openssl-dev libuv1-dev >/dev/null
+              Rscript -e "install.packages(c(\"DBI\", \"RPostgres\", \"openssl\", \"jsonlite\", \"testthat\"), repos=\"https://cloud.r-project.org\")"
+              Rscript -e "source(\"R/clock.R\"); source(\"R/dilock.R\"); source(\"R/postgres.R\"); testthat::test_file(\"tests/testthat/test-postgres-live.R\")"
+            '
+
+  postgres-advisory-clojure:
+    name: PostgreSQL advisory-session Clojure facade
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dilock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dilock"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record PostgreSQL client and server versions
+        run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
+      - name: Build Java provider artifacts into the workspace Maven repository
+        run: >-
+          docker run --rm --network host
+          -v "$GITHUB_WORKSPACE:/workspace"
+          -w /workspace
+          maven:3.9-eclipse-temurin-21
+          mvn --batch-mode --no-transfer-progress --file sdk/java/pom.xml install
+          -DskipTests -Dmaven.repo.local=/workspace/.tools/m2repo
+      - name: Run Clojure unit and PostgreSQL live suites
+        run: |
+          docker run --rm --network host \
+            -e 'DILOCK_POSTGRES_DSN=jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres' \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -v "$GITHUB_WORKSPACE/.tools/m2repo:/root/.m2/repository" \
+            -w /workspace/sdk/clojure \
+            clojure:tools-deps \
+            clojure -M:test
 
   required:
     name: Required CI gate
     if: always()
-    needs: [source, native]
+    needs: [source, native, postgres-advisory, postgres-advisory-typescript, postgres-advisory-cross-language, postgres-advisory-dotnet, postgres-advisory-cpp, postgres-advisory-cabi-facades, postgres-advisory-haskell, postgres-advisory-java, postgres-advisory-scala, postgres-advisory-kotlin, postgres-advisory-groovy, postgres-advisory-go, postgres-advisory-rust, postgres-advisory-elixir, postgres-advisory-dart, postgres-advisory-swift, postgres-advisory-julia, postgres-advisory-php, postgres-advisory-ruby, postgres-advisory-perl, postgres-advisory-r, postgres-advisory-clojure]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -191,6 +1354,50 @@ jobs:
         env:
           SOURCE_RESULT: ${{ needs.source.result }}
           NATIVE_RESULT: ${{ needs.native.result }}
+          POSTGRES_RESULT: ${{ needs.postgres-advisory.result }}
+          POSTGRES_TYPESCRIPT_RESULT: ${{ needs.postgres-advisory-typescript.result }}
+          POSTGRES_CROSS_LANGUAGE_RESULT: ${{ needs.postgres-advisory-cross-language.result }}
+          POSTGRES_DOTNET_RESULT: ${{ needs.postgres-advisory-dotnet.result }}
+          POSTGRES_CPP_RESULT: ${{ needs.postgres-advisory-cpp.result }}
+          POSTGRES_CABI_FACADES_RESULT: ${{ needs.postgres-advisory-cabi-facades.result }}
+          POSTGRES_HASKELL_RESULT: ${{ needs.postgres-advisory-haskell.result }}
+          POSTGRES_JAVA_RESULT: ${{ needs.postgres-advisory-java.result }}
+          POSTGRES_SCALA_RESULT: ${{ needs.postgres-advisory-scala.result }}
+          POSTGRES_KOTLIN_RESULT: ${{ needs.postgres-advisory-kotlin.result }}
+          POSTGRES_GROOVY_RESULT: ${{ needs.postgres-advisory-groovy.result }}
+          POSTGRES_GO_RESULT: ${{ needs.postgres-advisory-go.result }}
+          POSTGRES_RUST_RESULT: ${{ needs.postgres-advisory-rust.result }}
+          POSTGRES_ELIXIR_RESULT: ${{ needs.postgres-advisory-elixir.result }}
+          POSTGRES_DART_RESULT: ${{ needs.postgres-advisory-dart.result }}
+          POSTGRES_SWIFT_RESULT: ${{ needs.postgres-advisory-swift.result }}
+          POSTGRES_JULIA_RESULT: ${{ needs.postgres-advisory-julia.result }}
+          POSTGRES_PHP_RESULT: ${{ needs.postgres-advisory-php.result }}
+          POSTGRES_RUBY_RESULT: ${{ needs.postgres-advisory-ruby.result }}
+          POSTGRES_PERL_RESULT: ${{ needs.postgres-advisory-perl.result }}
+          POSTGRES_R_RESULT: ${{ needs.postgres-advisory-r.result }}
+          POSTGRES_CLOJURE_RESULT: ${{ needs.postgres-advisory-clojure.result }}
         run: |
           test "$SOURCE_RESULT" = success
           test "$NATIVE_RESULT" = success
+          test "$POSTGRES_RESULT" = success
+          test "$POSTGRES_TYPESCRIPT_RESULT" = success
+          test "$POSTGRES_CROSS_LANGUAGE_RESULT" = success
+          test "$POSTGRES_DOTNET_RESULT" = success
+          test "$POSTGRES_CPP_RESULT" = success
+          test "$POSTGRES_CABI_FACADES_RESULT" = success
+          test "$POSTGRES_HASKELL_RESULT" = success
+          test "$POSTGRES_JAVA_RESULT" = success
+          test "$POSTGRES_SCALA_RESULT" = success
+          test "$POSTGRES_KOTLIN_RESULT" = success
+          test "$POSTGRES_GROOVY_RESULT" = success
+          test "$POSTGRES_GO_RESULT" = success
+          test "$POSTGRES_RUST_RESULT" = success
+          test "$POSTGRES_ELIXIR_RESULT" = success
+          test "$POSTGRES_DART_RESULT" = success
+          test "$POSTGRES_SWIFT_RESULT" = success
+          test "$POSTGRES_JULIA_RESULT" = success
+          test "$POSTGRES_PHP_RESULT" = success
+          test "$POSTGRES_RUBY_RESULT" = success
+          test "$POSTGRES_PERL_RESULT" = success
+          test "$POSTGRES_R_RESULT" = success
+          test "$POSTGRES_CLOJURE_RESULT" = success

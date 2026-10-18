@@ -1,9 +1,11 @@
 import dilock;
+import core.stdc.stdlib : getenv;
 import core.time : dur;
 import core.thread : Thread;
 import std.conv : to;
 import std.exception : enforce;
 import std.stdio : stderr, writeln;
+import std.string : fromStringz, toStringz;
 
 private void requireWaitTimeout(void delegate() operation, string message) {
     bool timedOut;
@@ -145,13 +147,58 @@ private void runEtcd() {
     writeln("PASS etcd: linked C ABI acquisition, bounded contention, handoff, increasing fence, stale unlock, natural expiry classified AlreadyNotOwned, successor acquired and released");
 }
 
+private string setting(string name, string fallback) {
+    auto value = getenv(name.toStringz);
+    return value is null ? fallback : value.fromStringz.idup;
+}
+
+private void runPostgres() {
+    auto connectionString = setting("DILOCK_POSTGRES_DSN", "");
+    enforce(connectionString.length, "set DILOCK_POSTGRES_DSN");
+    PostgresProviderOptions options;
+    options.connectionString = connectionString;
+    options.nameSpace = "d-postgres-live";
+    options.coordinationEpoch = "d-postgres-live-epoch";
+    options.rpcTimeout = dur!"msecs"(2000);
+    options.cleanupTimeout = dur!"msecs"(2000);
+    options.pollInterval = dur!"msecs"(25);
+    options.defaultWait = dur!"msecs"(5000);
+    options.defaultLease = dur!"msecs"(30000);
+    provisionPostgresNamespace(options);
+
+    auto ownerProvider = PostgresProvider.connect(options);
+    scope(exit) ownerProvider.destroy();
+    auto successorProvider = PostgresProvider.connect(options);
+    scope(exit) successorProvider.destroy();
+    auto ownerLock = ownerProvider.lock("d/postgres-live");
+    scope(exit) ownerLock.destroy();
+    auto successorLock = successorProvider.lock("d/postgres-live");
+    scope(exit) successorLock.destroy();
+
+    PostgresLease owner;
+    enforce(ownerLock.tryAcquire(owner), "PostgreSQL owner acquisition failed");
+    scope(exit) owner.destroy();
+    enforce(owner.isValid(), "PostgreSQL owner lease is not valid");
+    PostgresLease busy;
+    enforce(!successorLock.tryAcquire(busy), "PostgreSQL contender acquired a held key");
+    enforce(owner.renew(), "PostgreSQL liveness check failed");
+    enforce(owner.release() == ReleaseOutcome.released, "PostgreSQL owner release was not acknowledged");
+
+    PostgresLease successor;
+    enforce(successorLock.tryAcquire(successor), "PostgreSQL successor did not acquire after release");
+    scope(exit) successor.destroy();
+    enforce(successor.release() == ReleaseOutcome.released, "PostgreSQL successor release was not acknowledged");
+    writeln("PASS PostgreSQL: D C ABI provision, contention, liveness, release, and handoff");
+}
+
 void main(string[] args) {
-    enforce(args.length == 2, "usage: live_cabi_consumer.d <redis|etcd>");
+    enforce(args.length == 2, "usage: live_cabi_consumer.d <redis|etcd|postgres>");
     try {
         switch (args[1]) {
         case "redis": runRedis(); break;
         case "etcd": runEtcd(); break;
-        default: enforce(false, "backend must be redis or etcd");
+        case "postgres": runPostgres(); break;
+        default: enforce(false, "backend must be redis, etcd or postgres");
         }
     } catch (Exception error) {
         stderr.writeln("FAIL: ", error.msg);

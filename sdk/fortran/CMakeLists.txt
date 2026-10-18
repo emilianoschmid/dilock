@@ -6,7 +6,7 @@ include(CTest)
 
 find_package(DilockCpp CONFIG REQUIRED)
 if(NOT TARGET Dilock::c)
-  message(FATAL_ERROR "Install DilockCpp with DILOCK_BUILD_C_API=ON and Redis, etcd and Consul profiles")
+  message(FATAL_ERROR "Install DilockCpp with DILOCK_BUILD_C_API=ON and the backend profiles required by the consumer")
 endif()
 
 add_library(DilockFortran dilock_fortran.f90)
@@ -20,8 +20,16 @@ target_include_directories(DilockFortran PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/modules>
   $<INSTALL_INTERFACE:include/dilock/fortran>)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(DilockFortran PRIVATE -Wall -Wextra -Wimplicit-interface -fcheck=all -ffree-line-length-none)
+  # Keep each facade entry point in its own linker section.  A PostgreSQL-only
+  # C ABI install must not pull the unused Redis/etcd/Consul entry points (and
+  # their optional symbols) into a PostgreSQL consumer.
+  target_compile_options(DilockFortran PRIVATE
+    -Wall -Wextra -Wimplicit-interface -fcheck=all -ffree-line-length-none
+    -ffunction-sections -fdata-sections)
 endif()
+# This is intentionally interface-visible so installed CMake consumers get
+# the same optional-backend dead-code elimination as in-tree examples.
+target_link_options(DilockFortran INTERFACE -Wl,--gc-sections)
 
 add_executable(dilock_fortran_redis_example examples/redis_quickstart.f90)
 target_link_libraries(dilock_fortran_redis_example PRIVATE DilockFortran)
@@ -31,6 +39,8 @@ add_executable(dilock_fortran_etcd_configured_example examples/etcd_configured_q
 target_link_libraries(dilock_fortran_etcd_configured_example PRIVATE DilockFortran)
 add_executable(dilock_fortran_consul_example examples/consul_quickstart.f90)
 target_link_libraries(dilock_fortran_consul_example PRIVATE DilockFortran)
+add_executable(dilock_fortran_postgres_example examples/postgres_quickstart.f90)
+target_link_libraries(dilock_fortran_postgres_example PRIVATE DilockFortran)
 if(BUILD_TESTING)
   enable_language(C)
   # Building this executable is the compile/link consumer smoke. Running it
@@ -61,6 +71,16 @@ if(BUILD_TESTING)
     Fortran_STANDARD_REQUIRED YES)
   if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     target_compile_options(dilock_fortran_live_consumer PRIVATE
+      -Wall -Wextra -Wimplicit-interface -fcheck=all -ffree-line-length-none)
+  endif()
+
+  add_executable(dilock_fortran_postgres_live_consumer tests/postgres_live_consumer.f90)
+  target_link_libraries(dilock_fortran_postgres_live_consumer PRIVATE DilockFortran)
+  set_target_properties(dilock_fortran_postgres_live_consumer PROPERTIES
+    Fortran_STANDARD 2008
+    Fortran_STANDARD_REQUIRED YES)
+  if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(dilock_fortran_postgres_live_consumer PRIVATE
       -Wall -Wextra -Wimplicit-interface -fcheck=all -ffree-line-length-none)
   endif()
 endif()

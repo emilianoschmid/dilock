@@ -94,12 +94,14 @@ def main() -> int:
             repo / "sdk/dotnet/Dilock.Core/Dilock.Core.csproj",
             repo / "sdk/dotnet/Dilock.Redis/Dilock.Redis.csproj",
             repo / "sdk/dotnet/Dilock.Etcd/Dilock.Etcd.csproj",
+            repo / "sdk/dotnet/Dilock.Consul/Dilock.Consul.csproj",
+            repo / "sdk/dotnet/Dilock.Postgres/Dilock.Postgres.csproj",
         ):
             run([args.dotnet, "pack", str(project), "--configuration", "Release", "--output", str(feed), "--no-restore"], repo)
         packages = sorted(feed.glob(f"Dilock.*.{VERSION}.nupkg"))
-        expected = {"Dilock.Core", "Dilock.Redis", "Dilock.Etcd"}
+        expected = {"Dilock.Core", "Dilock.Redis", "Dilock.Etcd", "Dilock.Consul", "Dilock.Postgres"}
         if {path.name.removesuffix(f".{VERSION}.nupkg") for path in packages} != expected:
-            raise RuntimeError(f"expected the exact Core, Redis and Etcd nupkg archives, found {[p.name for p in packages]}")
+            raise RuntimeError(f"expected the exact Core, Redis, Etcd, Consul and PostgreSQL nupkg archives, found {[p.name for p in packages]}")
         report["artifacts"] = [{"filename": item.name, "sha256": sha256(item)} for item in packages]
         consumer = scratch / "consumer"
         shutil.copytree(fixture, consumer)
@@ -120,7 +122,7 @@ def main() -> int:
         shutil.copytree(
             source_cache,
             package_cache,
-            ignore=shutil.ignore_patterns("dilock.core", "dilock.redis", "dilock.etcd"),
+            ignore=shutil.ignore_patterns("dilock.core", "dilock.redis", "dilock.etcd", "dilock.consul", "dilock.postgres"),
         )
         env["NUGET_PACKAGES"] = str(package_cache)
         run([args.dotnet, "restore", str(consumer / "PackageConsumer.csproj"), "--configfile", str(nuget_config), "--ignore-failed-sources"], consumer)
@@ -132,7 +134,7 @@ def main() -> int:
             if sha256(restored_copy) != sha256(artifact):
                 raise RuntimeError(f"restored {package_id} archive hash differs from the package built into the local feed")
         run([args.dotnet, "run", "--project", str(consumer / "PackageConsumer.csproj"), "--configuration", "Release", "--no-restore"], consumer)
-        report.update(status="passed", reason="Built three local NuGet archives from current SDK sources; removed same-version Dilock entries from an isolated offline cache, verified all restored NuGet archive hashes against the local feed, and ran the checkout-external consumer.")
+        report.update(status="passed", reason="Built five local NuGet archives from current SDK sources; removed same-version Dilock entries from an isolated offline cache, verified all restored NuGet archive hashes against the local feed, and ran the checkout-external consumer.")
     except Exception as error:  # Preserve a machine-readable failure with every attempted command.
         report.update(status="failed", reason=f"{type(error).__name__}: {error}")
     output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

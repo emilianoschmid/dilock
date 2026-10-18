@@ -86,6 +86,19 @@ module dilock_fortran
      integer(c_int64_t) :: default_lease_ms
   end type
 
+  type, bind(C) :: c_dilock_postgres_options
+     type(c_ptr) :: connection_string
+     type(c_ptr) :: name_space
+     type(c_ptr) :: coordination_epoch
+     type(c_funptr) :: cleanup_callback
+     type(c_ptr) :: cleanup_user_data
+     integer(c_int64_t) :: rpc_timeout_ms
+     integer(c_int64_t) :: cleanup_timeout_ms
+     integer(c_int64_t) :: poll_interval_ms
+     integer(c_int64_t) :: default_wait_ms
+     integer(c_int64_t) :: default_lease_ms
+  end type
+
   public :: redis_open, redis_lock, redis_acquire, redis_acquire_default
   public :: redis_try_acquire, redis_release
   public :: cancellation_create, cancellation_request, cancellation_destroy
@@ -100,6 +113,11 @@ module dilock_fortran
   public :: consul_renew, consul_effective_ttl_ms, consul_acquire_with_cancellation
   public :: consul_acquire_default_with_cancellation
   public :: consul_destroy_provider, consul_destroy_lock, consul_destroy_lease
+  public :: postgres_open, postgres_provision_namespace, postgres_lock, postgres_acquire
+  public :: postgres_acquire_default, postgres_try_acquire, postgres_release
+  public :: postgres_renew, postgres_is_valid, postgres_acquire_with_cancellation
+  public :: postgres_acquire_default_with_cancellation
+  public :: postgres_destroy_provider, postgres_destroy_lock, postgres_destroy_lease
 
   interface
      function c_cancellation_create(error) bind(C, name="dilock_cancellation_create") result(cancellation)
@@ -283,6 +301,100 @@ module dilock_fortran
        type(c_dilock_error), intent(out) :: error
      end function
      subroutine c_consul_lease_destroy(lease_handle) bind(C, name="dilock_consul_lease_destroy")
+       import :: c_ptr
+       type(c_ptr), value :: lease_handle
+     end subroutine
+     subroutine c_postgres_options_init(options) bind(C, name="dilock_postgres_options_init")
+       import :: c_dilock_postgres_options
+       type(c_dilock_postgres_options), intent(out) :: options
+     end subroutine
+     integer(c_int) function c_postgres_provision_namespace(options, error) &
+          bind(C, name="dilock_postgres_provision_namespace")
+       import :: c_int, c_dilock_postgres_options, c_dilock_error
+       type(c_dilock_postgres_options), intent(in) :: options
+       type(c_dilock_error), intent(out) :: error
+     end function
+     integer(c_int) function c_postgres_provider_create(options, provider, error) &
+          bind(C, name="dilock_postgres_provider_create")
+       import :: c_int, c_ptr, c_dilock_postgres_options, c_dilock_error
+       type(c_dilock_postgres_options), intent(in) :: options
+       type(c_ptr), intent(out) :: provider
+       type(c_dilock_error), intent(out) :: error
+     end function
+     subroutine c_postgres_provider_destroy(provider) bind(C, name="dilock_postgres_provider_destroy")
+       import :: c_ptr
+       type(c_ptr), value :: provider
+     end subroutine
+     integer(c_int) function c_postgres_lock_create(provider, resource, lock_handle, error) &
+          bind(C, name="dilock_postgres_lock_create")
+       import :: c_int, c_ptr, c_char, c_dilock_error
+       type(c_ptr), value :: provider
+       character(kind=c_char), intent(in) :: resource(*)
+       type(c_ptr), intent(out) :: lock_handle
+       type(c_dilock_error), intent(out) :: error
+     end function
+     subroutine c_postgres_lock_destroy(lock_handle) bind(C, name="dilock_postgres_lock_destroy")
+       import :: c_ptr
+       type(c_ptr), value :: lock_handle
+     end subroutine
+     integer(c_int) function c_postgres_acquire(lock_handle, wait_ms, lease_ms, lease_handle, error) &
+          bind(C, name="dilock_postgres_acquire")
+       import :: c_int, c_int64_t, c_ptr, c_dilock_error
+       type(c_ptr), value :: lock_handle
+       integer(c_int64_t), value :: wait_ms, lease_ms
+       type(c_ptr), intent(out) :: lease_handle
+       type(c_dilock_error), intent(out) :: error
+     end function
+     integer(c_int) function c_postgres_acquire_default(lock_handle, lease_handle, error) &
+          bind(C, name="dilock_postgres_acquire_default")
+       import :: c_int, c_ptr, c_dilock_error
+       type(c_ptr), value :: lock_handle
+       type(c_ptr), intent(out) :: lease_handle
+       type(c_dilock_error), intent(out) :: error
+     end function
+     integer(c_int) function c_postgres_acquire_with_cancellation(lock_handle, wait_ms, lease_ms, cancellation, &
+                                                                  lease_handle, error) &
+          bind(C, name="dilock_postgres_acquire_with_cancellation")
+       import :: c_int, c_int64_t, c_ptr, c_dilock_error
+       type(c_ptr), value :: lock_handle, cancellation
+       integer(c_int64_t), value :: wait_ms, lease_ms
+       type(c_ptr), intent(out) :: lease_handle
+       type(c_dilock_error), intent(out) :: error
+     end function
+     integer(c_int) function c_postgres_acquire_default_with_cancellation(lock_handle, cancellation, lease_handle, error) &
+          bind(C, name="dilock_postgres_acquire_default_with_cancellation")
+       import :: c_int, c_ptr, c_dilock_error
+       type(c_ptr), value :: lock_handle, cancellation
+       type(c_ptr), intent(out) :: lease_handle
+       type(c_dilock_error), intent(out) :: error
+     end function
+     integer(c_int) function c_postgres_try_acquire(lock_handle, lease_handle, error) &
+          bind(C, name="dilock_postgres_try_acquire")
+       import :: c_int, c_ptr, c_dilock_error
+       type(c_ptr), value :: lock_handle
+       type(c_ptr), intent(out) :: lease_handle
+       type(c_dilock_error), intent(out) :: error
+     end function
+     integer(c_int) function c_postgres_lease_is_valid(lease_handle) &
+          bind(C, name="dilock_postgres_lease_is_valid")
+       import :: c_int, c_ptr
+       type(c_ptr), value :: lease_handle
+     end function
+     integer(c_int) function c_postgres_renew(lease_handle, renewed, error) &
+          bind(C, name="dilock_postgres_lease_renew")
+       import :: c_int, c_ptr, c_dilock_error
+       type(c_ptr), value :: lease_handle
+       integer(c_int), intent(out) :: renewed
+       type(c_dilock_error), intent(out) :: error
+     end function
+     integer(c_int) function c_postgres_release(lease_handle, outcome, error) &
+          bind(C, name="dilock_postgres_lease_release")
+       import :: c_int, c_ptr, c_dilock_error
+       type(c_ptr), value :: lease_handle
+       integer(c_int), intent(inout) :: outcome
+       type(c_dilock_error), intent(out) :: error
+     end function
+     subroutine c_postgres_lease_destroy(lease_handle) bind(C, name="dilock_postgres_lease_destroy")
        import :: c_ptr
        type(c_ptr), value :: lease_handle
      end subroutine
@@ -1205,6 +1317,261 @@ contains
     type(c_ptr), intent(inout) :: lease_handle
     if (.not. c_associated(lease_handle)) return
     call c_consul_lease_destroy(lease_handle)
+    lease_handle = c_null_ptr
+  end subroutine
+
+  integer(c_int) function postgres_open(connection_string, epoch, provider, error_message, name_space) result(status)
+    character(len=*), intent(in) :: connection_string, epoch
+    type(c_ptr), intent(inout) :: provider
+    character(len=*), intent(out) :: error_message
+    character(len=*), intent(in), optional :: name_space
+    type(c_dilock_postgres_options) :: options
+    type(c_dilock_error) :: error
+    character(kind=c_char), allocatable, target :: connection_c(:), epoch_c(:), namespace_c(:)
+    logical :: valid
+    if (c_associated(provider)) then
+       status = dilock_invalid_argument
+       error_message = 'Output provider must be null; destroy its current handle before opening.'
+       return
+    end if
+    call c_postgres_options_init(options)
+    call to_c_string(connection_string, connection_c, valid)
+    if (.not. valid) then
+       provider = c_null_ptr
+       status = dilock_invalid_argument
+       error_message = 'PostgreSQL connection string contains an embedded NUL byte.'
+       return
+    end if
+    call to_c_string(epoch, epoch_c, valid)
+    if (.not. valid) then
+       provider = c_null_ptr
+       status = dilock_invalid_argument
+       error_message = 'Epoch contains an embedded NUL byte.'
+       return
+    end if
+    options%connection_string = c_loc(connection_c(1))
+    options%coordination_epoch = c_loc(epoch_c(1))
+    if (present(name_space)) then
+       call to_c_string(name_space, namespace_c, valid)
+       if (.not. valid) then
+          provider = c_null_ptr
+          status = dilock_invalid_argument
+          error_message = 'Namespace contains an embedded NUL byte.'
+          return
+       end if
+       options%name_space = c_loc(namespace_c(1))
+    end if
+    status = c_postgres_provider_create(options, provider, error)
+    call copy_error(error, status, error_message)
+    call require_success_handle(status, provider, 'PostgreSQL provider', error_message)
+  end function
+
+  integer(c_int) function postgres_provision_namespace(connection_string, epoch, error_message, name_space) result(status)
+    character(len=*), intent(in) :: connection_string, epoch
+    character(len=*), intent(out) :: error_message
+    character(len=*), intent(in), optional :: name_space
+    type(c_dilock_postgres_options) :: options
+    type(c_dilock_error) :: error
+    character(kind=c_char), allocatable, target :: connection_c(:), epoch_c(:), namespace_c(:)
+    logical :: valid
+    call c_postgres_options_init(options)
+    call to_c_string(connection_string, connection_c, valid)
+    if (.not. valid) then
+       status = dilock_invalid_argument
+       error_message = 'PostgreSQL connection string contains an embedded NUL byte.'
+       return
+    end if
+    call to_c_string(epoch, epoch_c, valid)
+    if (.not. valid) then
+       status = dilock_invalid_argument
+       error_message = 'Epoch contains an embedded NUL byte.'
+       return
+    end if
+    options%connection_string = c_loc(connection_c(1))
+    options%coordination_epoch = c_loc(epoch_c(1))
+    if (present(name_space)) then
+       call to_c_string(name_space, namespace_c, valid)
+       if (.not. valid) then
+          status = dilock_invalid_argument
+          error_message = 'Namespace contains an embedded NUL byte.'
+          return
+       end if
+       options%name_space = c_loc(namespace_c(1))
+    end if
+    status = c_postgres_provision_namespace(options, error)
+    call copy_error(error, status, error_message)
+  end function
+
+  integer(c_int) function postgres_lock(provider, resource, lock_handle, error_message) result(status)
+    type(c_ptr), intent(in) :: provider
+    character(len=*), intent(in) :: resource
+    type(c_ptr), intent(inout) :: lock_handle
+    character(len=*), intent(out) :: error_message
+    character(kind=c_char), allocatable, target :: resource_c(:)
+    type(c_dilock_error) :: error
+    logical :: valid
+    if (c_associated(lock_handle)) then
+       status = dilock_invalid_argument
+       error_message = 'Output lock must be null; destroy its current handle before creating a lock.'
+       return
+    end if
+    call to_c_string(resource, resource_c, valid)
+    if (.not. valid) then
+       lock_handle = c_null_ptr
+       status = dilock_invalid_argument
+       error_message = 'Resource contains an embedded NUL byte.'
+       return
+    end if
+    status = c_postgres_lock_create(provider, resource_c, lock_handle, error)
+    call copy_error(error, status, error_message)
+    call require_success_handle(status, lock_handle, 'PostgreSQL lock', error_message)
+  end function
+
+  integer(c_int) function postgres_acquire(lock_handle, wait_ms, lease_ms, lease_handle, error_message) result(status)
+    type(c_ptr), intent(in) :: lock_handle
+    integer(c_int64_t), intent(in) :: wait_ms, lease_ms
+    type(c_ptr), intent(inout) :: lease_handle
+    character(len=*), intent(out) :: error_message
+    type(c_dilock_error) :: error
+    if (c_associated(lease_handle)) then
+       status = dilock_invalid_argument
+       error_message = 'Output lease must be null; destroy its current handle before acquiring.'
+       return
+    end if
+    status = c_postgres_acquire(lock_handle, wait_ms, lease_ms, lease_handle, error)
+    call copy_error(error, status, error_message)
+    call require_success_handle(status, lease_handle, 'PostgreSQL lease', error_message)
+  end function
+
+  integer(c_int) function postgres_acquire_default(lock_handle, lease_handle, error_message) result(status)
+    type(c_ptr), intent(in) :: lock_handle
+    type(c_ptr), intent(inout) :: lease_handle
+    character(len=*), intent(out) :: error_message
+    type(c_dilock_error) :: error
+    if (c_associated(lease_handle)) then
+       status = dilock_invalid_argument
+       error_message = 'Output lease must be null; destroy its current handle before acquiring.'
+       return
+    end if
+    status = c_postgres_acquire_default(lock_handle, lease_handle, error)
+    call copy_error(error, status, error_message)
+    call require_success_handle(status, lease_handle, 'PostgreSQL lease', error_message)
+  end function
+
+  integer(c_int) function postgres_acquire_with_cancellation(lock_handle, wait_ms, lease_ms, cancellation, &
+                                                             lease_handle, error_message) result(status)
+    type(c_ptr), intent(in) :: lock_handle, cancellation
+    integer(c_int64_t), intent(in) :: wait_ms, lease_ms
+    type(c_ptr), intent(inout) :: lease_handle
+    character(len=*), intent(out) :: error_message
+    type(c_dilock_error) :: error
+    if (c_associated(lease_handle)) then
+       status = dilock_invalid_argument
+       error_message = 'Output lease must be null; destroy its current handle before acquiring.'
+       return
+    end if
+    if (.not. c_associated(cancellation)) then
+       status = dilock_invalid_argument
+       error_message = 'Cancellation handle must be non-null.'
+       return
+    end if
+    status = c_postgres_acquire_with_cancellation(lock_handle, wait_ms, lease_ms, cancellation, lease_handle, error)
+    call copy_error(error, status, error_message)
+    call require_success_handle(status, lease_handle, 'PostgreSQL lease', error_message)
+  end function
+
+  integer(c_int) function postgres_acquire_default_with_cancellation(lock_handle, cancellation, &
+                                                                      lease_handle, error_message) result(status)
+    type(c_ptr), intent(in) :: lock_handle, cancellation
+    type(c_ptr), intent(inout) :: lease_handle
+    character(len=*), intent(out) :: error_message
+    type(c_dilock_error) :: error
+    if (c_associated(lease_handle)) then
+       status = dilock_invalid_argument
+       error_message = 'Output lease must be null; destroy its current handle before acquiring.'
+       return
+    end if
+    if (.not. c_associated(cancellation)) then
+       status = dilock_invalid_argument
+       error_message = 'Cancellation handle must be non-null.'
+       return
+    end if
+    status = c_postgres_acquire_default_with_cancellation(lock_handle, cancellation, lease_handle, error)
+    call copy_error(error, status, error_message)
+    call require_success_handle(status, lease_handle, 'PostgreSQL lease', error_message)
+  end function
+
+  integer(c_int) function postgres_try_acquire(lock_handle, lease_handle, error_message) result(status)
+    type(c_ptr), intent(in) :: lock_handle
+    type(c_ptr), intent(inout) :: lease_handle
+    character(len=*), intent(out) :: error_message
+    type(c_dilock_error) :: error
+    if (c_associated(lease_handle)) then
+       status = dilock_invalid_argument
+       error_message = 'Output lease must be null; destroy its current handle before try-acquire.'
+       return
+    end if
+    status = c_postgres_try_acquire(lock_handle, lease_handle, error)
+    call copy_error(error, status, error_message)
+    call require_success_handle(status, lease_handle, 'PostgreSQL lease', error_message)
+  end function
+
+  integer(c_int) function postgres_is_valid(lease_handle) result(status)
+    type(c_ptr), intent(in) :: lease_handle
+    if (.not. c_associated(lease_handle)) then
+       status = 0_c_int
+    else
+       status = c_postgres_lease_is_valid(lease_handle)
+    end if
+  end function
+
+  integer(c_int) function postgres_renew(lease_handle, renewed, error_message) result(status)
+    type(c_ptr), intent(in) :: lease_handle
+    integer(c_int), intent(out) :: renewed
+    character(len=*), intent(out) :: error_message
+    type(c_dilock_error) :: error
+    renewed = 0_c_int
+    status = c_postgres_renew(lease_handle, renewed, error)
+    call copy_error(error, status, error_message)
+    if (status /= dilock_ok) renewed = 0_c_int
+  end function
+
+  integer(c_int) function postgres_release(lease_handle, outcome, error_message) result(status)
+    type(c_ptr), intent(in) :: lease_handle
+    integer(c_int), intent(out) :: outcome
+    character(len=*), intent(out) :: error_message
+    type(c_dilock_error) :: error
+    integer(c_int) :: native_outcome
+    native_outcome = dilock_release_unknown
+    outcome = dilock_release_unknown
+    status = c_postgres_release(lease_handle, native_outcome, error)
+    call copy_error(error, status, error_message)
+    if (status /= dilock_ok) then
+       outcome = dilock_release_unknown
+    else
+       outcome = native_outcome
+       call normalize_release_outcome(outcome)
+    end if
+  end function
+
+  subroutine postgres_destroy_provider(provider)
+    type(c_ptr), intent(inout) :: provider
+    if (.not. c_associated(provider)) return
+    call c_postgres_provider_destroy(provider)
+    provider = c_null_ptr
+  end subroutine
+
+  subroutine postgres_destroy_lock(lock_handle)
+    type(c_ptr), intent(inout) :: lock_handle
+    if (.not. c_associated(lock_handle)) return
+    call c_postgres_lock_destroy(lock_handle)
+    lock_handle = c_null_ptr
+  end subroutine
+
+  subroutine postgres_destroy_lease(lease_handle)
+    type(c_ptr), intent(inout) :: lease_handle
+    if (.not. c_associated(lease_handle)) return
+    call c_postgres_lease_destroy(lease_handle)
     lease_handle = c_null_ptr
   end subroutine
 end module dilock_fortran

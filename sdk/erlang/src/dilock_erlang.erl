@@ -6,9 +6,12 @@
     start_redis/1,
     start_etcd/1,
     start_consul/1,
+    start_postgres/1,
     redis_child_spec/1,
     etcd_child_spec/1,
     consul_child_spec/1,
+    postgres_child_spec/1,
+    provision_postgres_namespace/1,
     lock/3,
     try_acquire/1,
     try_acquire/2,
@@ -46,6 +49,12 @@ start_consul(Options) ->
         Options,
         [endpoint, namespace, epoch, token, rpc_timeout_ms, cleanup_timeout_ms, cleanup_observer, name]
     ).
+start_postgres(Options) ->
+    start_provider(
+        'Elixir.Dilock.Postgres',
+        Options,
+        [connection_string, namespace, epoch, rpc_timeout_ms, cleanup_timeout_ms, poll_interval_ms, cleanup_observer, name]
+    ).
 
 %% Return the backend's standard OTP child specification without starting it.
 %% This lets an Erlang application keep provider lifetime under its supervisor.
@@ -69,6 +78,20 @@ consul_child_spec(Options) ->
         Options,
         [endpoint, namespace, epoch, token, rpc_timeout_ms, cleanup_timeout_ms, cleanup_observer, name]
     ).
+postgres_child_spec(Options) ->
+    provider_child_spec(
+        'Elixir.Dilock.Postgres',
+        Options,
+        [connection_string, namespace, epoch, rpc_timeout_ms, cleanup_timeout_ms, poll_interval_ms, cleanup_observer, name]
+    ).
+
+provision_postgres_namespace(Options) when is_list(Options) ->
+    case normalize_options(Options, [connection_string, namespace, epoch, rpc_timeout_ms, cleanup_timeout_ms, poll_interval_ms]) of
+        {ok, Normalized} -> 'Elixir.Dilock.Postgres':provision_namespace(Normalized);
+        {error, _} = Error -> Error
+    end;
+provision_postgres_namespace(_Options) ->
+    {error, invalid_configuration}.
 
 lock(Provider, Namespace, Resource) when is_pid(Provider) ->
     case {utf8(Namespace), utf8(Resource)} of
@@ -205,6 +228,7 @@ normalize_option({Key, Value}, AllowedKeys) when is_atom(Key) ->
 normalize_option(_Entry, _AllowedKeys) -> {error, invalid_configuration}.
 
 normalize_allowed_option(endpoint, Value) -> normalize_string_option(endpoint, Value);
+normalize_allowed_option(connection_string, Value) -> normalize_string_option(connection_string, Value);
 normalize_allowed_option(namespace, Value) -> normalize_string_option(namespace, Value);
 normalize_allowed_option(epoch, Value) -> normalize_string_option(epoch, Value);
 normalize_allowed_option(token, Value) -> normalize_string_option(token, Value);

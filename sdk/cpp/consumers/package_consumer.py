@@ -45,7 +45,7 @@ def sdk_configure_args(cmake: str, sdk: Path, build: Path, stage: Path, toolchai
     """Build the CMake argv used to configure and install the SDK package."""
     return [
         cmake, "-S", str(sdk), "-B", str(build), "-DCMAKE_BUILD_TYPE=Release",
-        "-DDILOCK_BUILD_TESTS=OFF", "-DDILOCK_BUILD_ETCD=ON",
+        "-DDILOCK_BUILD_TESTS=OFF", "-DDILOCK_BUILD_ETCD=ON", "-DDILOCK_BUILD_POSTGRES=ON",
         f"-DCMAKE_INSTALL_PREFIX={stage}", *toolchain_cmake_args(toolchain_file),
     ]
 
@@ -158,13 +158,13 @@ def main() -> int:
         consumer_build = scratch / "consumer-build"
         run(consumer_configure_args(cmake, consumer, consumer_build, prefix, toolchain_file), repo, records, env)
         run([cmake, "--build", str(consumer_build), "--parallel", "2"], repo, records, env)
-        exe = consumer_build / "dilock_cpp_consumer"
+        exe = consumer_build / "dilock_cpp_artifact_consumer"
         if not exe.is_file():
             raise ConsumerError(f"external consumer executable was not produced: {exe}")
         run([str(exe)], consumer, records, env)
         report.update({
             "status": "passed",
-            "reason": "Built current C++ Redis+etcd CMake install offline, archived and extracted that exact prefix, then configured, linked, and ran the external consumer against it.",
+            "reason": "Built current C++ Redis+etcd+PostgreSQL CMake install offline, archived and extracted that exact prefix, then configured, linked, and ran the external consumer against it.",
         })
     except (ConsumerError, OSError, tarfile.TarError, shutil.Error) as error:
         report["status"] = "blocked" if getattr(error, "blocked", False) or isinstance(error, PermissionError) else "failed"

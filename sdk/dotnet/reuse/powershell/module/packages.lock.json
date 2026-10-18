@@ -70,6 +70,15 @@
           "System.Diagnostics.DiagnosticSource": "10.0.5"
         }
       },
+      "Npgsql": {
+        "type": "Transitive",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
+          "System.Diagnostics.DiagnosticSource": "9.0.11"
+        }
+      },
       "RESPite": {
         "type": "Transitive",
         "resolved": "3.3.1",
@@ -124,6 +133,13 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.9, )",
           "Microsoft.Extensions.Logging.Abstractions": "[8.0.0, )",
           "dotnet-etcd": "[9.1.0, )"
+        }
+      },
+      "dilock.postgres": {
+        "type": "Project",
+        "dependencies": {
+          "Dilock.Core": "[0.1.0-dev.1, )",
+          "Npgsql": "[10.0.3, )"
         }
       },
       "dilock.redis": {

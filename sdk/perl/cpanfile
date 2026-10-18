@@ -12,6 +12,8 @@ recommends 'Crypt::URandom', '0.55';
 recommends 'Redis::Fast', '0.39';
 recommends 'EV';
 recommends 'EV::Etcd', '0.10';
+recommends 'DBI', '1.643';
+recommends 'DBD::Pg', '3.18';
 
 on 'test' => sub {
     requires 'Test::More';

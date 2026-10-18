@@ -2,7 +2,8 @@
 param(
     [string] $Endpoint = $env:DILOCK_REDIS_URL,
     [string] $EtcdEndpoint = $env:DILOCK_ETCD_ENDPOINT,
-    [ValidateSet('Auto', 'Redis', 'Etcd')]
+    [string] $PostgresConnectionString = $env:DILOCK_POSTGRES_CONNECTION_STRING,
+    [ValidateSet('Auto', 'Redis', 'Etcd', 'Postgres')]
     [string] $Backend = 'Auto',
     [string] $Namespace = $env:DILOCK_NAMESPACE,
     [string] $Epoch = $env:DILOCK_EPOCH,
@@ -13,11 +14,12 @@ param(
 $ErrorActionPreference = 'Stop'
 $hasRedisEndpoint = -not [string]::IsNullOrWhiteSpace($Endpoint)
 $hasEtcdEndpoint = -not [string]::IsNullOrWhiteSpace($EtcdEndpoint)
+$hasPostgresEndpoint = -not [string]::IsNullOrWhiteSpace($PostgresConnectionString)
 if ($Backend -eq 'Auto') {
-    if ($hasRedisEndpoint -and $hasEtcdEndpoint) {
-        throw 'Both Redis and etcd endpoints are configured; pass -Backend Redis or -Backend Etcd to select the authority explicitly.'
+    if (($hasRedisEndpoint -and $hasEtcdEndpoint) -or ($hasRedisEndpoint -and $hasPostgresEndpoint) -or ($hasEtcdEndpoint -and $hasPostgresEndpoint)) {
+        throw 'Multiple coordinator endpoints are configured; pass -Backend Redis, Etcd or Postgres to select the authority explicitly.'
     }
-    $selectedBackend = if ($hasEtcdEndpoint) { 'Etcd' } elseif ($hasRedisEndpoint) { 'Redis' } else { 'None' }
+    $selectedBackend = if ($hasEtcdEndpoint) { 'Etcd' } elseif ($hasPostgresEndpoint) { 'Postgres' } elseif ($hasRedisEndpoint) { 'Redis' } else { 'None' }
 }
 else {
     $selectedBackend = $Backend
@@ -27,6 +29,9 @@ else {
     if ($selectedBackend -eq 'Etcd' -and -not $hasEtcdEndpoint) {
         throw '-Backend Etcd requires -EtcdEndpoint or DILOCK_ETCD_ENDPOINT; no other coordinator will be selected.'
     }
+    if ($selectedBackend -eq 'Postgres' -and -not $hasPostgresEndpoint) {
+        throw '-Backend Postgres requires -PostgresConnectionString or DILOCK_POSTGRES_CONNECTION_STRING; no other coordinator will be selected.'
+    }
 }
 if ($selectedBackend -ne 'None' -and [string]::IsNullOrWhiteSpace($Epoch)) {
     throw 'A selected Dilock backend requires -Epoch or DILOCK_EPOCH; no coordinator connection was attempted.'
@@ -35,11 +40,14 @@ if ($selectedBackend -ne 'None' -and [string]::IsNullOrWhiteSpace($Epoch)) {
 $sdkRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
 $redisProject = Join-Path $sdkRoot 'Dilock.Redis/Dilock.Redis.csproj'
 $etcdProject = Join-Path $sdkRoot 'Dilock.Etcd/Dilock.Etcd.csproj'
+$postgresProject = Join-Path $sdkRoot 'Dilock.Postgres/Dilock.Postgres.csproj'
 if (-not $SkipBuild) {
     dotnet build $redisProject -c Release --no-restore
     if ($LASTEXITCODE -ne 0) { throw "Dilock.Redis build failed: $LASTEXITCODE" }
     dotnet build $etcdProject -c Release --no-restore
     if ($LASTEXITCODE -ne 0) { throw "Dilock.Etcd build failed: $LASTEXITCODE" }
+    dotnet build $postgresProject -c Release --no-restore
+    if ($LASTEXITCODE -ne 0) { throw "Dilock.Postgres build failed: $LASTEXITCODE" }
 }
 else {
     Write-Output 'Using existing Release assemblies; build skipped by request.'
@@ -47,15 +55,18 @@ else {
 
 $redisOutput = Join-Path $sdkRoot 'Dilock.Redis/bin/Release/net8.0'
 $etcdOutput = Join-Path $sdkRoot 'Dilock.Etcd/bin/Release/net8.0'
+$postgresOutput = Join-Path $sdkRoot 'Dilock.Postgres/bin/Release/net8.0'
 $assemblyPaths = if ([string]::IsNullOrWhiteSpace($AssemblyDirectory)) {
     @((Join-Path $redisOutput 'Dilock.Core.dll'),
       (Join-Path $redisOutput 'Dilock.Redis.dll'),
-      (Join-Path $etcdOutput 'Dilock.Etcd.dll'))
+      (Join-Path $etcdOutput 'Dilock.Etcd.dll'),
+      (Join-Path $postgresOutput 'Dilock.Postgres.dll'))
 }
 else {
     @((Join-Path $AssemblyDirectory 'Dilock.Core.dll'),
       (Join-Path $AssemblyDirectory 'Dilock.Redis.dll'),
-      (Join-Path $AssemblyDirectory 'Dilock.Etcd.dll'))
+      (Join-Path $AssemblyDirectory 'Dilock.Etcd.dll'),
+      (Join-Path $AssemblyDirectory 'Dilock.Postgres.dll'))
 }
 foreach ($path in $assemblyPaths) {
     if (-not (Test-Path $path)) { throw "Required local SDK assembly missing: $path" }
@@ -94,7 +105,9 @@ function Invoke-DilockLifecycle($Provider, [string] $Backend) {
     # represent independent acquisitions of the same distributed resource.
     $ownerHandle = $Provider.Lock($resource)
     $waiterHandle = $Provider.Lock($resource)
-    $owner = $ownerHandle.AcquireAsync([Threading.CancellationToken]::None).GetAwaiter().GetResult()
+    $owner = $ownerHandle.AcquireAsync(
+        [TimeSpan]::FromSeconds(5), [Dilock.LeaseOptions]::new(),
+        [Threading.CancellationToken]::None).GetAwaiter().GetResult()
     try {
         if ($owner.State -ne [Dilock.LeaseState]::Held) { throw "$Backend owner did not enter Held state." }
 
@@ -104,7 +117,7 @@ function Invoke-DilockLifecycle($Provider, [string] $Backend) {
         }
         $cancellation = [Threading.CancellationTokenSource]::new()
         try {
-            $waiting = $waiterHandle.AcquireAsync($waitPolicy, $cancellation.Token)
+            $waiting = $waiterHandle.AcquireAsync($waitPolicy.WaitTimeout, $waitPolicy.Lease, $cancellation.Token)
             Start-Sleep -Milliseconds 400
             $cancellation.Cancel()
             $wasCancelled = $false
@@ -133,7 +146,9 @@ function Invoke-DilockLifecycle($Provider, [string] $Backend) {
         $owner.DisposeAsync().AsTask().GetAwaiter().GetResult() | Out-Null
     }
 
-    $successor = $waiterHandle.AcquireAsync([Threading.CancellationToken]::None).GetAwaiter().GetResult()
+    $successor = $waiterHandle.AcquireAsync(
+        [TimeSpan]::FromSeconds(5), [Dilock.LeaseOptions]::new(),
+        [Threading.CancellationToken]::None).GetAwaiter().GetResult()
     try {
         if ($successor.State -ne [Dilock.LeaseState]::Held) { throw "$Backend successor did not acquire after handoff." }
         $successorRelease = $successor.ReleaseAsync().GetAwaiter().GetResult()
@@ -168,8 +183,26 @@ if ($selectedBackend -eq 'Etcd') {
     return
 }
 
+if ($selectedBackend -eq 'Postgres') {
+    $providerOptions = [Dilock.Postgres.PostgresProviderOptions]::new()
+    $providerOptions.ConnectionString = $PostgresConnectionString
+    $providerOptions.Namespace = $effectiveNamespace
+    $providerOptions.ExpectedEpoch = $Epoch
+    $providerOptions.CleanupObserver = $cleanupObserver
+    $provider = [Dilock.Postgres.PostgresProvider]::ConnectAsync(
+        $providerOptions, [Threading.CancellationToken]::None).GetAwaiter().GetResult()
+    try {
+        Invoke-DilockLifecycle $provider 'PostgreSQL'
+    }
+    finally {
+        $provider.DisposeAsync().AsTask().GetAwaiter().GetResult() | Out-Null
+    }
+    Write-Output 'PowerShell consumer and PostgreSQL operation passed.'
+    return
+}
+
 if ($selectedBackend -ne 'Redis') {
-    Write-Output 'PowerShell consumer API passed; live Redis/etcd NOT_RUN (set DILOCK_REDIS_URL or DILOCK_ETCD_ENDPOINT).'
+    Write-Output 'PowerShell consumer API passed; live backend NOT_RUN (set a backend endpoint and DILOCK_EPOCH).'
     return
 }
 

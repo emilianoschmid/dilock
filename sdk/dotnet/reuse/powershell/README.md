@@ -2,7 +2,7 @@
 
 This directory contains a script consumer for development and a minimal local
 PowerShell module candidate in [`module/Dilock`](module/Dilock/README.md). The
-module wraps the existing public .NET Core, Redis, etcd and Consul APIs; it does not
+module wraps the existing public .NET Core, Redis, etcd, Consul and PostgreSQL APIs; it does not
 implement a PowerShell lock engine. Its ZIP is locally buildable but has not
 been published to the PowerShell Gallery.
 
@@ -18,14 +18,14 @@ build already performed in an isolated Docker toolchain, pass its published
 assembly directory with `-RuntimeAssemblyDirectory`; this packages those exact
 DLLs without running a second host-side .NET build.
 
-`Invoke-DilockExample.ps1` loads the locally built Dilock .NET Redis and etcd assemblies; it does
+`Invoke-DilockExample.ps1` loads the locally built Dilock .NET Redis, etcd, Consul and PostgreSQL assemblies; it does
 not create another lock engine or a PowerShell package. By default it builds both existing backend
 projects without restore and checks the public identity API. Pass `-SkipBuild` only after those
 Release assemblies have already been built. `-AssemblyDirectory` can point to one Release output
-directory containing Core, Redis, Etcd and Consul assemblies when the artifacts were built by a consumer
-project. Set `DILOCK_ETCD_ENDPOINT` and the provisioned `DILOCK_EPOCH` to run etcd; otherwise set
-`DILOCK_REDIS_URL` and the epoch to run Redis. If both endpoints are configured, autodetection fails
-closed; choose one explicitly with `-Backend Redis` or `-Backend Etcd`. An explicit backend whose
+directory containing Core, Redis, Etcd, Consul and PostgreSQL assemblies when the artifacts were built by a consumer
+project. Set `DILOCK_ETCD_ENDPOINT`, `DILOCK_POSTGRES_CONNECTION_STRING` or the provisioned `DILOCK_EPOCH` to run the corresponding backend; otherwise set
+`DILOCK_REDIS_URL` and the epoch to run Redis. If multiple endpoints are configured, autodetection fails
+closed; choose one explicitly with `-Backend Redis`, `-Backend Etcd` or `-Backend Postgres`. An explicit backend whose
 endpoint is missing is an error and never falls back to the other coordinator. With no endpoint or
 selected backend without an epoch, the script stops before build or connection. With no backend
 selected, the script does not run a live backend integration.
@@ -94,6 +94,8 @@ finally {
 Use the equivalent `EtcdProviderOptions` and `EtcdProvider.ConnectAsync` for
 etcd. Use `New-DilockConsulProvider` or `ConsulProviderOptions` for Consul; the
 ACL token is read from `CONSUL_HTTP_TOKEN`, and Consul requires a 10-second-minimum TTL. Do not provision namespace metadata from ordinary application startup.
+For PostgreSQL, use `New-DilockPostgresProvider -ConnectionString $env:DILOCK_POSTGRES_CONNECTION_STRING -Epoch $env:DILOCK_EPOCH`.
+The connection string must target the provisioned namespace metadata; the PostgreSQL provider owns one physical session per acquisition and has no server TTL or fencing.
 The module provider constructors and standalone example install the .NET
 `CleanupObserver`; if best-effort scope disposal cannot confirm cleanup, they
 write the backend and reason to standard error. Reconcile the protected resource

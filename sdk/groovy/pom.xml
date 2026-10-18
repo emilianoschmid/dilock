@@ -19,6 +19,7 @@
     <dependency><groupId>org.dilock</groupId><artifactId>dilock-redis</artifactId><version>0.1.0</version></dependency>
     <dependency><groupId>org.dilock</groupId><artifactId>dilock-etcd</artifactId><version>0.1.0</version></dependency>
     <dependency><groupId>org.dilock</groupId><artifactId>dilock-consul</artifactId><version>0.1.0</version></dependency>
+    <dependency><groupId>org.dilock</groupId><artifactId>dilock-postgres</artifactId><version>0.1.0</version></dependency>
     <dependency><groupId>org.apache.groovy</groupId><artifactId>groovy</artifactId><version>${groovy.version}</version></dependency>
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>${junit.version}</version><scope>test</scope></dependency>
   </dependencies>

@@ -8,11 +8,13 @@ open Dilock
 open Dilock.Etcd
 open Dilock.Consul
 open Dilock.Redis
+open Dilock.Postgres
 
 type ConfiguredBackend =
     | ConfiguredRedis of string
     | ConfiguredEtcd of string
     | ConfiguredConsul of string
+    | ConfiguredPostgres of string
 
 let requiredEnvironment name =
     match Environment.GetEnvironmentVariable(name) with
@@ -23,24 +25,28 @@ let resolveBackend () =
     let redisEndpoint = requiredEnvironment "DILOCK_REDIS_URL"
     let etcdEndpoint = requiredEnvironment "DILOCK_ETCD_ENDPOINT"
     let consulEndpoint = requiredEnvironment "DILOCK_CONSUL_ENDPOINT"
+    let postgresEndpoint = requiredEnvironment "DILOCK_POSTGRES_CONNECTION_STRING"
     let requested =
         requiredEnvironment "DILOCK_BACKEND"
         |> Option.map (fun value -> value.Trim().ToLowerInvariant())
 
-    match requested, redisEndpoint, etcdEndpoint, consulEndpoint with
-    | Some "redis", Some endpoint, _, _ -> Some (ConfiguredRedis endpoint)
-    | Some "redis", None, _, _ -> invalidOp "DILOCK_BACKEND=redis requires DILOCK_REDIS_URL; no other coordinator will be selected."
-    | Some "etcd", _, Some endpoint, _ -> Some (ConfiguredEtcd endpoint)
-    | Some "etcd", _, None, _ -> invalidOp "DILOCK_BACKEND=etcd requires DILOCK_ETCD_ENDPOINT; no other coordinator will be selected."
-    | Some "consul", _, _, _ ->
+    match requested, redisEndpoint, etcdEndpoint, consulEndpoint, postgresEndpoint with
+    | Some "redis", Some endpoint, _, _, _ -> Some (ConfiguredRedis endpoint)
+    | Some "redis", None, _, _, _ -> invalidOp "DILOCK_BACKEND=redis requires DILOCK_REDIS_URL; no other coordinator will be selected."
+    | Some "etcd", _, Some endpoint, _, _ -> Some (ConfiguredEtcd endpoint)
+    | Some "etcd", _, None, _, _ -> invalidOp "DILOCK_BACKEND=etcd requires DILOCK_ETCD_ENDPOINT; no other coordinator will be selected."
+    | Some "consul", _, _, _, _ ->
         Some (consulEndpoint |> Option.map ConfiguredConsul
                               |> Option.defaultWith (fun () -> invalidOp "DILOCK_BACKEND=consul requires DILOCK_CONSUL_ENDPOINT; no other coordinator will be selected."))
-    | Some backend, _, _, _ -> invalidOp (sprintf "Unsupported DILOCK_BACKEND '%s'; choose redis, etcd or consul." backend)
-    | None, Some endpoint, None, None -> Some (ConfiguredRedis endpoint)
-    | None, None, Some endpoint, None -> Some (ConfiguredEtcd endpoint)
-    | None, None, None, Some endpoint -> Some (ConfiguredConsul endpoint)
-    | None, None, None, None -> None
-    | None, _, _, _ -> invalidOp "Set DILOCK_BACKEND when multiple coordinator endpoints are configured."
+    | Some "postgres", _, _, _, Some endpoint -> Some (ConfiguredPostgres endpoint)
+    | Some "postgres", _, _, _, None -> invalidOp "DILOCK_BACKEND=postgres requires DILOCK_POSTGRES_CONNECTION_STRING; no other coordinator will be selected."
+    | Some backend, _, _, _, _ -> invalidOp (sprintf "Unsupported DILOCK_BACKEND '%s'; choose redis, etcd, consul or postgres." backend)
+    | None, Some endpoint, None, None, None -> Some (ConfiguredRedis endpoint)
+    | None, None, Some endpoint, None, None -> Some (ConfiguredEtcd endpoint)
+    | None, None, None, Some endpoint, None -> Some (ConfiguredConsul endpoint)
+    | None, None, None, None, Some endpoint -> Some (ConfiguredPostgres endpoint)
+    | None, None, None, None, None -> None
+    | None, _, _, _, _ -> invalidOp "Set DILOCK_BACKEND when multiple coordinator endpoints are configured."
 
 let observeCleanup (observation: CleanupObservation) =
     if observation.Outcome = ReleaseOutcome.Unknown then
@@ -128,7 +134,7 @@ let verifyPreCancelledConnect () = task {
     require etcdCancelled "etcd ConnectAsync did not honor cancellation before I/O."
 }
 
-let verifyLeaseLifecycle (provider: ILockProvider) backend cancellationToken = task {
+let verifyLeaseLifecycle (provider: ILockProvider) backend expectLeaseDuration cancellationToken = task {
     let resource = "fsharp/semantic-" + Guid.NewGuid().ToString("N")
     // Reusable resource handles share this provider and its backend client/channel.
     let ownerHandle = provider.Lock(resource)
@@ -136,7 +142,8 @@ let verifyLeaseLifecycle (provider: ILockProvider) backend cancellationToken = t
     let! owner = ownerHandle.AcquireAsync(cancellationToken)
     do! withAsyncDispose owner (fun () -> task {
         require (owner.State = LeaseState.Held) (backend + " owner did not enter Held state.")
-        require (owner.EffectiveLeaseMilliseconds = 30_000L) (backend + " default lease duration changed.")
+        if expectLeaseDuration then
+            require (owner.EffectiveLeaseMilliseconds = 30_000L) (backend + " default lease duration changed.")
 
         use cancellation = new CancellationTokenSource()
         let policy = AcquireOptions(WaitTimeout = TimeSpan.FromSeconds 8.0,
@@ -170,14 +177,14 @@ let runExample endpoint epoch cancellationToken = task {
     // Easy path: default namespace, five-second wait, and thirty-second lease.
     let options = RedisProviderOptions(Endpoint = endpoint, ExpectedEpoch = epoch, CleanupObserver = observeCleanup)
     let! provider = RedisProvider.ConnectAsync(options, cancellationToken)
-    do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "Redis" cancellationToken)
+    do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "Redis" true cancellationToken)
 }
 
 let runEtcd endpoint namespaceName epoch cancellationToken = task {
     let options = EtcdProviderOptions(Endpoint = endpoint, Namespace = namespaceName,
                                       ExpectedEpoch = epoch, CleanupObserver = observeCleanup)
     let! provider = EtcdProvider.ConnectAsync(options, cancellationToken)
-    do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "etcd" cancellationToken)
+    do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "etcd" true cancellationToken)
 }
 
 let runConsul endpoint namespaceName epoch cancellationToken = task {
@@ -186,7 +193,14 @@ let runConsul endpoint namespaceName epoch cancellationToken = task {
                                         Token = Environment.GetEnvironmentVariable("CONSUL_HTTP_TOKEN"),
                                         CleanupObserver = observeCleanup)
     let! provider = ConsulProvider.ConnectAsync(options, cancellationToken)
-    do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "Consul" cancellationToken)
+    do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "Consul" true cancellationToken)
+}
+
+let runPostgres endpoint namespaceName epoch cancellationToken = task {
+    let options = PostgresProviderOptions(ConnectionString = endpoint, Namespace = namespaceName,
+                                          ExpectedEpoch = epoch, CleanupObserver = observeCleanup)
+    let! provider = PostgresProvider.ConnectAsync(options, cancellationToken)
+    do! withAsyncDispose provider (fun () -> verifyLeaseLifecycle provider "PostgreSQL" false cancellationToken)
 }
 
 let identity = ResourceIdentity.Hash("default", "fsharp/consumer")
@@ -207,6 +221,10 @@ match resolveBackend (), requiredEnvironment "DILOCK_NAMESPACE", requiredEnviron
     runConsul endpoint (defaultArg namespaceName "default") epoch CancellationToken.None
     |> fun work -> work.GetAwaiter().GetResult()
     printfn "F# consumer and Consul operation passed."
+| Some (ConfiguredPostgres endpoint), namespaceName, Some epoch ->
+    runPostgres endpoint (defaultArg namespaceName "default") epoch CancellationToken.None
+    |> fun work -> work.GetAwaiter().GetResult()
+    printfn "F# consumer and PostgreSQL operation passed."
 | Some (ConfiguredRedis endpoint), _, Some epoch ->
     runExample endpoint epoch CancellationToken.None |> fun work -> work.GetAwaiter().GetResult()
     printfn "F# consumer and Redis operation passed."

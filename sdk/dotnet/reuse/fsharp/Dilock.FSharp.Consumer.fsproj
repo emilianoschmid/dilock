@@ -10,5 +10,6 @@
     <ProjectReference Include="../../Dilock.Redis/Dilock.Redis.csproj" />
     <ProjectReference Include="../../Dilock.Etcd/Dilock.Etcd.csproj" />
     <ProjectReference Include="../../Dilock.Consul/Dilock.Consul.csproj" />
+    <ProjectReference Include="../../Dilock.Postgres/Dilock.Postgres.csproj" />
   </ItemGroup>
 </Project>

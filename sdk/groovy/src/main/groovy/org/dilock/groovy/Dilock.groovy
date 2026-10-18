@@ -7,6 +7,8 @@ import org.dilock.consul.ConsulProvider
 import org.dilock.redis.AcquireOptions
 import org.dilock.redis.RedisLease
 import org.dilock.redis.RedisProvider
+import org.dilock.postgres.PostgresProvider
+import org.dilock.postgres.PostgresLease
 
 /**
  * Closure-based lifetime helpers over the Java SDK. This facade owns no backend
@@ -26,6 +28,10 @@ final class Dilock {
 
     static ConsulProvider consul(String endpoint, String namespace, String epoch) {
         ConsulProvider.connect(endpoint, namespace, epoch)
+    }
+
+    static PostgresProvider postgres(String jdbcUrl, String namespace, String epoch) {
+        PostgresProvider.connect(jdbcUrl, namespace, epoch)
     }
 
     static <T extends AutoCloseable, R> R withCloseable(T resource, Closure<R> body) {
@@ -80,6 +86,11 @@ final class Dilock {
         withLease(provider.lock(resource).acquire(), body)
     }
 
+    static <R> R withPostgresLock(PostgresProvider provider, String resource, Closure<R> body) {
+        Objects.requireNonNull(body, 'body')
+        withLease(provider.lock(resource).acquire(), body)
+    }
+
     static <R> R withLease(RedisLease lease, Closure<R> body) {
         withLeaseScope(lease, body)
     }
@@ -89,6 +100,10 @@ final class Dilock {
     }
 
     static <R> R withLease(ConsulLease lease, Closure<R> body) {
+        withLeaseScope(lease, body)
+    }
+
+    static <R> R withLease(PostgresLease lease, Closure<R> body) {
         withLeaseScope(lease, body)
     }
 
@@ -108,7 +123,8 @@ final class Dilock {
             Object outcome = lease.release()
             if (outcome != RedisLease.ReleaseOutcome.RELEASED &&
                     outcome != EtcdLease.ReleaseOutcome.RELEASED &&
-                    outcome != org.dilock.consul.ConsulLease.ReleaseOutcome.RELEASED) {
+                    outcome != org.dilock.consul.ConsulLease.ReleaseOutcome.RELEASED &&
+                    outcome != org.dilock.postgres.PostgresLease.ReleaseOutcome.RELEASED) {
                 releaseFailure = new IllegalStateException(
                     "Lease scope did not receive a RELEASED acknowledgement: ${outcome}")
             }

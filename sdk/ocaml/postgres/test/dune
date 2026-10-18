@@ -1,0 +1,7 @@
+(test
+ (name postgres_contract)
+ (libraries dilock_postgres))
+
+(test
+ (name postgres_live)
+ (libraries dilock_postgres))

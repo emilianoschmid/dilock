@@ -5,6 +5,7 @@ require_relative 'dilock/core'
 require_relative 'dilock/redis'
 require_relative 'dilock/etcd'
 require_relative 'dilock/consul'
+require_relative 'dilock/postgres'
 
 # Public entry point for the shared API and backend adapters.
 module Dilock

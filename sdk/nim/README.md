@@ -193,6 +193,17 @@ nim c -r --path:src --passC:-I<abi-prefix>/include \
 The C ABI and this facade are experimental and are not presented as a
 production-ready package.
 
+The opt-in PostgreSQL consumer is `tests/test_postgres_live.nim`. Compile it
+with the same C ABI include/library flags and set `DILOCK_POSTGRES_DSN`; it
+provisions a disposable namespace and checks contention, liveness, release and
+handoff with two independent providers:
+
+```sh
+nim c -r --path:src --passC:-I<abi-prefix>/include \
+  --passL:-L<abi-prefix>/lib --passL:-Wl,-rpath-link,<abi-prefix>/lib \
+  --passL:-ldilock_c tests/test_postgres_live.nim
+```
+
 The opt-in Redis renewal integration test is `tests/test_redis_renewal.nim`.
 Run it only against a disposable Redis whose `nim-renewal` namespace metadata
 has been provisioned with the matching epoch. Compile it with the same C ABI

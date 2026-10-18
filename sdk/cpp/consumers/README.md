@@ -1,6 +1,7 @@
 # C++ package consumer
 
-Run the exact-artifact consumer on Linux from the repository root:
+Run the exact-artifact consumer on Linux from the repository root. It builds
+and consumes the Redis, etcd and PostgreSQL CMake targets:
 
 ```sh
 python3 sdk/cpp/consumers/package_consumer.py \
@@ -20,7 +21,7 @@ conan install sdk/cpp --output-folder .tools/cpp-conan-etcd -o "&:with_etcd=True
 ```
 
 The scratch directory must be new or empty. CMake configures the current SDK
-with both Redis and etcd enabled, installs and archives that build, extracts
+with Redis, etcd and PostgreSQL enabled, installs and archives that build, extracts
 the archive, then builds and runs this external consumer against the extracted
 prefix. The consumer performs a default-policy acquire and acknowledged release
 against both backends. Set `DILOCK_REDIS_HOST`, `DILOCK_ETCD_ENDPOINT`,

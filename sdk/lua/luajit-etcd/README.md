@@ -100,3 +100,34 @@ assert(provider:close())
 `lease:release()` are available. Fences preserve the full unsigned 64-bit
 index as a decimal string. The C ABI provider validates existing metadata;
 ordinary provider construction never provisions or repairs it.
+
+## PostgreSQL advisory-session facade
+
+The same rock also provides `dilock_postgres_luajit`, a synchronous LuaJIT FFI
+facade over the native PostgreSQL advisory-session provider. The C ABI provider
+uses one private PostgreSQL session for each held acquisition; it does not add a
+TTL or fencing token. Provision `dilock_namespace_meta` explicitly through
+`api:provision(config)` before constructing a provider. Provider construction
+only validates the existing row.
+
+```lua
+local postgres = require "dilock_postgres_luajit"
+local api = assert(postgres.load(os.getenv("DILOCK_C_LIBRARY")))
+local dsn = assert(os.getenv("DILOCK_POSTGRES_DSN"))
+local epoch = assert(os.getenv("DILOCK_COORDINATION_EPOCH"))
+assert(api:provision({ connection_string = dsn, namespace = "billing", epoch = epoch }))
+local provider = assert(api:new({ connection_string = dsn, namespace = "billing", epoch = epoch }))
+local handle = assert(provider:lock("invoice:42"))
+local lease = assert(handle:try_acquire())
+assert(lease:renew()) -- liveness check only; it cannot extend a PostgreSQL lock
+assert(lease:release() == "released")
+assert(provider:close())
+```
+
+This route is experimental and requires LuaJIT FFI plus a C ABI built with the
+PostgreSQL backend enabled. A missing native library is reported as
+`backend_unavailable`; it is not silently replaced by a different backend.
+
+The checked-in `test/postgres_live.lua` is an opt-in two-provider consumer that
+checks provisioning, contention, liveness, release and handoff against a
+disposable PostgreSQL instance.

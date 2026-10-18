@@ -5,8 +5,8 @@ require_relative 'lib/dilock/version'
 Gem::Specification.new do |spec|
   spec.name = 'dilock'
   spec.version = Dilock::VERSION
-  spec.summary = 'Distributed leases for Redis, etcd, and Consul'
-  spec.description = 'A small Ruby library implementing the Dilock draft 1 Redis, etcd, and Consul lease profiles.'
+  spec.summary = 'Distributed leases for Redis, etcd, Consul, and PostgreSQL'
+  spec.description = 'A small Ruby library implementing the experimental Dilock draft 1 Redis, etcd, Consul, and PostgreSQL lease profiles.'
   spec.authors = ['Dilock contributors']
   spec.license = 'Apache-2.0'
   spec.required_ruby_version = '>= 3.2'
@@ -41,6 +41,7 @@ Gem::Specification.new do |spec|
     lib/dilock/etcd/proto/LICENSE-etcd-api
     lib/dilock/etcd/proto/LICENSE-etcd-server
     lib/dilock/consul.rb
+    lib/dilock/postgres.rb
   ]
   spec.require_paths = ['lib']
   spec.bindir = 'bin'
@@ -49,5 +50,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'google-protobuf', '~> 4.30'
   spec.add_dependency 'grpc', '~> 1.75'
   spec.add_dependency 'redis', '~> 6.0'
+  spec.add_dependency 'pg', '~> 1.5'
   spec.metadata['rubygems_mfa_required'] = 'true'
 end

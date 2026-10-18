@@ -13,7 +13,7 @@ import sys
 
 
 VERSION = "0.1.0"
-MODULES = ("core", "redis", "etcd", "consul")
+MODULES = ("core", "redis", "etcd", "consul", "postgres")
 
 
 def digest(path: Path) -> str:
@@ -30,6 +30,7 @@ def main() -> int:
     parser.add_argument("--scratch", required=True, type=Path, help="new empty workspace for the copied source and isolated consumers")
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[3])
     parser.add_argument("--maven", help="Maven executable (default: DILOCK_MAVEN, bundled Maven, or PATH)")
+    parser.add_argument("--maven-repo", type=Path, help="Maven dependency cache; defaults to DILOCK_MAVEN_REPO or the checkout cache")
     args = parser.parse_args()
     repo = args.repo.resolve()
     output = args.output.resolve()
@@ -40,7 +41,9 @@ def main() -> int:
     maven_path = Path(maven_value)
     maven = str(maven_path.resolve()) if maven_path.is_file() else maven_value
     maven_settings = repo / ".tools" / "maven-settings.xml"
-    local_repo = repo / ".tools" / "m2repo"
+    local_repo = (args.maven_repo or Path(os.environ["DILOCK_MAVEN_REPO"])
+                  if os.environ.get("DILOCK_MAVEN_REPO") and args.maven_repo is None
+                  else args.maven_repo or repo / ".tools" / "m2repo").resolve()
     report: dict[str, object] = {
         "schema_version": 1,
         "status": "not_run",
@@ -100,7 +103,7 @@ def main() -> int:
         settings = ["-s", str(maven_settings)] if maven_settings.is_file() else []
         common = [maven, "-o", "-B", "-ntp", *settings, f"-Dmaven.repo.local={local_repo}"]
         source_pom = source_copy / "pom.xml"
-        run("fresh copied-source reactor install", [*common, "-f", str(source_pom), "-pl", "core,redis,etcd,consul", "-am", "install"], source_copy)
+        run("fresh copied-source reactor install", [*common, "-f", str(source_pom), "-pl", "core,redis,etcd,consul,postgres", "-am", "install", "-DskipTests"], source_copy)
 
         artifacts: list[dict[str, object]] = []
         for module in MODULES:
@@ -120,16 +123,16 @@ def main() -> int:
         report["artifacts"] = artifacts
 
         consumer_pom = scratch / "consumer" / "pom.xml"
-        run("isolated four-consumer Maven build", [*common, "-f", str(consumer_pom), "package"], consumer_pom.parent)
+        run("isolated six-consumer Maven build", [*common, "-f", str(consumer_pom), "package"], consumer_pom.parent)
         module_results: dict[str, dict[str, object]] = {}
-        for module in ("core-only", "redis-only", "etcd-only", "consul-only", "combined"):
+        for module in ("core-only", "redis-only", "etcd-only", "consul-only", "postgres-only", "combined"):
             pom = scratch / "consumer" / module / "pom.xml"
             output_file = scratch / f"{module}-classpath.txt"
             run(f"{module} runtime dependency closure", [*common, "-f", str(pom), "org.apache.maven.plugins:maven-dependency-plugin:3.9.0:build-classpath",
                  "-Dmdep.includeScope=runtime", f"-Dmdep.outputFile={output_file}"], pom.parent)
             classpath = output_file.read_text(encoding="utf-8").strip()
             lowered = classpath.lower()
-            forbidden = {"core-only": ("jedis", "jetcd", "consul"), "redis-only": ("jetcd", "consul"), "etcd-only": ("jedis", "consul"), "consul-only": ("jedis", "jetcd")}.get(module, ())
+            forbidden = {"core-only": ("jedis", "jetcd", "consul", "postgresql"), "redis-only": ("jetcd", "consul", "postgresql"), "etcd-only": ("jedis", "consul", "postgresql"), "consul-only": ("jedis", "jetcd", "postgresql"), "postgres-only": ("jedis", "jetcd", "consul")}.get(module, ())
             leaked = [dependency for dependency in forbidden if dependency in lowered]
             if leaked:
                 raise RuntimeError(f"{module} consumer unexpectedly resolved backend dependencies: {leaked}")
@@ -139,9 +142,12 @@ def main() -> int:
                 raise RuntimeError("etcd-only consumer did not resolve Jetcd")
             if module == "consul-only" and "jackson-databind" not in lowered:
                 raise RuntimeError("Consul-only consumer did not resolve Jackson")
+            if module == "postgres-only" and "postgresql" not in lowered:
+                raise RuntimeError("PostgreSQL-only consumer did not resolve the JDBC driver")
             classes = scratch / "consumer" / module / "target" / "classes"
             main_class = {"core-only": "CoreConsumer", "redis-only": "RedisConsumer",
-                          "etcd-only": "EtcdConsumer", "consul-only": "ConsulConsumer", "combined": "PackageConsumer"}[module]
+                          "etcd-only": "EtcdConsumer", "consul-only": "ConsulConsumer",
+                          "postgres-only": "PostgresConsumer", "combined": "PackageConsumer"}[module]
             java = os.environ.get("DILOCK_JAVA") or shutil.which("java")
             if not java:
                 candidate = Path(os.environ.get("JAVA_HOME", "")) / "bin" / ("java.exe" if os.name == "nt" else "java")
@@ -154,7 +160,7 @@ def main() -> int:
                                       "forbidden_backend_dependencies": list(forbidden)}
         report["module_consumers"] = module_results
         report["status"] = "passed"
-        report["reason"] = "Fresh source-copy reactor tests and install passed; core-only, Redis-only, etcd-only, Consul-only and combined external consumers compiled and ran with backend dependency isolation verified."
+        report["reason"] = "Fresh source-copy reactor tests and install passed; core-only, Redis-only, etcd-only, Consul-only, PostgreSQL-only and combined external consumers compiled and ran with backend dependency isolation verified."
     except Exception as error:
         report["status"] = "failed"
         report["reason"] = f"{type(error).__name__}: {error}"

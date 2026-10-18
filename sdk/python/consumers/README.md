@@ -1,12 +1,12 @@
 # Python package consumers
 
 `tools/package_consumers.py` builds the wheel and source archive from this SDK,
-installs each exact archive with both optional backend extras into separate new
+installs each exact archive with all Redis, etcd and PostgreSQL optional backend extras into separate new
 virtual environments, then runs `artifact_smoke.py` from outside the checkout.
 The smoke test checks the installed path, a published identity vector, public
 options and provider constructors, and packaged protocol/runtime resources. It
-does not contact Redis or etcd; real backend behavior is covered by the SDK and
-cross-process test suites.
+does not contact Redis, etcd or PostgreSQL; real backend behavior is covered by
+the SDK and cross-process test suites.
 
 Run from the repository root with a Python environment containing the pinned
 Hatchling build backend and a local wheelhouse containing the exact runtime

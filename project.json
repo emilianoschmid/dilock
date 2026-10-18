@@ -24,8 +24,10 @@
     "etcd"
   ],
   "experimental_backends": [
-    "nats"
+    "nats",
+    "postgresql"
   ],
+  "planned_backends": [],
   "later_sdks": [
     "javascript",
     "fsharp",

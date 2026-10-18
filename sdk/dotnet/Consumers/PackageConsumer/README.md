@@ -1,6 +1,6 @@
 # Exact NuGet artifact consumer
 
-`package_consumer.py` builds the Core, Redis, and etcd NuGet packages from the current SDK sources, restores a fresh application using only the generated local feed and an isolated offline dependency cache, then runs this fixture outside the repository checkout.
+`package_consumer.py` builds the Core, Redis, etcd, Consul, and PostgreSQL NuGet packages from the current SDK sources, restores a fresh application using only the generated local feed and an isolated offline dependency cache, then runs this fixture outside the repository checkout.
 
 The fixture verifies the installed identity/options APIs and the Redis/etcd public API surface without connecting to an authority. Backend behavior is validated separately by the real-server integration and cross-SDK conformance suites.
 

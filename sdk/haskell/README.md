@@ -11,6 +11,18 @@ optional C ABI is installed, the etcd facade
 The optional Consul facade also has a quickstart
 ([Consul C ABI example and instructions](examples/consul-c-abi/README.md)).
 
+The optional PostgreSQL facade is enabled with `postgres-c-abi`; its
+[PostgreSQL C ABI quickstart](examples/postgres-c-abi/README.md) uses one
+private PostgreSQL session per acquisition. Provisioning is explicit, runtime
+construction only validates `dilock_namespace_meta`, and the profile provides
+neither a TTL nor a fencing token. It remains experimental. The opt-in
+`dilock-postgres-cabi-live` consumer uses two providers to check provisioning,
+contention, liveness, release and handoff against a disposable PostgreSQL
+authority when `DILOCK_POSTGRES_DSN` is set. The local validation uses the
+PostgreSQL-only C ABI build, so it does not require etcd or Consul symbols;
+hosted CI evidence remains pending. A successful local build is not a
+production-readiness claim.
+
 ```haskell
 import Control.Exception (bracket)
 import Database.Redis (connect, defaultConnectInfo, disconnect)

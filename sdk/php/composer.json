@@ -10,6 +10,7 @@
   "suggest": {
     "ext-redis": "Required for the Redis backend",
     "ext-grpc": "Required for the etcd backend",
+    "ext-pdo_pgsql": "Required for the PostgreSQL advisory-session backend",
     "grpc/grpc": "Required for the etcd backend",
     "google/protobuf": "Required for the etcd backend"
   },

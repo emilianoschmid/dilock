@@ -1,9 +1,16 @@
 #include "dilock/dilock.h"
 #include "c_api_error.hpp"
 
+#ifdef DILOCK_C_HAS_ETCD
 #include "dilock/etcd.hpp"
+#endif
+#ifdef DILOCK_C_HAS_CONSUL
 #include "dilock/consul.hpp"
+#endif
 #include "dilock/redis.hpp"
+#ifdef DILOCK_C_HAS_POSTGRES
+#include "dilock/postgres.hpp"
+#endif
 
 #include <algorithm>
 #include <cstring>
@@ -19,12 +26,21 @@
 struct dilock_redis_provider { std::unique_ptr<dilock::RedisProvider> value; };
 struct dilock_redis_lock { dilock::ResourceLock value; };
 struct dilock_redis_lease { dilock::Lease value; };
+#ifdef DILOCK_C_HAS_ETCD
 struct dilock_etcd_provider { std::unique_ptr<dilock::EtcdProvider> value; };
 struct dilock_etcd_lock { dilock::EtcdResourceLock value; };
 struct dilock_etcd_lease { dilock::EtcdLease value; };
+#endif
+#ifdef DILOCK_C_HAS_CONSUL
 struct dilock_consul_provider { std::unique_ptr<dilock::ConsulProvider> value; };
 struct dilock_consul_lock { dilock::ConsulResourceLock value; };
 struct dilock_consul_lease { dilock::ConsulLease value; };
+#endif
+#ifdef DILOCK_C_HAS_POSTGRES
+struct dilock_postgres_provider { std::unique_ptr<dilock::PostgresProvider> value; };
+struct dilock_postgres_lock { dilock::PostgresResourceLock value; };
+struct dilock_postgres_lease { dilock::PostgresLease value; };
+#endif
 struct dilock_cancellation { std::atomic_bool requested{false}; };
 
 namespace {
@@ -152,6 +168,7 @@ dilock::RedisOptions redis_options(const dilock_redis_options* source) {
     return value;
 }
 
+#ifdef DILOCK_C_HAS_ETCD
 dilock::EtcdOptions etcd_options(const dilock_etcd_options* source) {
     if (source == nullptr) throw std::invalid_argument("etcd options pointer is null");
     dilock::EtcdOptions value;
@@ -185,7 +202,9 @@ dilock::EtcdOptions etcd_options(const dilock_etcd_options* source) {
     value.auto_renew = source->auto_renew != 0;
     return value;
 }
+#endif
 
+#ifdef DILOCK_C_HAS_CONSUL
 dilock::ConsulOptions consul_options(const dilock_consul_options* source) {
     if (source == nullptr) throw std::invalid_argument("Consul options pointer is null");
     dilock::ConsulOptions value;
@@ -209,6 +228,32 @@ dilock::ConsulOptions consul_options(const dilock_consul_options* source) {
     }
     return value;
 }
+#endif
+
+#ifdef DILOCK_C_HAS_POSTGRES
+dilock::PostgresOptions postgres_options(const dilock_postgres_options* source) {
+    if (source == nullptr) throw std::invalid_argument("PostgreSQL options pointer is null");
+    dilock::PostgresOptions value;
+    value.connection_string = optional_string(source->connection_string, "");
+    value.name_space = optional_string(source->name_space, "default");
+    value.coordination_epoch = optional_string(source->coordination_epoch, "");
+    value.rpc_timeout = std::chrono::milliseconds(source->rpc_timeout_ms);
+    value.cleanup_timeout = std::chrono::milliseconds(source->cleanup_timeout_ms);
+    value.poll_interval = std::chrono::milliseconds(source->poll_interval_ms);
+    value.default_acquisition.wait = std::chrono::milliseconds(source->default_wait_ms);
+    value.default_acquisition.lease = std::chrono::milliseconds(source->default_lease_ms);
+    if (source->cleanup_callback != nullptr) {
+        const auto callback = source->cleanup_callback;
+        void* const user_data = source->cleanup_user_data;
+        value.cleanup_observer = [callback, user_data](const dilock::CleanupObservation& observation) {
+            const auto outcome = observation.outcome == dilock::ReleaseResult::unknown ? DILOCK_RELEASE_UNKNOWN :
+                observation.outcome == dilock::ReleaseResult::already_not_owned ? DILOCK_ALREADY_NOT_OWNED : DILOCK_RELEASED;
+            callback(DILOCK_BACKEND_POSTGRES, outcome, observation.reason.c_str(), user_data);
+        };
+    }
+    return value;
+}
+#endif
 
 } // namespace
 
@@ -231,6 +276,10 @@ void dilock_consul_options_init(dilock_consul_options* options) {
     if (options == nullptr) return;
     *options = dilock_consul_options{"http://127.0.0.1:8500", "default", "", "", nullptr, nullptr,
         2000, 2000, 50, 5000, 30000};
+}
+void dilock_postgres_options_init(dilock_postgres_options* options) {
+    if (options == nullptr) return;
+    *options = dilock_postgres_options{"", "default", "", nullptr, nullptr, 2000, 2000, 25, 5000, 30000};
 }
 dilock_cancellation* dilock_cancellation_create(dilock_error* error) {
     dilock_cancellation* result = nullptr;
@@ -304,6 +353,7 @@ dilock_status dilock_redis_provision_namespace(const dilock_redis_options* optio
     return invoke(error, [&] { dilock::provision_redis_namespace(redis_options(options)); });
 }
 
+#ifdef DILOCK_C_HAS_ETCD
 dilock_status dilock_etcd_provider_create(const dilock_etcd_options* options,
     dilock_etcd_provider** out, dilock_error* error) {
     if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
@@ -387,7 +437,9 @@ dilock_status dilock_etcd_try_acquire(dilock_etcd_lock* lock, int64_t lease_ms,
         "etcd native Lock has no safe try-acquire operation");
     return DILOCK_STATUS_UNSUPPORTED_CAPABILITY;
 }
+#endif
 
+#ifdef DILOCK_C_HAS_CONSUL
 dilock_status dilock_consul_provider_create(const dilock_consul_options* options,
     dilock_consul_provider** out, dilock_error* error) {
     if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
@@ -457,5 +509,62 @@ void dilock_consul_lease_destroy(dilock_consul_lease* lease) { delete lease; }
 dilock_status dilock_consul_provision_namespace(const dilock_consul_options* options, dilock_error* error) {
     return invoke(error, [&] { dilock::provision_consul_namespace(consul_options(options)); });
 }
+#endif
+
+#ifdef DILOCK_C_HAS_POSTGRES
+dilock_status dilock_postgres_provider_create(const dilock_postgres_options* options,
+    dilock_postgres_provider** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke(error, [&] { auto value = std::make_unique<dilock_postgres_provider>(); value->value = std::make_unique<dilock::PostgresProvider>(postgres_options(options)); *out = value.release(); });
+}
+void dilock_postgres_provider_destroy(dilock_postgres_provider* provider) { delete provider; }
+dilock_status dilock_postgres_lock_create(dilock_postgres_provider* provider, const char* resource,
+    dilock_postgres_lock** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke(error, [&] { if (provider == nullptr || resource == nullptr) throw std::invalid_argument("provider and resource are required"); auto value = std::make_unique<dilock_postgres_lock>(); value->value = provider->value->lock(resource); *out = value.release(); });
+}
+void dilock_postgres_lock_destroy(dilock_postgres_lock* lock) { delete lock; }
+dilock_status dilock_postgres_acquire(dilock_postgres_lock* lock, int64_t wait_ms, int64_t lease_ms,
+    dilock_postgres_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke(error, [&] { if (lock == nullptr) throw std::invalid_argument("lock is null"); dilock::AcquireOptions options; options.wait = std::chrono::milliseconds(wait_ms); options.lease = std::chrono::milliseconds(lease_ms); auto value = std::make_unique<dilock_postgres_lease>(); value->value = lock->value.acquire(options); *out = value.release(); });
+}
+dilock_status dilock_postgres_acquire_default(dilock_postgres_lock* lock,
+    dilock_postgres_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke(error, [&] { if (lock == nullptr) throw std::invalid_argument("lock is null"); auto result = lock->value.acquire(); auto value = std::make_unique<dilock_postgres_lease>(); value->value = std::move(result); *out = value.release(); });
+}
+dilock_status dilock_postgres_acquire_with_cancellation(dilock_postgres_lock* lock, int64_t wait_ms, int64_t lease_ms,
+    dilock_cancellation* cancellation, dilock_postgres_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke_cancellable(error, cancellation, [&](std::stop_token stop) { if (lock == nullptr) throw std::invalid_argument("lock is null"); dilock::AcquireOptions options; options.wait = std::chrono::milliseconds(wait_ms); options.lease = std::chrono::milliseconds(lease_ms); auto value = std::make_unique<dilock_postgres_lease>(); value->value = lock->value.acquire(options, stop); *out = value.release(); });
+}
+dilock_status dilock_postgres_acquire_default_with_cancellation(dilock_postgres_lock* lock,
+    dilock_cancellation* cancellation, dilock_postgres_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    return invoke_cancellable(error, cancellation, [&](std::stop_token stop) { if (lock == nullptr) throw std::invalid_argument("lock is null"); auto value = std::make_unique<dilock_postgres_lease>(); value->value = lock->value.acquire(stop); *out = value.release(); });
+}
+dilock_status dilock_postgres_try_acquire(dilock_postgres_lock* lock, dilock_postgres_lease** out, dilock_error* error) {
+    if (!require_output(out, error)) return DILOCK_STATUS_INVALID_ARGUMENT;
+    bool busy = false;
+    const auto status = invoke(error, [&] { if (lock == nullptr) throw std::invalid_argument("lock is null"); auto result = lock->value.try_acquire(); if (!result) { busy = true; set_error(error, DILOCK_STATUS_BUSY, "resource is currently held"); return; } auto value = std::make_unique<dilock_postgres_lease>(); value->value = std::move(*result); *out = value.release(); });
+    return status == DILOCK_STATUS_OK && busy ? DILOCK_STATUS_BUSY : status;
+}
+int32_t dilock_postgres_lease_is_valid(const dilock_postgres_lease* lease) { return lease != nullptr && lease->value.valid() ? 1 : 0; }
+dilock_status dilock_postgres_lease_renew(dilock_postgres_lease* lease, int32_t* renewed, dilock_error* error) {
+    if (renewed != nullptr) *renewed = 0;
+    if (lease == nullptr || renewed == nullptr) { set_error(error, DILOCK_STATUS_INVALID_ARGUMENT, "lease and renewed output are required"); return DILOCK_STATUS_INVALID_ARGUMENT; }
+    return invoke(error, [&] { *renewed = lease->value.renew() ? 1 : 0; });
+}
+dilock_status dilock_postgres_lease_release(dilock_postgres_lease* lease, dilock_release_outcome* outcome, dilock_error* error) {
+    clear_error(error); if (outcome != nullptr) *outcome = DILOCK_RELEASE_UNKNOWN;
+    if (lease == nullptr || outcome == nullptr) { set_error(error, DILOCK_STATUS_INVALID_ARGUMENT, "lease and outcome are required"); return DILOCK_STATUS_INVALID_ARGUMENT; }
+    return public_release(lease->value.release(), outcome);
+}
+void dilock_postgres_lease_destroy(dilock_postgres_lease* lease) { delete lease; }
+dilock_status dilock_postgres_provision_namespace(const dilock_postgres_options* options, dilock_error* error) {
+    return invoke(error, [&] { dilock::provision_postgres_namespace(postgres_options(options)); });
+}
+#endif
 
 } // extern "C"

@@ -1,0 +1,13 @@
+name: dilock_postgres
+description: PostgreSQL advisory-session adapter for Dilock.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+dependencies:
+  dilock:
+    path: ../dilock
+  postgres: ^3.5.4
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.0
