@@ -348,14 +348,20 @@ jobs:
         with:
           dotnet-version: '8.0.416'
       - name: Run real PostgreSQL .NET contention contract
-        run: >-
-          dotnet run
-          --project sdk/dotnet/Consumers/PostgresLiveConsumer/PostgresLiveConsumer.csproj
-          --configuration Release
-          --
-          "Host=127.0.0.1;Port=5432;Database=dilock;Username=postgres;Password=postgres"
-          ci-postgres-dotnet
-          ci-postgres-dotnet-epoch
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if dotnet run \
+              --project sdk/dotnet/Consumers/PostgresLiveConsumer/PostgresLiveConsumer.csproj \
+              --configuration Release \
+              -- \
+              "Host=127.0.0.1;Port=5432;Database=dilock;Username=postgres;Password=postgres" \
+              ci-postgres-dotnet \
+              ci-postgres-dotnet-epoch; then
+              exit 0
+            fi
+            [ "$attempt" -lt 5 ] && sleep 2
+          done
+          exit 1
       - name: Provision PostgreSQL metadata for .NET facade consumers
         run: >-
           docker run --rm --network host postgres:16-alpine
@@ -706,20 +712,22 @@ jobs:
           DILOCK_POSTGRES_DSN: jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres
         run: >-
           mvn --batch-mode --no-transfer-progress
-          -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
+          -Dmaven.repo.local="$HOME/.m2/repository"
           --file sdk/java/pom.xml -pl postgres -am test
-      - name: Prepare Maven dependency-closure plugin for artifact consumer
-        run: >-
-          mvn --batch-mode --no-transfer-progress
-          -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
-          --file sdk/java/pom.xml
-          org.apache.maven.plugins:maven-dependency-plugin:3.9.0:go-offline
+      - name: Populate Maven cache for offline artifact consumer
+        run: |
+          mvn --batch-mode --no-transfer-progress \
+            -Dmaven.repo.local="$HOME/.m2/repository" \
+            --file sdk/java/pom.xml -pl postgres -am install -DskipTests
+          mvn --batch-mode --no-transfer-progress \
+            -Dmaven.repo.local="$HOME/.m2/repository" \
+            --file sdk/java/consumers/pom.xml package -DskipTests
       - name: Verify Java PostgreSQL artifact consumer
         run: >-
           python sdk/java/consumers/package_consumer.py
           --output .tools/java-postgres-package-consumer.json
           --scratch "$RUNNER_TEMP/java-postgres-package-consumer"
-          --maven-repo "$GITHUB_WORKSPACE/.tools/m2repo"
+          --maven-repo "$HOME/.m2/repository"
 
   postgres-advisory-scala:
     name: PostgreSQL advisory-session Scala 2.13/3 route
@@ -944,6 +952,9 @@ jobs:
         env:
           DILOCK_POSTGRES_DSN: host=127.0.0.1 port=5432 user=postgres password=postgres dbname=dilock
         run: cargo +1.99.0 test --locked -p dilock-postgres --test live -- --nocapture
+      - name: Fetch Rust registry archives for offline package verification
+        working-directory: sdk/rust
+        run: cargo +1.99.0 fetch --locked
       - name: Verify exact Rust PostgreSQL crate artifacts
         env:
           RUSTUP_TOOLCHAIN: 1.99.0
