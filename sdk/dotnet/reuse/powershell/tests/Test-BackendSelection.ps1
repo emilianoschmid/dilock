@@ -27,7 +27,7 @@ function Assert-ThrowsContaining {
 function Assert-NotRun {
     param([Parameter(Mandatory)][hashtable] $Arguments)
     $output = @(& $example @Arguments)
-    if (-not ($output -join "`n" | Select-String -SimpleMatch 'live Redis/etcd NOT_RUN')) {
+    if (-not ($output -join "`n" | Select-String -SimpleMatch 'live backend NOT_RUN')) {
         throw "Expected API-only path to report live backend NOT_RUN; got: $($output -join ' | ')"
     }
 }
@@ -38,7 +38,7 @@ $base = @{
     Epoch = 'selection-test-epoch'
 }
 
-Assert-ThrowsContaining -Expected 'Both Redis and etcd endpoints are configured' -Arguments ($base + @{
+Assert-ThrowsContaining -Expected 'Multiple coordinator endpoints are configured' -Arguments ($base + @{
     Backend = 'Auto'
     Endpoint = 'redis://127.0.0.1:1'
     EtcdEndpoint = '127.0.0.1:1'
@@ -56,6 +56,11 @@ Assert-ThrowsContaining -Expected 'Backend Etcd requires' -Arguments ($base + @{
     EtcdEndpoint = ''
 })
 
+Assert-ThrowsContaining -Expected 'Backend Postgres requires' -Arguments ($base + @{
+    Backend = 'Postgres'
+    PostgresConnectionString = ''
+})
+
 $missingEpoch = $base.Clone()
 $missingEpoch.Epoch = ''
 Assert-ThrowsContaining -Expected 'requires -Epoch or DILOCK_EPOCH' -Arguments ($missingEpoch + @{
@@ -65,6 +70,10 @@ Assert-ThrowsContaining -Expected 'requires -Epoch or DILOCK_EPOCH' -Arguments (
 Assert-ThrowsContaining -Expected 'requires -Epoch or DILOCK_EPOCH' -Arguments ($missingEpoch + @{
     Backend = 'Etcd'
     EtcdEndpoint = 'http://127.0.0.1:1'
+})
+Assert-ThrowsContaining -Expected 'requires -Epoch or DILOCK_EPOCH' -Arguments ($missingEpoch + @{
+    Backend = 'Postgres'
+    PostgresConnectionString = 'Host=127.0.0.1;Port=1;Database=dilock'
 })
 
 # Explicit choice is resolved before connection, but a configured backend still
@@ -88,4 +97,10 @@ Assert-ThrowsContaining -Expected 'requires -Epoch or DILOCK_EPOCH' -Arguments (
     EtcdEndpoint = '127.0.0.1:1'
 })
 
-Write-Output 'PASS backend selection fail-closed tests: 8 cases.'
+Assert-ThrowsContaining -Expected 'Multiple coordinator endpoints are configured' -Arguments ($base + @{
+    Backend = 'Auto'
+    Endpoint = 'redis://127.0.0.1:1'
+    PostgresConnectionString = 'Host=127.0.0.1;Port=1;Database=dilock'
+})
+
+Write-Output 'PASS backend selection fail-closed tests: 11 cases.'

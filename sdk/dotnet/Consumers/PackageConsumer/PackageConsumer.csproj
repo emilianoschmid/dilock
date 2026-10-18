@@ -11,5 +11,6 @@
     <PackageReference Include="Dilock.Redis" Version="0.1.0-dev.1" />
     <PackageReference Include="Dilock.Etcd" Version="0.1.0-dev.1" />
     <PackageReference Include="Dilock.Consul" Version="0.1.0-dev.1" />
+    <PackageReference Include="Dilock.Postgres" Version="0.1.0-dev.1" />
   </ItemGroup>
 </Project>

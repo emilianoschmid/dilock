@@ -8,7 +8,7 @@ defmodule Dilock.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      description: "Distributed leases for Redis, etcd and Consul",
+      description: "Distributed leases for Redis, etcd, Consul and PostgreSQL",
       package: [
         licenses: ["Apache-2.0"],
         links: %{"Hex.pm" => "https://hex.pm/packages/dilock"},
@@ -28,6 +28,7 @@ defmodule Dilock.MixProject do
       {:mint, "~> 1.9"},
       {:protobuf, "== 0.17.0"},
       {:jason, "~> 1.4.4"},
+      {:postgrex, "~> 0.22.4"},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false}
     ]
   end

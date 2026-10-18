@@ -1,8 +1,8 @@
 # Exact Maven artifact consumer
 
-`package_consumer.py` builds the Maven JAR in offline mode from a fresh copy of the current source, creates source and Javadoc classifier archives, copies the exact runtime JAR to a separate external consumer workspace, then compiles and runs `PackageConsumer.java` against that archive and the pinned Maven runtime dependency classpath.
+`package_consumer.py` builds the Maven JAR in offline mode from a fresh copy of the current source, creates source and Javadoc classifier archives, copies the exact runtime JAR to a separate external consumer workspace, then compiles and runs the consumer fixtures against that archive and the pinned Maven runtime dependency classpath.
 
-The fixture verifies the installed identity, Redis, etcd, lease, and fence API surface without connecting to an authority. Backend behavior is validated separately by the real-server integration and cross-SDK conformance suites.
+The fixtures verify the installed identity, Redis, etcd, PostgreSQL, lease, and fence API surfaces without connecting to an authority. The PostgreSQL-only fixture also verifies that the JDBC driver is present without leaking unrelated backend dependencies. Backend behavior is validated separately by the real-server integration and cross-SDK conformance suites.
 
 Run from the repository root with a new, empty scratch directory outside the checkout:
 

@@ -5,6 +5,7 @@
             [dilock.clojure.core :as dilock])
   (:import [org.dilock.redis RedisProvider AcquireOptions]
            [org.dilock.consul ConsulProvider]
+           [org.dilock.postgres PostgresProvider]
            [redis.clients.jedis RedisClient]
            [java.util.concurrent Executors TimeUnit]))
 
@@ -36,6 +37,29 @@
                     "the successor must remain held while its scope is open"))
               (finally
                 (.close first-lease)))))))))
+
+(when (config/configured-value? (System/getenv "DILOCK_POSTGRES_DSN"))
+  (deftest postgres-live-two-provider-scope
+    (let [dsn (System/getenv "DILOCK_POSTGRES_DSN")
+          namespace (test-id "postgres")
+          epoch (test-id "epoch")
+          resource (str "resource/" namespace)
+          options (AcquireOptions. 1000 5000)]
+      (PostgresProvider/provisionNamespace dsn namespace epoch)
+      (with-open [first-provider (PostgresProvider/connect dsn namespace epoch)
+                  second-provider (PostgresProvider/connect dsn namespace epoch)]
+        (let [first-lock (.lock first-provider resource)
+              second-lock (.lock second-provider resource)
+              first-lease (.orElseThrow (.tryAcquire first-lock))]
+          (try
+            (.assertValid first-lease)
+            (is (.isEmpty (.tryAcquire second-lock))
+                "an independent PostgreSQL provider must observe contention")
+            (is (= "RELEASED" (str (.release first-lease))))
+            (with-open [successor (.orElseThrow (.tryAcquire second-lock))]
+              (.assertValid successor))
+            (finally
+              (.close first-lease))))))))
 
 (when (config/configured-value? (System/getenv "DILOCK_ETCD_URL"))
   (deftest etcd-live-two-provider-scope

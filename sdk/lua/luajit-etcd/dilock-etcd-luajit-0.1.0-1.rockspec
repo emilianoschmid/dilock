@@ -16,5 +16,6 @@ build = {
       dilock_etcd_luajit_core = "lib/dilock_etcd_luajit_core.lua",
       dilock_etcd_luajit_ffi = "lib/dilock_etcd_luajit_ffi.lua",
       dilock_consul_luajit = "lib/dilock_consul_luajit.lua",
+      dilock_postgres_luajit = "lib/dilock_postgres_luajit.lua",
    },
 }

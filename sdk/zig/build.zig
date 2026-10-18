@@ -98,4 +98,24 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run ABI binding contract tests");
     test_step.dependOn(&run_tests.step);
     test_step.dependOn(&run_facade_tests.step);
+
+    // Keep the PostgreSQL route independently linkable against the
+    // PostgreSQL-only C ABI build. The combined contract root intentionally
+    // exercises Redis, etcd and Consul null-handle guards, so it would require
+    // their native symbols even when the live PostgreSQL test is the only
+    // backend under evaluation.
+    const postgres_tests_module = b.createModule(.{
+        .root_source_file = b.path("tests/postgres.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    postgres_tests_module.addImport("c", c_module);
+    postgres_tests_module.addImport("dilock", module);
+    postgres_tests_module.addIncludePath(.{ .cwd_relative = include_dir });
+    postgres_tests_module.addLibraryPath(.{ .cwd_relative = library_dir });
+    postgres_tests_module.linkSystemLibrary("dilock_c", .{});
+    const postgres_tests = b.addTest(.{ .root_module = postgres_tests_module });
+    const run_postgres_tests = b.addRunArtifact(postgres_tests);
+    const postgres_test_step = b.step("test-postgres", "Run PostgreSQL ABI contract and live tests");
+    postgres_test_step.dependOn(&run_postgres_tests.step);
 }

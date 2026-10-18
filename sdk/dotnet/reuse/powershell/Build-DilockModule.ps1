@@ -43,7 +43,7 @@ try {
         Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $libraryStage $file.Name)
     }
 
-    foreach ($required in @('Dilock.Runtime.Bundle.dll', 'Dilock.Core.dll', 'Dilock.Redis.dll', 'Dilock.Etcd.dll', 'Dilock.Consul.dll')) {
+    foreach ($required in @('Dilock.Runtime.Bundle.dll', 'Dilock.Core.dll', 'Dilock.Redis.dll', 'Dilock.Etcd.dll', 'Dilock.Consul.dll', 'Dilock.Postgres.dll')) {
         if (-not (Test-Path -LiteralPath (Join-Path $libraryStage $required) -PathType Leaf)) {
             throw "Published backend closure did not produce required assembly $required"
         }

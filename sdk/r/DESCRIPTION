@@ -1,13 +1,13 @@
 Package: dilock
-Title: Experimental Distributed Lock Client for Redis, etcd, and Consul
+Title: Experimental Distributed Lock Client for Redis, etcd, Consul, and PostgreSQL
 Version: 0.1.0
 Authors@R: person("Dilock", "Contributors", role = c("aut", "cre"), email = "maintainers@example.invalid")
 Author: Dilock Contributors [aut, cre]
 Maintainer: Dilock Contributors <maintainers@example.invalid>
-Description: Experimental distributed-lock adapters for Redis, native etcd gRPC, and Consul HTTP KV sessions. These adapters are not production-supported.
+Description: Experimental distributed-lock adapters for Redis, native etcd gRPC, Consul HTTP KV sessions, and PostgreSQL advisory sessions. These adapters are not production-supported.
 License: Apache License (== 2)
 Encoding: UTF-8
 Imports: curl, jsonlite, openssl, RProtoBuf (== 0.4.28), rgrpc (== 0.1.2)
-Suggests: testthat (>= 3.0.0), redux
+Suggests: testthat (>= 3.0.0), redux, DBI, RPostgres
 SystemRequirements: C++11; Protocol Buffers compiler and development headers; gRPC C++ runtime required by rgrpc
 Config/testthat/edition: 3

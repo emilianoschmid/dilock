@@ -6,6 +6,35 @@ import munit.FunSuite
 import org.dilock.redis.DilockException
 
 final class FacadeSuite extends FunSuite {
+  test("PostgreSQL facade contends and hands off on a real authority when configured") {
+    sys.env.get("DILOCK_POSTGRES_DSN").foreach { dsn =>
+      val namespace = s"scala213-pg-${System.nanoTime()}"
+      val epoch = s"scala213-epoch-${System.nanoTime()}"
+      org.dilock.postgres.PostgresProvider.provisionNamespace(dsn, namespace, epoch)
+      val first = DilockPostgres.connect(dsn, namespace, epoch)
+      val second = DilockPostgres.connect(dsn, namespace, epoch)
+      try {
+        val firstLease = first.lock("scala213-provider").tryAcquire() match {
+          case Right(Some(lease)) => lease
+          case other => fail(s"first PostgreSQL acquisition failed: $other")
+        }
+        try {
+          assertEquals(second.lock("scala213-provider").tryAcquire(), Right(None))
+          assertEquals(firstLease.release(), org.dilock.postgres.PostgresLease.ReleaseOutcome.RELEASED)
+        } finally firstLease.close()
+        val handoff = second.lock("scala213-provider").tryAcquire() match {
+          case Right(Some(lease)) => lease
+          case other => fail(s"PostgreSQL handoff failed: $other")
+        }
+        try assertEquals(handoff.release(), org.dilock.postgres.PostgresLease.ReleaseOutcome.RELEASED)
+        finally handoff.close()
+      } finally {
+        first.close()
+        second.close()
+      }
+    }
+  }
+
   test("common acquisition budgets are preserved for the Java engine") {
     val options = AcquirePolicy(Duration.ofMillis(1250), Duration.ofMillis(7500)).toJava
     assertEquals(options.waitMillis(), 1250L)

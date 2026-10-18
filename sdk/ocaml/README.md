@@ -6,6 +6,13 @@ lease keeps a separate bidirectional KeepAlive stream until release. Lease
 expiry does not stop work already running. Never treat a distributed lock as a
 local mutex or as exactly-once execution.
 
+The optional [`postgres/`](postgres/) package exposes the PostgreSQL
+advisory-session profile through an Lwt/ctypes C ABI facade. It uses one
+private PostgreSQL session per held acquisition, requires explicit metadata
+provisioning, and provides neither a TTL nor a fencing token. Its deterministic
+contract test and opt-in two-provider live consumer are separate from hosted
+backend and toolchain validation.
+
 ## Redis
 
 The Redis provider borrows a caller-owned Redis-Lwt connection. Keep it private

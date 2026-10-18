@@ -4,6 +4,42 @@ struct MissingEtcdLease <: Exception
     grpc_status::Int
 end
 
+# Opt-in integration against a disposable PostgreSQL endpoint.
+if haskey(ENV, "DILOCK_POSTGRES_DSN")
+    @testset "real PostgreSQL advisory-session lifecycle" begin
+        dsn = ENV["DILOCK_POSTGRES_DSN"]
+        namespace = "pg" * bytes2hex(rand(RandomDevice(), UInt8, 6))
+        epoch = "julia-postgres-" * bytes2hex(rand(RandomDevice(), UInt8, 8))
+        resource = "julia-postgres-live-" * bytes2hex(rand(RandomDevice(), UInt8, 8))
+        Dilock.provision_postgres_namespace(dsn, namespace, epoch)
+        first_provider = Dilock.PostgresProvider(connection_string=dsn, namespace=namespace, epoch=epoch,
+                                                 wait_ms=5_000, lease_ms=10_000)
+        second_provider = Dilock.PostgresProvider(connection_string=dsn, namespace=namespace, epoch=epoch,
+                                                  wait_ms=5_000, lease_ms=10_000)
+        first_handle = Dilock.lock(first_provider, resource)
+        second_handle = Dilock.lock(second_provider, resource)
+
+        first = Dilock.try_acquire(first_handle; lease_ms=10_000)
+        @test first isa Dilock.PostgresLease
+        @test Dilock.try_acquire(second_handle; lease_ms=10_000) === nothing
+        @test Dilock.renew!(first)
+        @test Dilock.release!(first) == :released
+
+        successor = Dilock.try_acquire(second_handle; lease_ms=10_000)
+        @test successor isa Dilock.PostgresLease
+        @test Dilock.release!(successor) == :released
+        Dilock.close(first_provider)
+        Dilock.close(second_provider)
+    end
+end
+
+@testset "PostgreSQL advisory key contract" begin
+    @test Dilock.advisory_key("0000000000000000" * repeat("0", 48)) == 0
+    @test Dilock.advisory_key("7fffffffffffffff" * repeat("0", 48)) == typemax(Int64)
+    @test Dilock.advisory_key("8000000000000000" * repeat("0", 48)) == typemin(Int64)
+    @test Dilock.advisory_key("ffffffffffffffff" * repeat("0", 48)) == -1
+end
+
 root = normpath(joinpath(@__DIR__, "..", "..", ".."))
 vectors = JSON3.read(read(joinpath(root, "spec", "vectors", "identity.json"), String))
 @testset "draft 1 identity vectors" begin

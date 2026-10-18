@@ -1,0 +1,5 @@
+(lang dune 3.8)
+(name dilock-postgres)
+(package
+ (name dilock-postgres)
+ (synopsis "Experimental PostgreSQL advisory-session adapter for Dilock"))

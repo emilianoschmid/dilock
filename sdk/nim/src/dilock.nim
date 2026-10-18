@@ -16,7 +16,7 @@ type
     released = 0, alreadyNotOwned = 1, releaseUnknown = 2
 
   CBackend {.importc: "dilock_backend", header: "dilock/dilock.h", size: sizeof(cint).} = enum
-    cBackendRedis = 0, cBackendEtcd = 1, cBackendConsul = 2
+    cBackendRedis = 0, cBackendEtcd = 1, cBackendConsul = 2, cBackendPostgres = 3
   CReleaseOutcome {.importc: "dilock_release_outcome", header: "dilock/dilock.h", size: sizeof(cint).} = enum
     cReleased = 0, cAlreadyNotOwned = 1, cReleaseUnknown = 2
 
@@ -72,6 +72,18 @@ type
     default_wait_ms: int64
     default_lease_ms: int64
 
+  CPostgresOptions {.importc: "dilock_postgres_options", header: "dilock/dilock.h", bycopy.} = object
+    connection_string: cstring
+    name_space: cstring
+    coordination_epoch: cstring
+    cleanup_callback: CleanupCallback
+    cleanup_user_data: pointer
+    rpc_timeout_ms: int64
+    cleanup_timeout_ms: int64
+    poll_interval_ms: int64
+    default_wait_ms: int64
+    default_lease_ms: int64
+
   CRedisProvider {.importc: "dilock_redis_provider", header: "dilock/dilock.h", incompleteStruct.} = object
   CRedisLock {.importc: "dilock_redis_lock", header: "dilock/dilock.h", incompleteStruct.} = object
   CRedisLease {.importc: "dilock_redis_lease", header: "dilock/dilock.h", incompleteStruct.} = object
@@ -81,6 +93,9 @@ type
   CConsulProvider {.importc: "dilock_consul_provider", header: "dilock/dilock.h", incompleteStruct.} = object
   CConsulLock {.importc: "dilock_consul_lock", header: "dilock/dilock.h", incompleteStruct.} = object
   CConsulLease {.importc: "dilock_consul_lease", header: "dilock/dilock.h", incompleteStruct.} = object
+  CPostgresProvider {.importc: "dilock_postgres_provider", header: "dilock/dilock.h", incompleteStruct.} = object
+  CPostgresLock {.importc: "dilock_postgres_lock", header: "dilock/dilock.h", incompleteStruct.} = object
+  CPostgresLease {.importc: "dilock_postgres_lease", header: "dilock/dilock.h", incompleteStruct.} = object
   CCancellation {.importc: "dilock_cancellation", header: "dilock/dilock.h", incompleteStruct.} = object
   CEtcdFence {.importc: "dilock_etcd_fence", header: "dilock/dilock.h", bycopy.} = object
     create_revision: int64
@@ -107,6 +122,12 @@ type
     raw: ptr CConsulLock
   ConsulLease* = ref object
     raw: ptr CConsulLease
+  PostgresProvider* = ref object
+    raw: ptr CPostgresProvider
+  PostgresLock* = ref object
+    raw: ptr CPostgresLock
+  PostgresLease* = ref object
+    raw: ptr CPostgresLease
   Cancellation* = ref object
     raw: ptr CCancellation
   EtcdFence* = object
@@ -120,18 +141,23 @@ proc abiVersion*(): uint32 {.importc: "dilock_c_abi_version", header: "dilock/di
 proc cRedisOptionsInit(options: ptr CRedisOptions) {.importc: "dilock_redis_options_init", header: "dilock/dilock.h", cdecl.}
 proc cEtcdOptionsInit(options: ptr CEtcdOptions) {.importc: "dilock_etcd_options_init", header: "dilock/dilock.h", cdecl.}
 proc cConsulOptionsInit(options: ptr CConsulOptions) {.importc: "dilock_consul_options_init", header: "dilock/dilock.h", cdecl.}
+proc cPostgresOptionsInit(options: ptr CPostgresOptions) {.importc: "dilock_postgres_options_init", header: "dilock/dilock.h", cdecl.}
 proc cRedisProviderCreate(options: ptr CRedisOptions, output: ptr ptr CRedisProvider, error: ptr CError): cint {.importc: "dilock_redis_provider_create", header: "dilock/dilock.h", cdecl.}
 proc cEtcdProviderCreate(options: ptr CEtcdOptions, output: ptr ptr CEtcdProvider, error: ptr CError): cint {.importc: "dilock_etcd_provider_create", header: "dilock/dilock.h", cdecl.}
 proc cConsulProviderCreate(options: ptr CConsulOptions, output: ptr ptr CConsulProvider, error: ptr CError): cint {.importc: "dilock_consul_provider_create", header: "dilock/dilock.h", cdecl.}
+proc cPostgresProviderCreate(options: ptr CPostgresOptions, output: ptr ptr CPostgresProvider, error: ptr CError): cint {.importc: "dilock_postgres_provider_create", header: "dilock/dilock.h", cdecl.}
 proc cRedisProviderDestroy(provider: ptr CRedisProvider) {.importc: "dilock_redis_provider_destroy", header: "dilock/dilock.h", cdecl.}
 proc cEtcdProviderDestroy(provider: ptr CEtcdProvider) {.importc: "dilock_etcd_provider_destroy", header: "dilock/dilock.h", cdecl.}
 proc cConsulProviderDestroy(provider: ptr CConsulProvider) {.importc: "dilock_consul_provider_destroy", header: "dilock/dilock.h", cdecl.}
+proc cPostgresProviderDestroy(provider: ptr CPostgresProvider) {.importc: "dilock_postgres_provider_destroy", header: "dilock/dilock.h", cdecl.}
 proc cRedisLockCreate(provider: ptr CRedisProvider, resource: cstring, output: ptr ptr CRedisLock, error: ptr CError): cint {.importc: "dilock_redis_lock_create", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLockCreate(provider: ptr CEtcdProvider, resource: cstring, output: ptr ptr CEtcdLock, error: ptr CError): cint {.importc: "dilock_etcd_lock_create", header: "dilock/dilock.h", cdecl.}
 proc cConsulLockCreate(provider: ptr CConsulProvider, resource: cstring, output: ptr ptr CConsulLock, error: ptr CError): cint {.importc: "dilock_consul_lock_create", header: "dilock/dilock.h", cdecl.}
+proc cPostgresLockCreate(provider: ptr CPostgresProvider, resource: cstring, output: ptr ptr CPostgresLock, error: ptr CError): cint {.importc: "dilock_postgres_lock_create", header: "dilock/dilock.h", cdecl.}
 proc cRedisLockDestroy(lock: ptr CRedisLock) {.importc: "dilock_redis_lock_destroy", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLockDestroy(lock: ptr CEtcdLock) {.importc: "dilock_etcd_lock_destroy", header: "dilock/dilock.h", cdecl.}
 proc cConsulLockDestroy(lock: ptr CConsulLock) {.importc: "dilock_consul_lock_destroy", header: "dilock/dilock.h", cdecl.}
+proc cPostgresLockDestroy(lock: ptr CPostgresLock) {.importc: "dilock_postgres_lock_destroy", header: "dilock/dilock.h", cdecl.}
 proc cRedisAcquireDefault(lock: ptr CRedisLock, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_acquire_default", header: "dilock/dilock.h", cdecl.}
 proc cRedisAcquireDefaultCancel(lock: ptr CRedisLock, cancellation: ptr CCancellation, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_acquire_default_with_cancellation", header: "dilock/dilock.h", cdecl.}
 proc cRedisAcquire(lock: ptr CRedisLock, waitMs, leaseMs: int64, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_acquire", header: "dilock/dilock.h", cdecl.}
@@ -140,19 +166,25 @@ proc cEtcdAcquireDefaultCancel(lock: ptr CEtcdLock, cancellation: ptr CCancellat
 proc cEtcdAcquire(lock: ptr CEtcdLock, waitMs, leaseMs: int64, output: ptr ptr CEtcdLease, error: ptr CError): cint {.importc: "dilock_etcd_acquire", header: "dilock/dilock.h", cdecl.}
 proc cConsulAcquireDefault(lock: ptr CConsulLock, output: ptr ptr CConsulLease, error: ptr CError): cint {.importc: "dilock_consul_acquire_default", header: "dilock/dilock.h", cdecl.}
 proc cConsulAcquire(lock: ptr CConsulLock, waitMs, leaseMs: int64, output: ptr ptr CConsulLease, error: ptr CError): cint {.importc: "dilock_consul_acquire", header: "dilock/dilock.h", cdecl.}
+proc cPostgresAcquire(lock: ptr CPostgresLock, waitMs, leaseMs: int64, output: ptr ptr CPostgresLease, error: ptr CError): cint {.importc: "dilock_postgres_acquire", header: "dilock/dilock.h", cdecl.}
+proc cPostgresAcquireDefault(lock: ptr CPostgresLock, output: ptr ptr CPostgresLease, error: ptr CError): cint {.importc: "dilock_postgres_acquire_default", header: "dilock/dilock.h", cdecl.}
 proc cRedisTryAcquire(lock: ptr CRedisLock, leaseMs: int64, output: ptr ptr CRedisLease, error: ptr CError): cint {.importc: "dilock_redis_try_acquire", header: "dilock/dilock.h", cdecl.}
 proc cEtcdTryAcquire(lock: ptr CEtcdLock, leaseMs: int64, output: ptr ptr CEtcdLease, error: ptr CError): cint {.importc: "dilock_etcd_try_acquire", header: "dilock/dilock.h", cdecl.}
 proc cConsulTryAcquire(lock: ptr CConsulLock, leaseMs: int64, output: ptr ptr CConsulLease, error: ptr CError): cint {.importc: "dilock_consul_try_acquire", header: "dilock/dilock.h", cdecl.}
+proc cPostgresTryAcquire(lock: ptr CPostgresLock, output: ptr ptr CPostgresLease, error: ptr CError): cint {.importc: "dilock_postgres_try_acquire", header: "dilock/dilock.h", cdecl.}
 proc cRedisLeaseValid(lease: ptr CRedisLease): int32 {.importc: "dilock_redis_lease_is_valid", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLeaseValid(lease: ptr CEtcdLease): int32 {.importc: "dilock_etcd_lease_is_valid", header: "dilock/dilock.h", cdecl.}
 proc cConsulLeaseValid(lease: ptr CConsulLease): int32 {.importc: "dilock_consul_lease_is_valid", header: "dilock/dilock.h", cdecl.}
+proc cPostgresLeaseValid(lease: ptr CPostgresLease): int32 {.importc: "dilock_postgres_lease_is_valid", header: "dilock/dilock.h", cdecl.}
 proc cRedisLeaseRelease(lease: ptr CRedisLease, outcome: ptr CReleaseOutcome, error: ptr CError): cint {.importc: "dilock_redis_lease_release", header: "dilock/dilock.h", cdecl.}
 proc cRedisLeaseRenew(lease: ptr CRedisLease, leaseMs: int64, renewed: ptr int32, error: ptr CError): cint {.importc: "dilock_redis_lease_renew", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLeaseRelease(lease: ptr CEtcdLease, outcome: ptr CReleaseOutcome, error: ptr CError): cint {.importc: "dilock_etcd_lease_release", header: "dilock/dilock.h", cdecl.}
 proc cConsulLeaseRelease(lease: ptr CConsulLease, outcome: ptr CReleaseOutcome, error: ptr CError): cint {.importc: "dilock_consul_lease_release", header: "dilock/dilock.h", cdecl.}
+proc cPostgresLeaseRelease(lease: ptr CPostgresLease, outcome: ptr CReleaseOutcome, error: ptr CError): cint {.importc: "dilock_postgres_lease_release", header: "dilock/dilock.h", cdecl.}
 proc cRedisLeaseDestroy(lease: ptr CRedisLease) {.importc: "dilock_redis_lease_destroy", header: "dilock/dilock.h", cdecl.}
 proc cEtcdLeaseDestroy(lease: ptr CEtcdLease) {.importc: "dilock_etcd_lease_destroy", header: "dilock/dilock.h", cdecl.}
 proc cConsulLeaseDestroy(lease: ptr CConsulLease) {.importc: "dilock_consul_lease_destroy", header: "dilock/dilock.h", cdecl.}
+proc cPostgresLeaseDestroy(lease: ptr CPostgresLease) {.importc: "dilock_postgres_lease_destroy", header: "dilock/dilock.h", cdecl.}
 proc cCancellationCreate(error: ptr CError): ptr CCancellation {.importc: "dilock_cancellation_create", header: "dilock/dilock.h", cdecl.}
 proc cCancellationRequest(value: ptr CCancellation) {.importc: "dilock_cancellation_request", header: "dilock/dilock.h", cdecl.}
 proc cCancellationDestroy(value: ptr CCancellation) {.importc: "dilock_cancellation_destroy", header: "dilock/dilock.h", cdecl.}
@@ -165,6 +197,8 @@ proc cConsulLeaseFence(lease: ptr CConsulLease, fence: ptr CConsulFence, epoch: 
 proc cConsulLeaseRenew(lease: ptr CConsulLease, renewed: ptr int32, error: ptr CError): cint {.importc: "dilock_consul_lease_renew", header: "dilock/dilock.h", cdecl.}
 proc cConsulLeaseTtl(lease: ptr CConsulLease, ttl: ptr int64, error: ptr CError): cint {.importc: "dilock_consul_lease_effective_ttl_ms", header: "dilock/dilock.h", cdecl.}
 proc cConsulProvision(options: ptr CConsulOptions, error: ptr CError): cint {.importc: "dilock_consul_provision_namespace", header: "dilock/dilock.h", cdecl.}
+proc cPostgresProvision(options: ptr CPostgresOptions, error: ptr CError): cint {.importc: "dilock_postgres_provision_namespace", header: "dilock/dilock.h", cdecl.}
+proc cPostgresLeaseRenew(lease: ptr CPostgresLease, renewed: ptr int32, error: ptr CError): cint {.importc: "dilock_postgres_lease_renew", header: "dilock/dilock.h", cdecl.}
 
 proc check(status: cint, error: CError) {.raises: [DilockError].} =
   if status == cint(dsOk): return
@@ -308,6 +342,34 @@ proc provisionConsulNamespace*(endpoint, namespace, epoch: string, aclToken = ""
   var error: CError
   check(cConsulProvision(addr options, addr error), error)
 
+proc connectPostgres*(connectionString, namespace, epoch: string): PostgresProvider =
+  validateCStringInput(connectionString, "PostgreSQL connection string")
+  validateCStringInput(namespace, "namespace")
+  validateCStringInput(epoch, "coordination epoch")
+  ensureAbi()
+  var options: CPostgresOptions
+  cPostgresOptionsInit(addr options)
+  options.connection_string = connectionString.cstring
+  options.name_space = namespace.cstring
+  options.coordination_epoch = epoch.cstring
+  var raw: ptr CPostgresProvider
+  var error: CError
+  check(cPostgresProviderCreate(addr options, addr raw, addr error), error)
+  PostgresProvider(raw: requireOutputHandle(raw, "PostgreSQL provider"))
+
+proc provisionPostgresNamespace*(connectionString, namespace, epoch: string) =
+  validateCStringInput(connectionString, "PostgreSQL connection string")
+  validateCStringInput(namespace, "namespace")
+  validateCStringInput(epoch, "coordination epoch")
+  ensureAbi()
+  var options: CPostgresOptions
+  cPostgresOptionsInit(addr options)
+  options.connection_string = connectionString.cstring
+  options.name_space = namespace.cstring
+  options.coordination_epoch = epoch.cstring
+  var error: CError
+  check(cPostgresProvision(addr options, addr error), error)
+
 proc lock*(provider: RedisProvider, resource: string): RedisLock =
   requireHandle(provider, "Redis provider")
   validateCStringInput(resource, "resource")
@@ -331,6 +393,14 @@ proc lock*(provider: ConsulProvider, resource: string): ConsulLock =
   var error: CError
   check(cConsulLockCreate(provider.raw, resource.cstring, addr raw, addr error), error)
   ConsulLock(raw: requireOutputHandle(raw, "Consul lock"))
+
+proc lock*(provider: PostgresProvider, resource: string): PostgresLock =
+  requireHandle(provider, "PostgreSQL provider")
+  validateCStringInput(resource, "resource")
+  var raw: ptr CPostgresLock
+  var error: CError
+  check(cPostgresLockCreate(provider.raw, resource.cstring, addr raw, addr error), error)
+  PostgresLock(raw: requireOutputHandle(raw, "PostgreSQL lock"))
 
 proc acquireDefault*(lock: RedisLock): RedisLease =
   requireHandle(lock, "Redis lock")
@@ -394,6 +464,20 @@ proc acquire*(lock: ConsulLock, waitMs, leaseMs: int64): ConsulLease =
   check(cConsulAcquire(lock.raw, waitMs, leaseMs, addr raw, addr error), error)
   ConsulLease(raw: requireOutputHandle(raw, "Consul lease"))
 
+proc acquireDefault*(lock: PostgresLock): PostgresLease =
+  requireHandle(lock, "PostgreSQL lock")
+  var raw: ptr CPostgresLease
+  var error: CError
+  check(cPostgresAcquireDefault(lock.raw, addr raw, addr error), error)
+  PostgresLease(raw: requireOutputHandle(raw, "PostgreSQL lease"))
+
+proc acquire*(lock: PostgresLock, waitMs, leaseMs: int64): PostgresLease =
+  requireHandle(lock, "PostgreSQL lock")
+  var raw: ptr CPostgresLease
+  var error: CError
+  check(cPostgresAcquire(lock.raw, waitMs, leaseMs, addr raw, addr error), error)
+  PostgresLease(raw: requireOutputHandle(raw, "PostgreSQL lease"))
+
 proc tryAcquire*(lock: RedisLock, leaseMs: int64): Option[RedisLease] =
   requireHandle(lock, "Redis lock")
   var raw: ptr CRedisLease
@@ -419,6 +503,15 @@ proc tryAcquire*(lock: ConsulLock, leaseMs: int64): Option[ConsulLease] =
   check(status, error)
   some(ConsulLease(raw: requireOutputHandle(raw, "Consul lease")))
 
+proc tryAcquire*(lock: PostgresLock): Option[PostgresLease] =
+  requireHandle(lock, "PostgreSQL lock")
+  var raw: ptr CPostgresLease
+  var error: CError
+  let status = cPostgresTryAcquire(lock.raw, addr raw, addr error)
+  if status == cint(dsBusy): return none(PostgresLease)
+  check(status, error)
+  some(PostgresLease(raw: requireOutputHandle(raw, "PostgreSQL lease")))
+
 proc isValid*(lease: RedisLease): bool =
   requireHandle(lease, "Redis lease")
   cRedisLeaseValid(lease.raw) != 0
@@ -428,6 +521,9 @@ proc isValid*(lease: EtcdLease): bool =
 proc isValid*(lease: ConsulLease): bool =
   requireHandle(lease, "Consul lease")
   cConsulLeaseValid(lease.raw) != 0
+proc isValid*(lease: PostgresLease): bool =
+  requireHandle(lease, "PostgreSQL lease")
+  cPostgresLeaseValid(lease.raw) != 0
 
 proc release*(lease: RedisLease): ReleaseOutcome =
   requireHandle(lease, "Redis lease")
@@ -449,6 +545,21 @@ proc release*(lease: ConsulLease): ReleaseOutcome =
   var error: CError
   check(cConsulLeaseRelease(lease.raw, addr rawOutcome, addr error), error)
   releaseOutcomeFromC(cast[int32](rawOutcome))
+
+proc release*(lease: PostgresLease): ReleaseOutcome =
+  requireHandle(lease, "PostgreSQL lease")
+  var rawOutcome: CReleaseOutcome
+  var error: CError
+  check(cPostgresLeaseRelease(lease.raw, addr rawOutcome, addr error), error)
+  releaseOutcomeFromC(cast[int32](rawOutcome))
+
+proc renew*(lease: PostgresLease): bool =
+  ## Liveness check only; PostgreSQL advisory locks have no server TTL.
+  requireHandle(lease, "PostgreSQL lease")
+  var renewed: int32
+  var error: CError
+  check(cPostgresLeaseRenew(lease.raw, addr renewed, addr error), error)
+  renewed != 0
 
 proc renew*(lease: ConsulLease): bool =
   ## Renews the same Consul session and confirms the same owner and LockIndex.
@@ -481,18 +592,24 @@ proc destroy*(provider: EtcdProvider) =
   if not provider.isNil and provider.raw != nil: cEtcdProviderDestroy(provider.raw); provider.raw = nil
 proc destroy*(provider: ConsulProvider) =
   if not provider.isNil and provider.raw != nil: cConsulProviderDestroy(provider.raw); provider.raw = nil
+proc destroy*(provider: PostgresProvider) =
+  if not provider.isNil and provider.raw != nil: cPostgresProviderDestroy(provider.raw); provider.raw = nil
 proc destroy*(lock: RedisLock) =
   if not lock.isNil and lock.raw != nil: cRedisLockDestroy(lock.raw); lock.raw = nil
 proc destroy*(lock: EtcdLock) =
   if not lock.isNil and lock.raw != nil: cEtcdLockDestroy(lock.raw); lock.raw = nil
 proc destroy*(lock: ConsulLock) =
   if not lock.isNil and lock.raw != nil: cConsulLockDestroy(lock.raw); lock.raw = nil
+proc destroy*(lock: PostgresLock) =
+  if not lock.isNil and lock.raw != nil: cPostgresLockDestroy(lock.raw); lock.raw = nil
 proc destroy*(lease: RedisLease) =
   if not lease.isNil and lease.raw != nil: cRedisLeaseDestroy(lease.raw); lease.raw = nil
 proc destroy*(lease: EtcdLease) =
   if not lease.isNil and lease.raw != nil: cEtcdLeaseDestroy(lease.raw); lease.raw = nil
 proc destroy*(lease: ConsulLease) =
   if not lease.isNil and lease.raw != nil: cConsulLeaseDestroy(lease.raw); lease.raw = nil
+proc destroy*(lease: PostgresLease) =
+  if not lease.isNil and lease.raw != nil: cPostgresLeaseDestroy(lease.raw); lease.raw = nil
 
 proc initCancellation*(): Cancellation =
   ensureAbi()

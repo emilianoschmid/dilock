@@ -7,11 +7,12 @@
     "packages/core",
     "packages/redis",
     "packages/etcd",
-    "packages/consul"
+    "packages/consul",
+    "packages/postgres"
   ],
   "engines": { "node": ">=22" },
   "scripts": {
-    "build": "npm run build --workspace=@dilock/core && npm run build --workspace=@dilock/redis && npm run build --workspace=@dilock/etcd && npm run build --workspace=@dilock/consul && tsc -p tsconfig.json",
+    "build": "npm run build --workspace=@dilock/core && npm run build --workspace=@dilock/redis && npm run build --workspace=@dilock/etcd && npm run build --workspace=@dilock/consul && npm run build --workspace=@dilock/postgres && tsc -p tsconfig.json",
     "test": "npm run build && node tools/run-tests.mjs",
     "test:packages": "npm run build && python consumers/package_consumer.py --output .tools/optional-package-consumer-report.json",
     "worker": "node target/src/worker.js",

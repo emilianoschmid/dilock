@@ -3,6 +3,7 @@ package org.dilock.groovy
 import org.dilock.etcd.EtcdLease
 import org.dilock.redis.AcquireOptions
 import org.dilock.redis.RedisProvider
+import org.dilock.postgres.PostgresProvider
 import org.junit.jupiter.api.Test
 import redis.clients.jedis.RedisClient
 
@@ -16,6 +17,40 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** Opt-in real authority checks. Set DILOCK_* variables only for disposable local services. */
 final class DilockLiveTest {
+    @Test
+    void postgresFacadeContendsAndHandsOffAcrossIndependentProviders() {
+        String jdbcUrl = System.getenv('DILOCK_POSTGRES_DSN')
+        assumeTrue(jdbcUrl != null && !jdbcUrl.isBlank(), 'DILOCK_POSTGRES_DSN is unset')
+        String namespace = "groovy-live-postgres-${System.nanoTime()}"
+        String epoch = "groovy-live-postgres-epoch-${System.nanoTime()}"
+        String resource = "resource/${namespace}"
+
+        PostgresProvider.provisionNamespace(jdbcUrl, namespace, epoch)
+        def first = Dilock.postgres(jdbcUrl, namespace, epoch)
+        def second = Dilock.postgres(jdbcUrl, namespace, epoch)
+        try {
+            def firstLease = first.lock(resource).tryAcquire().orElse(null)
+            assertNotNull(firstLease)
+            try {
+                assertTrue(second.lock(resource).tryAcquire().isEmpty(),
+                        'independent provider must observe ordinary contention')
+                assertEquals('RELEASED', firstLease.release().toString())
+            } finally {
+                firstLease.close()
+            }
+            def successor = second.lock(resource).tryAcquire().orElse(null)
+            assertNotNull(successor)
+            try {
+                assertEquals('RELEASED', successor.release().toString())
+            } finally {
+                successor.close()
+            }
+        } finally {
+            first.close()
+            second.close()
+        }
+    }
+
     @Test
     void redisFacadeContendsAndHandsOffAcrossIndependentProviders() {
         String endpoint = System.getenv('DILOCK_REDIS_URL')

@@ -2,7 +2,7 @@
 
 This experimental package borrows a `redux` hiredis connection supplied by the caller. It verifies provisioned namespace metadata, derives the shared framed identity, uses `SET NX PX`, and releases/renews only with owner-token-checked packaged Lua scripts. `with_dilock(handle, function(lease) ...)` uses `on.exit` for cleanup; unknown cleanup is an error after successful work, while known loss of ownership raises `dilock_lease_lost`; either condition is reported as a warning if the body itself fails. For Redis, a `NULL` try result means acknowledged contention after validating the key type; transport failures are errors/unknown outcomes.
 
-The caller owns the Redis connection. Lua executes inside Redis; no infrastructure-side Lua service is installed. The package also contains an experimental native etcd gRPC adapter described below. Neither adapter stops protected code when a lease expires.
+The caller owns the Redis connection. Lua executes inside Redis; no infrastructure-side Lua service is installed. The package also contains experimental native etcd gRPC and PostgreSQL advisory-session adapters described below. The PostgreSQL route uses DBI/RPostgres, keeps one private connection per successful acquisition, and has no TTL or fencing token; renewal is a liveness check only. Neither adapter stops protected code when a lease expires.
 
 ```r
 provider <- dilock_provider(redis_connection, "default", "provisioned-epoch")

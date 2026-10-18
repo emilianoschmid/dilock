@@ -19,7 +19,7 @@ $ExecutionContext.SessionState.Module.OnRemove = {
     [Dilock.PowerShell.ModuleAssemblyResolver]::Unregister()
 }.GetNewClosure()
 
-foreach ($assemblyName in @('Dilock.Core.dll', 'Dilock.Redis.dll', 'Dilock.Etcd.dll', 'Dilock.Consul.dll')) {
+foreach ($assemblyName in @('Dilock.Core.dll', 'Dilock.Redis.dll', 'Dilock.Etcd.dll', 'Dilock.Consul.dll', 'Dilock.Postgres.dll')) {
     $assemblyPath = Join-Path $script:LibraryDirectory $assemblyName
     if (-not (Test-Path -LiteralPath $assemblyPath -PathType Leaf)) {
         throw "Dilock module assembly is missing: $assemblyPath"
@@ -192,6 +192,45 @@ function New-DilockConsulProvider {
     return [Dilock.Consul.ConsulProvider]::ConnectAsync($configuration, $CancellationToken).GetAwaiter().GetResult()
 }
 
+function New-DilockPostgresProvider {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string] $ConnectionString,
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string] $Epoch,
+        [ValidatePattern('^[a-z0-9][a-z0-9_.-]{0,63}$')][string] $Namespace = 'default',
+        [TimeSpan] $ConnectTimeout = ([TimeSpan]::FromSeconds(2)),
+        [Dilock.AcquireOptions] $Options,
+        [TimeSpan] $WaitTimeout = ([TimeSpan]::FromSeconds(5)),
+        [TimeSpan] $LeaseDuration = ([TimeSpan]::FromSeconds(30)),
+        [TimeSpan] $RpcTimeout = ([TimeSpan]::FromSeconds(2)),
+        [TimeSpan] $CleanupTimeout = ([TimeSpan]::FromSeconds(2)),
+        [switch] $AutoRenew,
+        [switch] $RequireFencing,
+        [System.Threading.CancellationToken] $CancellationToken = [System.Threading.CancellationToken]::None
+    )
+    $policyParameters = @('WaitTimeout', 'LeaseDuration', 'RpcTimeout', 'CleanupTimeout', 'AutoRenew', 'RequireFencing')
+    $hasIndividualPolicy = $false
+    foreach ($name in $policyParameters) { if ($PSBoundParameters.ContainsKey($name)) { $hasIndividualPolicy = $true; break } }
+    if ($PSBoundParameters.ContainsKey('Options')) {
+        if ($hasIndividualPolicy) { throw 'Pass either -Options or individual acquisition options, not both.' }
+        if ($null -eq $Options) { throw '-Options cannot be null.' }
+        $Options.Validate()
+        $acquisition = $Options
+    }
+    else {
+        $acquisition = New-DilockAcquireOptions -WaitTimeout $WaitTimeout -LeaseDuration $LeaseDuration `
+            -RpcTimeout $RpcTimeout -CleanupTimeout $CleanupTimeout -AutoRenew:$AutoRenew -RequireFencing:$RequireFencing
+    }
+    $configuration = [Dilock.Postgres.PostgresProviderOptions]::new()
+    $configuration.ConnectionString = $ConnectionString
+    $configuration.Namespace = $Namespace
+    $configuration.ExpectedEpoch = $Epoch
+    $configuration.ConnectTimeout = $ConnectTimeout
+    $configuration.DefaultAcquisition = $acquisition
+    $configuration.CleanupObserver = New-DilockCleanupObserver
+    return [Dilock.Postgres.PostgresProvider]::ConnectAsync($configuration, $CancellationToken).GetAwaiter().GetResult()
+}
+
 function Get-DilockLock {
     [CmdletBinding()]
     param(
@@ -264,11 +303,12 @@ function Invoke-DilockAcquire {
         throw 'Pass either -Options or individual acquisition options, not both.'
     }
     if ($PSBoundParameters.ContainsKey('Options')) {
-        return $Lock.AcquireAsync($Options, $CancellationToken).GetAwaiter().GetResult()
+        return $Lock.AcquireAsync($Options.WaitTimeout, $Options.Lease, $CancellationToken).GetAwaiter().GetResult()
     }
     if (-not $hasIndividualOptions) {
         # Preserve the provider's configured DefaultAcquisition policy.
-        return $Lock.AcquireAsync($CancellationToken).GetAwaiter().GetResult()
+        $default = New-DilockAcquireOptions -WaitTimeout ([TimeSpan]::FromSeconds(5)) -LeaseDuration ([TimeSpan]::FromSeconds(30))
+        return $Lock.AcquireAsync($default.WaitTimeout, $default.Lease, $CancellationToken).GetAwaiter().GetResult()
     }
 
     $lease = [Dilock.LeaseOptions]::new()
@@ -351,6 +391,6 @@ function Invoke-Dilock {
 }
 
 Export-ModuleMember -Function @(
-    'New-DilockRedisProvider', 'New-DilockEtcdProvider', 'New-DilockConsulProvider', 'Get-DilockLock',
+    'New-DilockRedisProvider', 'New-DilockEtcdProvider', 'New-DilockConsulProvider', 'New-DilockPostgresProvider', 'Get-DilockLock',
     'Enter-Dilock', 'Exit-Dilock', 'Close-DilockLease', 'Close-DilockProvider', 'Invoke-Dilock'
 )

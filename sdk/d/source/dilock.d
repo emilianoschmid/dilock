@@ -81,6 +81,19 @@ struct ConsulProviderOptions {
     Duration defaultLease = dur!"msecs"(30000);
 }
 
+/// PostgreSQL session-advisory configuration. PostgreSQL has no server TTL;
+/// lease_ms is retained only as the shared acquisition-policy field.
+struct PostgresProviderOptions {
+    string connectionString;
+    string nameSpace = "default";
+    string coordinationEpoch;
+    Duration rpcTimeout = dur!"msecs"(2000);
+    Duration cleanupTimeout = dur!"msecs"(2000);
+    Duration pollInterval = dur!"msecs"(25);
+    Duration defaultWait = dur!"msecs"(5000);
+    Duration defaultLease = dur!"msecs"(30000);
+}
+
 extern(C) {
     struct CError { int32_t code; char[384] message; }
     struct RedisOptions {
@@ -104,6 +117,12 @@ extern(C) {
         int64_t rpc_timeout_ms; int64_t cleanup_timeout_ms; int64_t poll_interval_ms;
         int64_t default_wait_ms; int64_t default_lease_ms;
     }
+    struct CPostgresOptions {
+        const(char)* connection_string; const(char)* name_space; const(char)* coordination_epoch;
+        extern(C) void function(int, int, const(char)*, void*) cleanup_callback; void* cleanup_user_data;
+        int64_t rpc_timeout_ms; int64_t cleanup_timeout_ms; int64_t poll_interval_ms;
+        int64_t default_wait_ms; int64_t default_lease_ms;
+    }
     struct CEtcdFence { int64_t create_revision; size_t coordination_epoch_bytes; }
     struct CConsulFence { ulong lock_index; size_t coordination_epoch_bytes; }
     struct CRedisProvider { }
@@ -115,24 +134,32 @@ extern(C) {
     struct CConsulProvider { }
     struct CConsulLock { }
     struct CConsulLease { }
+    struct CPostgresProvider { }
+    struct CPostgresLock { }
+    struct CPostgresLease { }
     struct CCancellation { }
 
     uint32_t dilock_c_abi_version();
     void dilock_redis_options_init(RedisOptions*);
     void dilock_etcd_options_init(EtcdOptions*);
     void dilock_consul_options_init(CConsulOptions*);
+    void dilock_postgres_options_init(CPostgresOptions*);
     Status dilock_redis_provider_create(RedisOptions*, CRedisProvider**, CError*);
     void dilock_redis_provider_destroy(CRedisProvider*);
     Status dilock_etcd_provider_create(EtcdOptions*, CEtcdProvider**, CError*);
     void dilock_etcd_provider_destroy(CEtcdProvider*);
     Status dilock_consul_provider_create(CConsulOptions*, CConsulProvider**, CError*);
     void dilock_consul_provider_destroy(CConsulProvider*);
+    Status dilock_postgres_provider_create(CPostgresOptions*, CPostgresProvider**, CError*);
+    void dilock_postgres_provider_destroy(CPostgresProvider*);
     Status dilock_redis_lock_create(CRedisProvider*, const(char)*, CRedisLock**, CError*);
     Status dilock_etcd_lock_create(CEtcdProvider*, const(char)*, CEtcdLock**, CError*);
     void dilock_redis_lock_destroy(CRedisLock*);
     void dilock_etcd_lock_destroy(CEtcdLock*);
     Status dilock_consul_lock_create(CConsulProvider*, const(char)*, CConsulLock**, CError*);
     void dilock_consul_lock_destroy(CConsulLock*);
+    Status dilock_postgres_lock_create(CPostgresProvider*, const(char)*, CPostgresLock**, CError*);
+    void dilock_postgres_lock_destroy(CPostgresLock*);
     Status dilock_redis_acquire_default(CRedisLock*, CRedisLease**, CError*);
     Status dilock_redis_acquire_default_with_cancellation(CRedisLock*, CCancellation*, CRedisLease**, CError*);
     Status dilock_redis_acquire(CRedisLock*, int64_t, int64_t, CRedisLease**, CError*);
@@ -142,25 +169,33 @@ extern(C) {
     Status dilock_consul_acquire_default(CConsulLock*, CConsulLease**, CError*);
     Status dilock_consul_acquire_default_with_cancellation(CConsulLock*, CCancellation*, CConsulLease**, CError*);
     Status dilock_consul_acquire(CConsulLock*, int64_t, int64_t, CConsulLease**, CError*);
+    Status dilock_postgres_acquire_default(CPostgresLock*, CPostgresLease**, CError*);
+    Status dilock_postgres_acquire(CPostgresLock*, int64_t, int64_t, CPostgresLease**, CError*);
     Status dilock_redis_try_acquire(CRedisLock*, int64_t, CRedisLease**, CError*);
     Status dilock_etcd_try_acquire(CEtcdLock*, int64_t, CEtcdLease**, CError*);
     Status dilock_consul_try_acquire(CConsulLock*, int64_t, CConsulLease**, CError*);
+    Status dilock_postgres_try_acquire(CPostgresLock*, CPostgresLease**, CError*);
     int32_t dilock_redis_lease_is_valid(const(CRedisLease)*);
     int32_t dilock_etcd_lease_is_valid(const(CEtcdLease)*);
     int32_t dilock_consul_lease_is_valid(const(CConsulLease)*);
+    int32_t dilock_postgres_lease_is_valid(const(CPostgresLease)*);
     Status dilock_redis_lease_release(CRedisLease*, CReleaseOutcome*, CError*);
     Status dilock_redis_lease_renew(CRedisLease*, int64_t, int32_t*, CError*);
     Status dilock_etcd_lease_release(CEtcdLease*, CReleaseOutcome*, CError*);
     Status dilock_consul_lease_release(CConsulLease*, CReleaseOutcome*, CError*);
+    Status dilock_postgres_lease_renew(CPostgresLease*, int32_t*, CError*);
+    Status dilock_postgres_lease_release(CPostgresLease*, CReleaseOutcome*, CError*);
     Status dilock_etcd_lease_effective_ttl_ms(const(CEtcdLease)*, int64_t*, CError*);
     Status dilock_consul_lease_effective_ttl_ms(const(CConsulLease)*, int64_t*, CError*);
     Status dilock_consul_lease_renew(CConsulLease*, int32_t*, CError*);
     void dilock_redis_lease_destroy(CRedisLease*);
     void dilock_etcd_lease_destroy(CEtcdLease*);
     void dilock_consul_lease_destroy(CConsulLease*);
+    void dilock_postgres_lease_destroy(CPostgresLease*);
     Status dilock_etcd_lease_fence(const(CEtcdLease)*, CEtcdFence*, char*, size_t, CError*);
     Status dilock_consul_lease_fence(const(CConsulLease)*, CConsulFence*, char*, size_t, CError*);
     Status dilock_consul_provision_namespace(CConsulOptions*, CError*);
+    Status dilock_postgres_provision_namespace(CPostgresOptions*, CError*);
     CCancellation* dilock_cancellation_create(CError*);
     void dilock_cancellation_request(CCancellation*);
     void dilock_cancellation_destroy(CCancellation*);
@@ -303,12 +338,37 @@ private CConsulOptions toNativeOptions(ConsulProviderOptions config) @trusted {
     return options;
 }
 
+private CPostgresOptions toNativeOptions(PostgresProviderOptions config) @trusted {
+    validateCStringInput(config.connectionString, "PostgreSQL connection string");
+    validateCStringInput(config.nameSpace, "namespace");
+    validateCStringInput(config.coordinationEpoch, "coordination epoch");
+    CPostgresOptions options;
+    dilock_postgres_options_init(&options);
+    options.connection_string = config.connectionString.toStringz;
+    options.name_space = config.nameSpace.toStringz;
+    options.coordination_epoch = config.coordinationEpoch.toStringz;
+    options.rpc_timeout_ms = wholeMilliseconds(config.rpcTimeout, "PostgreSQL RPC timeout");
+    options.cleanup_timeout_ms = wholeMilliseconds(config.cleanupTimeout, "PostgreSQL cleanup timeout");
+    options.poll_interval_ms = wholeMilliseconds(config.pollInterval, "PostgreSQL poll interval");
+    options.default_wait_ms = wholeMilliseconds(config.defaultWait, "PostgreSQL default wait");
+    options.default_lease_ms = wholeMilliseconds(config.defaultLease, "PostgreSQL default lease");
+    return options;
+}
+
 /// Creates metadata with CAS=0. Application provider creation never provisions it.
 void provisionConsulNamespace(ConsulProviderOptions config) @trusted {
     verifyAbi();
     auto options = toNativeOptions(config);
     CError error;
     check(dilock_consul_provision_namespace(&options, &error), error);
+}
+
+/// Creates metadata only when absent; provider construction only validates it.
+void provisionPostgresNamespace(PostgresProviderOptions config) @trusted {
+    verifyAbi();
+    auto options = toNativeOptions(config);
+    CError error;
+    check(dilock_postgres_provision_namespace(&options, &error), error);
 }
 
 struct RedisProvider {
@@ -482,6 +542,70 @@ struct ConsulProvider {
 
     void destroy() @trusted { if (raw !is null) { dilock_consul_provider_destroy(raw); raw = null; } }
     private this(CConsulProvider* value) { raw = value; }
+}
+
+struct PostgresProvider {
+    private CPostgresProvider* raw;
+    @disable this(this);
+
+    static PostgresProvider connect(string connectionString, string namespace, string epoch) @trusted {
+        PostgresProviderOptions config;
+        config.connectionString = connectionString;
+        config.nameSpace = namespace;
+        config.coordinationEpoch = epoch;
+        return connect(config);
+    }
+
+    static PostgresProvider connect(PostgresProviderOptions config) @trusted {
+        verifyAbi();
+        auto options = toNativeOptions(config);
+        CError error;
+        CPostgresProvider* value;
+        check(dilock_postgres_provider_create(&options, &value, &error), error);
+        return PostgresProvider(value);
+    }
+
+    PostgresLock lock(string resource) @trusted {
+        validateCStringInput(resource, "resource");
+        CPostgresLock* value; CError error;
+        check(dilock_postgres_lock_create(raw, resource.toStringz, &value, &error), error);
+        return PostgresLock(value);
+    }
+
+    void destroy() @trusted { if (raw !is null) { dilock_postgres_provider_destroy(raw); raw = null; } }
+    private this(CPostgresProvider* value) { raw = value; }
+}
+
+struct PostgresLock {
+    private CPostgresLock* raw;
+    @disable this(this);
+    private this(CPostgresLock* value) { raw = value; }
+
+    PostgresLease acquireDefault() @trusted {
+        CPostgresLease* value; CError error;
+        check(dilock_postgres_acquire_default(raw, &value, &error), error);
+        return PostgresLease(value);
+    }
+
+    PostgresLease acquire(long waitMs, long leaseMs) @trusted {
+        CPostgresLease* value; CError error;
+        check(dilock_postgres_acquire(raw, waitMs, leaseMs, &value, &error), error);
+        return PostgresLease(value);
+    }
+
+    /// Returns false only for acknowledged contention.
+    bool tryAcquire(ref PostgresLease lease) @trusted {
+        if (lease.raw !is null)
+            throw new DilockException(Status.invalidArgument, "tryAcquire output lease must be empty");
+        CPostgresLease* value; CError error;
+        auto status = dilock_postgres_try_acquire(raw, &value, &error);
+        if (status == Status.busy) return false;
+        check(status, error);
+        lease = PostgresLease(value);
+        return true;
+    }
+
+    void destroy() @trusted { if (raw !is null) { dilock_postgres_lock_destroy(raw); raw = null; } }
 }
 
 struct ConsulLock {
@@ -667,6 +791,30 @@ struct ConsulLease {
         return releaseOutcomeFromC(cast(int)value);
     }
     void destroy() @trusted { if (raw !is null) { dilock_consul_lease_destroy(raw); raw = null; } }
+}
+
+struct PostgresLease {
+    private CPostgresLease* raw;
+    @disable this(this);
+    private this(CPostgresLease* value) { raw = value; }
+
+    bool isValid() const @trusted { return raw !is null && dilock_postgres_lease_is_valid(raw) != 0; }
+
+    /// Liveness check only; the PostgreSQL profile has no server TTL.
+    bool renew() @trusted {
+        if (raw is null) throw new DilockException(Status.invalidArgument, "lease has been destroyed");
+        int32_t renewed; CError error;
+        check(dilock_postgres_lease_renew(raw, &renewed, &error), error);
+        return renewed != 0;
+    }
+
+    ReleaseOutcome release() @trusted {
+        CReleaseOutcome value; CError error;
+        check(dilock_postgres_lease_release(raw, &value, &error), error);
+        return releaseOutcomeFromC(cast(int)value);
+    }
+
+    void destroy() @trusted { if (raw !is null) { dilock_postgres_lease_destroy(raw); raw = null; } }
 }
 
 struct Cancellation {

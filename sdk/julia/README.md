@@ -1,12 +1,16 @@
 # Dilock Julia SDK preview
 
-This experimental package requires Julia 1.10 or newer and provides Redis and
-etcd adapters. The etcd adapter uses gRPCClient 1.1; its predecessor supports
+This experimental package requires Julia 1.10 or newer and provides Redis,
+etcd, Consul and PostgreSQL advisory-session adapters. The etcd adapter uses gRPCClient 1.1; its predecessor supports
 the Julia 1.6 resolver but lacks the service-client API this adapter needs.
 Neither backend cell is release-ready: cross-SDK conformance, clustered
 failure tests, Julia task-safety, and registry installation are still open. A
 lease does not stop a process after expiry; protect external effects with a
 resource-side fence or idempotency check.
+
+`PostgresProvider` uses LibPQ.jl and retains one private `LibPQ.Connection` per
+successful acquisition until same-session `pg_advisory_unlock`. PostgreSQL has
+no TTL or generic fencing token; `renew!` is a liveness check only.
 
 ## etcd
 

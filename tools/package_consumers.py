@@ -141,6 +141,7 @@ def check_archive_contents(wheel: Path, sdist: Path) -> None:
             "src/dilock/__init__.py",
             "src/dilock/redis.py",
             "src/dilock/etcd.py",
+            "src/dilock/postgres.py",
         }
         missing = sorted(name for name in required_sdist if not any(p.endswith("/" + name) for p in names))
         if missing:
@@ -442,7 +443,7 @@ def run_python_consumer(
         run(
             [sys.executable, "-m", "pip", "--python", str(venv_dir), "install",
              "--disable-pip-version-check", "--no-index", "--find-links", str(wheelhouse),
-             f"{artifact}[redis,etcd]"],
+             f"{artifact}[redis,etcd,postgres]"],
             cwd=temp,
             env=env,
             records=commands,
@@ -475,6 +476,7 @@ def run_python_consumer(
         runtime_requirements = [
             *optional_dependencies["redis"],
             *optional_dependencies["etcd"],
+            *optional_dependencies["postgres"],
         ]
         # The pinned build environment is exposed to pip so it can import Hatchling
         # without network access. Install runtime requirements into the consumer
@@ -491,7 +493,7 @@ def run_python_consumer(
         run(
             [sys.executable, "-m", "pip", "--python", str(sdist_venv), "install",
              "--disable-pip-version-check", "--no-index", "--find-links", str(wheelhouse),
-             "--no-build-isolation", f"{sdist}[redis,etcd]"],
+             "--no-build-isolation", f"{sdist}[redis,etcd,postgres]"],
             cwd=temp,
             env={**env, "PYTHONPATH": str(build_site)},
             records=commands,
@@ -539,7 +541,7 @@ def run_python_consumer(
     if direct_sdist_block is not None:
         status = "blocked"
         reason = (
-            "The exact wheel installed with both pinned backend extras and passed the external smoke. "
+            "The exact wheel installed with all pinned Redis, etcd and PostgreSQL backend extras and passed the external smoke. "
             "The exact sdist rebuilt to a wheel with pinned Hatchling, and that derived wheel also "
             "installed and passed; direct pip installation of the sdist is blocked by the Windows "
             f"sandbox: {direct_sdist_block}"
@@ -547,8 +549,8 @@ def run_python_consumer(
     else:
         status = "passed"
         reason = (
-            "Built wheel and sdist with pinned Hatchling; installed each exact archive and both backend "
-            "extras from the local offline wheelhouse into clean Python 3.14 virtual environments, then "
+            "Built wheel and sdist with pinned Hatchling; installed each exact archive and all Redis, etcd "
+            "and PostgreSQL backend extras from the local offline wheelhouse into clean Python virtual environments, then "
             "ran the external consumer outside the checkout."
         )
     return {

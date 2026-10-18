@@ -51,4 +51,24 @@ int hs_dilock_consul_lease_renew(void *lease, int *renewed, char *message);
 int hs_dilock_consul_lease_release(void *lease, int *outcome, char *message);
 void hs_dilock_consul_lease_destroy(void *lease);
 
+int hs_dilock_postgres_provider_create(
+    const char *connection_string, const char *name_space, const char *epoch,
+    int64_t rpc_timeout_ms, int64_t cleanup_timeout_ms, int64_t poll_interval_ms,
+    int64_t default_wait_ms, int64_t default_lease_ms, void **out, char *message);
+int hs_dilock_postgres_namespace_provision(
+    const char *connection_string, const char *name_space, const char *epoch,
+    int64_t rpc_timeout_ms, int64_t cleanup_timeout_ms, int64_t poll_interval_ms,
+    int64_t default_wait_ms, int64_t default_lease_ms, char *message);
+void hs_dilock_postgres_provider_destroy(void *provider);
+int hs_dilock_postgres_lock_create(void *provider, const char *resource,
+                                   void **out, char *message);
+void hs_dilock_postgres_lock_destroy(void *lock);
+int hs_dilock_postgres_acquire(void *lock, int64_t wait_ms, int64_t lease_ms,
+                               void **out, char *message);
+int hs_dilock_postgres_try_acquire(void *lock, void **out, char *message);
+int hs_dilock_postgres_lease_valid(void *lease);
+int hs_dilock_postgres_lease_renew(void *lease, int *renewed, char *message);
+int hs_dilock_postgres_lease_release(void *lease, int *outcome, char *message);
+void hs_dilock_postgres_lease_destroy(void *lease);
+
 #endif

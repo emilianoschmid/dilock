@@ -1,0 +1,10 @@
+(library
+ (name dilock_postgres)
+ (public_name dilock-postgres)
+ (wrapped false)
+ (libraries dilock lwt lwt.unix ctypes.foreign)
+ (foreign_stubs
+  (language c)
+  (names postgres_stubs)
+  (flags (:standard -I../../../../../c/include)))
+ (c_library_flags -ldilock_c -ldilock_cpp_postgres -ldilock_cpp -lpq -lstdc++ -Wl,-export-dynamic))

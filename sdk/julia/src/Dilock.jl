@@ -6,6 +6,7 @@ using Random
 using JSON3
 using HTTP
 using Base64
+using LibPQ
 
 export Provider, Lease, lock, try_acquire, acquire, release!, renew!, with_lease,
        resource_id, LeaseBusy, WaitTimeout, AcquisitionUnknown, BackendUnavailable, ProtocolMismatch,
@@ -13,6 +14,8 @@ export Provider, Lease, lock, try_acquire, acquire, release!, renew!, with_lease
        EtcdProvider, EtcdHandle, EtcdLease, fence
 export ConsulProvider, ConsulHandle, ConsulLease, provision_consul_namespace, connect_consul
 export valid, effective_ttl_ms
+export PostgresProvider, PostgresHandle, PostgresLease, provision_postgres_namespace, advisory_key
+include("Postgres.jl")
 
 struct LeaseBusy <: Exception end
 struct WaitTimeout <: Exception end

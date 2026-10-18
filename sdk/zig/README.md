@@ -130,3 +130,16 @@ combined native dependency and inherits that engine's platform requirements.
 
 The build pins Zig 0.17.0 in `build.zig.zon`. Run `zig build test` with the
 pinned toolchain to execute the package tests.
+
+The PostgreSQL route has an isolated test root so it can link against the
+PostgreSQL-only C ABI without requiring unrelated etcd or Consul symbols:
+
+```sh
+zig build test-postgres \
+  -Dc-include=/path/to/cabi/include \
+  -Dc-lib=/path/to/cabi/lib
+```
+
+Set `DILOCK_POSTGRES_DSN` to run the live contention, liveness, release and
+handoff assertion against a disposable PostgreSQL database. This remains an
+experimental draft C ABI route.

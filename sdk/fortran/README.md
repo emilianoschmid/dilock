@@ -1,8 +1,8 @@
 # Dilock Fortran facade
 
-This module uses ISO_C_BINDING to call the versioned Dilock C ABI. Redis, etcd
-and Consul implementations remain in the existing native adapters; this package does
-not implement another protocol. The C ABI and Redis, etcd and Consul profiles must be
+This module uses ISO_C_BINDING to call the versioned Dilock C ABI. Redis, etcd,
+Consul and PostgreSQL implementations remain in the existing native adapters; this package does
+not implement another protocol. The C ABI and Redis, etcd, Consul and PostgreSQL profiles must be
 built and installed first, as described in [`sdk/c/README.md`](../c/README.md).
 This SDK installs a CMake package exporting `DilockFortran::fortran`; the
 consumer must be built with a Fortran compiler compatible with the one that
@@ -187,6 +187,29 @@ For the fully configured path, see
 and the `dilock_fortran_etcd_configured_example` CMake target. It uses an
 explicit wait/lease pair and enables provider auto-renewal. This facade does
 not expose TLS credentials, RPC deadlines or cleanup observers.
+
+## PostgreSQL advisory-session route
+
+The PostgreSQL facade exposes `postgres_provision_namespace`, `postgres_open`,
+`postgres_lock`, `postgres_acquire`, `postgres_try_acquire`, `postgres_renew`
+and `postgres_release`. Provision the `dilock_namespace_meta` row explicitly,
+then open a provider with a PostgreSQL connection string and the expected
+coordination epoch. Each acquisition owns its private PostgreSQL session;
+session loss releases the advisory lock. This profile has no TTL or generic
+fencing token, and it remains experimental.
+
+The checked-in [`examples/postgres_quickstart.f90`](examples/postgres_quickstart.f90)
+shows explicit provisioning followed by the normal provider/lock/lease lifecycle.
+The `dilock_fortran_postgres_example` CMake target is intended for a disposable
+PostgreSQL instance only; it is not registered as a default live test.
+
+`tests/postgres_live_consumer.f90` is the opt-in two-provider PostgreSQL
+consumer. Compile it with `dilock_fortran.f90` and the installed C ABI, set
+`DILOCK_POSTGRES_DSN`, and run it only against a disposable authority; it
+checks provisioning, contention, liveness, release and handoff. The CMake
+target enables linker-section garbage collection for this route, so a
+PostgreSQL-only C ABI installation does not need to provide unused
+Redis/etcd/Consul symbols from the all-backend Fortran facade.
 
 ## Real backend consumer test
 

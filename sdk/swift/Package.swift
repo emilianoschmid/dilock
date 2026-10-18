@@ -9,6 +9,7 @@ let package = Package(
         .library(name: "DilockRedis", targets: ["DilockRedis"]),
         .library(name: "DilockEtcd", targets: ["DilockEtcd"]),
         .library(name: "DilockConsul", targets: ["DilockConsul"]),
+        .library(name: "DilockPostgres", targets: ["DilockPostgres"]),
         .library(name: "DilockSwiftWorkerSupport", targets: ["DilockSwiftWorkerSupport"]),
         .executable(name: "dilock-swift-worker", targets: ["DilockSwiftWorker"]),
     ],
@@ -21,6 +22,8 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.1"),
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.12.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.0"),
+        .package(url: "https://github.com/vapor/postgres-nio.git", from: "1.21.0"),
     ],
     targets: [
         .target(name: "DilockCore", dependencies: [.product(name: "Crypto", package: "swift-crypto")]),
@@ -56,6 +59,14 @@ let package = Package(
             ]
         ),
         .target(name: "DilockConsul", dependencies: ["DilockCore"]),
+        .target(
+            name: "DilockPostgres",
+            dependencies: [
+                "DilockCore",
+                .product(name: "PostgresNIO", package: "postgres-nio"),
+                .product(name: "Logging", package: "swift-log"),
+            ]
+        ),
         .executableTarget(
             name: "DilockSwiftWorker",
             dependencies: [
@@ -78,6 +89,7 @@ let package = Package(
         ),
         .testTarget(name: "DilockEtcdTests", dependencies: ["DilockCore", "DilockEtcd"]),
         .testTarget(name: "DilockConsulTests", dependencies: ["DilockCore", "DilockConsul"]),
+        .testTarget(name: "DilockPostgresTests", dependencies: ["DilockCore", "DilockPostgres"]),
         .testTarget(name: "DilockSwiftWorkerTests", dependencies: ["DilockSwiftWorkerSupport"]),
     ]
 )

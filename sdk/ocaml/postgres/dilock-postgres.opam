@@ -1,0 +1,16 @@
+opam-version: "2.0"
+name: "dilock-postgres"
+version: "0.1.0"
+synopsis: "Experimental Dilock PostgreSQL advisory-session adapter"
+maintainer: "Dilock contributors"
+authors: "Dilock contributors"
+license: "Apache-2.0"
+depends: [
+  "ocaml" {>= "4.14"}
+  "dune" {>= "3.8"}
+  "dilock"
+  "lwt"
+  "ctypes" {>= "0.20"}
+  "ctypes-foreign" {>= "0.18"}
+]
+build: [ ["dune" "build" "-p" name "-j" jobs] ]

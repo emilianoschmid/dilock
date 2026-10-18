@@ -106,3 +106,31 @@ local result = assert(lock:with_lock(function(lease)
 end, { wait_ms = 5000, lease_ms = 30000 }))
 assert(provider:close())
 ```
+
+## Experimental PostgreSQL adapter
+
+`require("dilock.postgres")` uses LuaSQL PostgreSQL connections and keeps the
+physical connection that acquired `pg_try_advisory_lock` inside the lease.
+Provisioning is explicit through `postgres.provision(config)`; `postgres.new`
+only validates the existing `dilock_namespace_meta` row. This profile has no
+TTL and no fencing token. LuaSQL connection parameters are supplied as
+`database`, `user`, `password`, `host`, and `port`.
+
+```lua
+local postgres = require "dilock.postgres"
+local config = {
+    database = "dilock", host = "127.0.0.1", port = 5432,
+    user = "postgres", password = assert(os.getenv("DILOCK_POSTGRES_PASSWORD")),
+    namespace = "billing", epoch = assert(os.getenv("DILOCK_COORDINATION_EPOCH")),
+}
+assert(postgres.provision(config))
+local provider = assert(postgres.new(config))
+local lease = assert(assert(provider:lock("invoice:42")):try_acquire())
+assert(lease:renew()) -- liveness only; it does not extend a PostgreSQL TTL
+assert(lease:release() == "released")
+assert(provider:close())
+```
+
+This adapter is experimental and requires LuaSQL PostgreSQL plus a compatible
+LuaSocket/LuaSystem runtime. The companion `dilock_postgres_luajit` module in
+the `luajit-etcd` rock uses the native C ABI route for LuaJIT deployments.

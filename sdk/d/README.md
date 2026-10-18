@@ -159,6 +159,30 @@ const outcome = lease.release();
 enforce(outcome == ReleaseOutcome.released, "etcd release was not confirmed as released");
 ```
 
+## PostgreSQL advisory-session route
+
+The PostgreSQL route is also available as the dedicated `dilock.postgres`
+module. It contains only the PostgreSQL C ABI declarations, so a PostgreSQL-
+only native installation does not need the optional Redis, etcd or Consul
+symbols required by the all-backend `dilock` module. Provision metadata
+explicitly, then create independent providers and use `tryAcquire`, `renew`,
+`release` and `destroy` as shown by
+[`tests/postgres_live_cabi_consumer.d`](tests/postgres_live_cabi_consumer.d).
+
+```sh
+dmd -Isource -of=/tmp/dilock-d-postgres \
+  source/dilock/postgres.d tests/postgres_live_cabi_consumer.d \
+  -L-L"$DILOCK_C_LIB_DIR" -L-ldilock_c -L-lpq -L-lstdc++ \
+  -L-rpath-link="$DILOCK_C_LIB_DIR"
+DILOCK_POSTGRES_DSN='postgresql://postgres:postgres@127.0.0.1:5432/dilock' \
+  LD_LIBRARY_PATH="$DILOCK_C_LIB_DIR" /tmp/dilock-d-postgres
+```
+
+PostgreSQL has no server TTL or generic fencing token; `renew` is a liveness
+check only. The route remains experimental and must be exercised only against
+a disposable authority until the cross-language and hosted CI evidence is
+complete.
+
 ## Build and test
 
 Build/install both C++ backend profiles and a shared C ABI as described in

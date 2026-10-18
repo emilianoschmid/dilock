@@ -1,7 +1,11 @@
 # Dilock for Perl
 
-The Perl SDK provides two independent backend adapters. `Dilock` uses Redis
-single-authority leases synchronously. `Dilock::Etcd` uses etcd's native
+The Perl SDK provides Redis, etcd and PostgreSQL backend adapters. `Dilock` uses Redis
+single-authority leases synchronously. `Dilock::Postgres` implements the
+experimental `postgres-advisory-session-v1` profile through DBI/DBD::Pg. Each
+successful acquisition retains one private DBI handle until same-session
+`pg_advisory_unlock`; PostgreSQL has no TTL or fencing token, and `renew` is
+only a liveness check. `Dilock::Etcd` uses etcd's native
 asynchronous Lock and Lease APIs. Neither backend turns a lease into a local
 mutex or stops application work when the lease expires.
 

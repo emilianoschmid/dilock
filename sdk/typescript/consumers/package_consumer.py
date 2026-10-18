@@ -1,4 +1,4 @@
-"""Pack and install all Dilock TypeScript workspace candidates offline."""
+"""Pack and install all Dilock TypeScript workspace candidates from tarballs."""
 from __future__ import annotations
 
 import argparse
@@ -51,6 +51,20 @@ require.resolve("@grpc/proto-loader");
 assert.throws(() => require.resolve("redis"), { code: "MODULE_NOT_FOUND" });
 console.log("etcd tarball consumer OK: gRPC closure present, Redis closure absent");
 ''',
+    "postgres": '''import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { PostgresProvider, PostgresLock, advisoryKey, provisionNamespace } from "@dilock/postgres";
+const require = createRequire(import.meta.url);
+assert.equal(typeof PostgresProvider.connect, "function");
+assert.equal(typeof PostgresLock, "function");
+assert.equal(typeof advisoryKey, "function");
+assert.equal(typeof provisionNamespace, "function");
+require.resolve("pg");
+for (const name of ["redis", "@grpc/grpc-js", "@grpc/proto-loader"]) {
+  assert.throws(() => require.resolve(name), { code: "MODULE_NOT_FOUND" });
+}
+console.log("PostgreSQL tarball consumer OK: pg closure present, Redis and gRPC closures absent");
+''',
 }
 
 
@@ -72,6 +86,11 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--scratch", type=Path)
     parser.add_argument("--npm-cache", type=Path)
+    parser.add_argument(
+        "--allow-network",
+        action="store_true",
+        help="allow npm to resolve third-party dependencies when the local cache is incomplete",
+    )
     args = parser.parse_args()
 
     repo = Path(__file__).resolve().parents[3]
@@ -82,8 +101,10 @@ def main() -> int:
     artifacts: dict[str, dict[str, str]] = {}
     consumers: dict[str, str] = {}
     status, reason = "failed", "Consumer was not run."
+    network_policy = "prefer-offline" if args.allow_network else "offline"
 
     try:
+        (repo / ".tools").mkdir(parents=True, exist_ok=True)
         if scratch is None:
             scratch = Path(tempfile.mkdtemp(prefix="dilock-ts-packages-", dir=repo / ".tools"))
         else:
@@ -106,18 +127,20 @@ def main() -> int:
         env = os.environ.copy()
         env.update({
             "npm_config_cache": str(cache.resolve()),
-            "npm_config_offline": "true",
             "npm_config_audit": "false",
             "npm_config_fund": "false",
             "npm_config_update_notifier": "false",
             "npm_config_fetch_retries": "0",
         })
+        if not args.allow_network:
+            env["npm_config_offline"] = "true"
+        install_policy = "--prefer-offline" if args.allow_network else "--offline"
 
         run([npm, "run", "build"], sdk, env, commands)
         artifact_dir = scratch / "artifacts"
         artifact_dir.mkdir()
         tarballs: dict[str, Path] = {}
-        for unit in ("core", "redis", "etcd"):
+        for unit in ("core", "redis", "etcd", "postgres"):
             package_name = f"@dilock/{unit}"
             run([npm, "pack", f"--workspace={package_name}", "--pack-destination", str(artifact_dir)], sdk, env, commands)
             matches = [path for path in artifact_dir.glob("*.tgz") if path.name.startswith(f"dilock-{unit}-")]
@@ -131,6 +154,7 @@ def main() -> int:
             "core": [tarballs["core"]],
             "redis": [tarballs["core"], tarballs["redis"]],
             "etcd": [tarballs["core"], tarballs["etcd"]],
+            "postgres": [tarballs["core"], tarballs["postgres"]],
         }
         for unit, packages in install_sets.items():
             consumer = scratch / f"consumer-{unit}"
@@ -141,12 +165,13 @@ def main() -> int:
                 "type": "module",
             }, indent=2) + "\n", encoding="utf-8")
             (consumer / "main.mjs").write_text(FIXTURES[unit], encoding="utf-8")
-            run([npm, "install", "--offline", "--no-save", "--package-lock=false", "--ignore-scripts", "--no-audit", "--no-fund", "--omit=dev", *map(str, packages)], consumer, env, commands)
+            run([npm, "install", install_policy, "--no-save", "--package-lock=false", "--ignore-scripts", "--no-audit", "--no-fund", "--omit=dev", *map(str, packages)], consumer, env, commands)
             run([node, "main.mjs"], consumer, env, commands)
             consumers[unit] = "passed"
 
         status = "passed"
-        reason = "All three local archives installed from exact npm tarballs. The core-only fixture resolved identity/errors with no Redis or gRPC packages; each adapter fixture verified its own runtime dependency closure and public exports. No registry access or publication was used."
+        reason = ("All four local archives installed from exact npm tarballs. The core-only fixture resolved identity/errors with no backend packages; each adapter fixture verified its own runtime dependency closure and public exports. "
+                  f"Third-party dependency resolution policy: {network_policy}; publication was not performed.")
     except Exception as exc:
         detail = getattr(exc, "stderr", None) or getattr(exc, "output", None)
         suffix = f"\n{detail[-2000:]}" if isinstance(detail, str) and detail else ""
@@ -160,6 +185,7 @@ def main() -> int:
         "artifacts": artifacts,
         "consumers": consumers,
         "commands": commands,
+        "network_policy": network_policy,
         "scratch": str(scratch) if scratch else None,
         "publication": "not_performed",
     }

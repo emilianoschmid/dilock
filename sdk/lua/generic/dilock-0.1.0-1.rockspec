@@ -15,11 +15,14 @@ dependencies = {
    "luaossl = 20260910-0",
    "dkjson = 2.11-1",
    "luasystem = 0.7.1-1",
+   "luasql-postgres",
 }
 build = {
    type = "builtin",
    modules = {
       dilock = "lib/dilock.lua",
+      ["dilock.identity"] = "lib/dilock/identity.lua",
       ["dilock.consul"] = "lib/dilock/consul.lua",
+      ["dilock.postgres"] = "lib/dilock/postgres.lua",
    },
 }

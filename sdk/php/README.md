@@ -1,6 +1,6 @@
 # Dilock PHP SDK
 
-The PHP source tree contains synchronous Redis, etcd and Consul adapters. All backends remain experimental; package identity and distribution are not configured.
+The PHP source tree contains synchronous Redis, etcd, Consul and PostgreSQL adapters. All backends remain experimental; package identity and distribution are not configured.
 
 ## Runtime and backends
 
@@ -8,12 +8,13 @@ The PHP source tree contains synchronous Redis, etcd and Consul adapters. All ba
 - Redis: phpredis (`ext-redis`); one configured standalone authority, no transparent coordinator switch or strong fencing.
 - etcd: `ext-grpc`, `grpc/grpc` and `google/protobuf`; native etcd v3.7.2 Lock and Lease RPCs, with an epoch-scoped `create_revision` fence.
 - Consul: built-in HTTP streams, one TTL session per acquisition, exact owner verification and an epoch-scoped retained-key `LockIndex` fence. Lock entries must not be deleted.
+- PostgreSQL: PDO PostgreSQL (`pdo_pgsql`), one private session per acquisition with `pg_try_advisory_lock(bigint)`. Advisory locks have no TTL or fencing; `renew()` is a liveness check only.
 
 The etcd protobuf messages were generated locally from the pinned, reduced etcd v3.7.2 protocol files under `proto/`. Their upstream notices and licenses are included. Generated service clients call the native gRPC services directly; the SDK does not use etcd's HTTP gateway, which does not expose the native Lock service.
 
 ## Quick start with defaults
 
-`RedisProvider::connect()`, `EtcdProvider::connect()` and `ConsulProvider::connect()` validate existing namespace metadata; they do not create or repair it. Use `ConsulProvider::provisionNamespace()` only for explicit CAS=0 provisioning. A provider can make reusable resource handles with `lock($name)`. `tryAcquire()` returns a lease or `null` only for confirmed contention; `acquire()` waits for the supplied finite budget and throws `WaitTimeout` when that budget expires after safe cleanup. Backend failures, protocol mismatch, unsupported capability and uncertain acquisition have distinct exception types.
+`RedisProvider::connect()`, `EtcdProvider::connect()`, `ConsulProvider::connect()` and `PostgresProvider::connect()` validate existing namespace metadata; they do not create or repair it. Use the explicit provisioning helpers only during setup. A provider can make reusable resource handles with `lock($name)`. `tryAcquire()` returns a lease or `null` only for confirmed contention; `acquire()` waits for the supplied finite budget and throws `WaitTimeout` when that budget expires after safe cleanup. Backend failures, protocol mismatch, unsupported capability and uncertain acquisition have distinct exception types.
 
 Always use explicit release or `withLease()`:
 

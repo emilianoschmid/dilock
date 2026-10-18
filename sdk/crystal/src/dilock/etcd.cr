@@ -36,6 +36,19 @@ lib DilockC
     default_lease_ms : Int64
   end
 
+  struct PostgresOptions
+    connection_string : UInt8*
+    name_space : UInt8*
+    coordination_epoch : UInt8*
+    cleanup_callback : Void*
+    cleanup_user_data : Void*
+    rpc_timeout_ms : Int64
+    cleanup_timeout_ms : Int64
+    poll_interval_ms : Int64
+    default_wait_ms : Int64
+    default_lease_ms : Int64
+  end
+
   struct Fence
     create_revision : Int64
     coordination_epoch_bytes : LibC::SizeT
@@ -48,6 +61,7 @@ lib DilockC
 
   fun etcd_options_init = dilock_etcd_options_init(options : EtcdOptions*) : Void
   fun consul_options_init = dilock_consul_options_init(options : ConsulOptions*) : Void
+  fun postgres_options_init = dilock_postgres_options_init(options : PostgresOptions*) : Void
   fun abi_version = dilock_c_abi_version : UInt32
   fun cancellation_create = dilock_cancellation_create(error : Error*) : Void*
   fun cancellation_request = dilock_cancellation_request(cancellation : Void*) : Void
@@ -65,21 +79,33 @@ lib DilockC
   fun lease_destroy = dilock_etcd_lease_destroy(lease : Void*) : Void
   fun try_acquire = dilock_etcd_try_acquire(lock : Void*, lease_ms : Int64, out : Void**, error : Error*) : Int32
   fun consul_provider_create = dilock_consul_provider_create(options : ConsulOptions*, out : Void**, error : Error*) : Int32
+  fun postgres_provider_create = dilock_postgres_provider_create(options : PostgresOptions*, out : Void**, error : Error*) : Int32
   fun consul_provider_destroy = dilock_consul_provider_destroy(provider : Void*) : Void
+  fun postgres_provider_destroy = dilock_postgres_provider_destroy(provider : Void*) : Void
   fun consul_lock_create = dilock_consul_lock_create(provider : Void*, resource : UInt8*, out : Void**, error : Error*) : Int32
+  fun postgres_lock_create = dilock_postgres_lock_create(provider : Void*, resource : UInt8*, out : Void**, error : Error*) : Int32
   fun consul_lock_destroy = dilock_consul_lock_destroy(lock : Void*) : Void
+  fun postgres_lock_destroy = dilock_postgres_lock_destroy(lock : Void*) : Void
   fun consul_acquire = dilock_consul_acquire(lock : Void*, wait_ms : Int64, lease_ms : Int64, out : Void**, error : Error*) : Int32
+  fun postgres_acquire = dilock_postgres_acquire(lock : Void*, wait_ms : Int64, lease_ms : Int64, out : Void**, error : Error*) : Int32
+  fun postgres_acquire_default = dilock_postgres_acquire_default(lock : Void*, out : Void**, error : Error*) : Int32
   fun consul_acquire_with_cancellation = dilock_consul_acquire_with_cancellation(lock : Void*, wait_ms : Int64, lease_ms : Int64, cancellation : Void*, out : Void**, error : Error*) : Int32
   fun consul_acquire_default = dilock_consul_acquire_default(lock : Void*, out : Void**, error : Error*) : Int32
   fun consul_acquire_default_with_cancellation = dilock_consul_acquire_default_with_cancellation(lock : Void*, cancellation : Void*, out : Void**, error : Error*) : Int32
   fun consul_try_acquire = dilock_consul_try_acquire(lock : Void*, lease_ms : Int64, out : Void**, error : Error*) : Int32
+  fun postgres_try_acquire = dilock_postgres_try_acquire(lock : Void*, out : Void**, error : Error*) : Int32
   fun consul_lease_valid = dilock_consul_lease_is_valid(lease : Void*) : Int32
+  fun postgres_lease_valid = dilock_postgres_lease_is_valid(lease : Void*) : Int32
   fun consul_lease_effective_ttl = dilock_consul_lease_effective_ttl_ms(lease : Void*, ttl_ms : Int64*, error : Error*) : Int32
   fun consul_lease_fence = dilock_consul_lease_fence(lease : Void*, fence : ConsulFence*, epoch : UInt8*, epoch_capacity : LibC::SizeT, error : Error*) : Int32
   fun consul_lease_renew = dilock_consul_lease_renew(lease : Void*, renewed : Int32*, error : Error*) : Int32
+  fun postgres_lease_renew = dilock_postgres_lease_renew(lease : Void*, renewed : Int32*, error : Error*) : Int32
   fun consul_lease_release = dilock_consul_lease_release(lease : Void*, outcome : Int32*, error : Error*) : Int32
+  fun postgres_lease_release = dilock_postgres_lease_release(lease : Void*, outcome : Int32*, error : Error*) : Int32
   fun consul_lease_destroy = dilock_consul_lease_destroy(lease : Void*) : Void
+  fun postgres_lease_destroy = dilock_postgres_lease_destroy(lease : Void*) : Void
   fun consul_provision_namespace = dilock_consul_provision_namespace(options : ConsulOptions*, error : Error*) : Int32
+  fun postgres_provision_namespace = dilock_postgres_provision_namespace(options : PostgresOptions*, error : Error*) : Int32
 end
 
 module Dilock

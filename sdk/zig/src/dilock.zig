@@ -67,6 +67,20 @@ pub const ConsulProviderOptions = struct {
     default_lease_ms: i64 = 30000,
 };
 
+/// PostgreSQL session-advisory options. The connection string is kept opaque
+/// and is passed only to the native provider; each successful acquisition owns
+/// its own PostgreSQL session.
+pub const PostgresProviderOptions = struct {
+    connection_string: [*:0]const u8 = "",
+    namespace: [*:0]const u8 = "default",
+    coordination_epoch: [*:0]const u8 = "",
+    rpc_timeout_ms: i64 = 2000,
+    cleanup_timeout_ms: i64 = 2000,
+    poll_interval_ms: i64 = 25,
+    default_wait_ms: i64 = 5000,
+    default_lease_ms: i64 = 30000,
+};
+
 fn nativeRedisOptions(config: RedisProviderOptions) c.dilock_redis_options {
     var options: c.dilock_redis_options = undefined;
     c.dilock_redis_options_init(&options);
@@ -117,6 +131,27 @@ fn nativeConsulOptions(config: ConsulProviderOptions) c.dilock_consul_options {
     options.default_wait_ms = config.default_wait_ms;
     options.default_lease_ms = config.default_lease_ms;
     return options;
+}
+
+fn nativePostgresOptions(config: PostgresProviderOptions) c.dilock_postgres_options {
+    var options: c.dilock_postgres_options = undefined;
+    c.dilock_postgres_options_init(&options);
+    options.connection_string = config.connection_string;
+    options.name_space = config.namespace;
+    options.coordination_epoch = config.coordination_epoch;
+    options.rpc_timeout_ms = config.rpc_timeout_ms;
+    options.cleanup_timeout_ms = config.cleanup_timeout_ms;
+    options.poll_interval_ms = config.poll_interval_ms;
+    options.default_wait_ms = config.default_wait_ms;
+    options.default_lease_ms = config.default_lease_ms;
+    return options;
+}
+
+pub fn provisionPostgresNamespace(config: PostgresProviderOptions) Failure!void {
+    try ensureAbi();
+    var options = nativePostgresOptions(config);
+    var detail: c.dilock_error = undefined;
+    try check(c.dilock_postgres_provision_namespace(&options, &detail), &detail);
 }
 
 pub fn provisionConsulNamespace(config: ConsulProviderOptions) Failure!void {
@@ -621,6 +656,100 @@ pub const ConsulLease = struct {
 
     pub fn deinit(self: *ConsulLease) void {
         if (self.raw) |raw| c.dilock_consul_lease_destroy(raw);
+        self.raw = null;
+    }
+};
+
+pub const PostgresProvider = struct {
+    raw: ?*c.dilock_postgres_provider,
+
+    pub fn connect(connection_string: [*:0]const u8, namespace: [*:0]const u8,
+        epoch: [*:0]const u8) Failure!PostgresProvider {
+        return connectWithOptions(.{
+            .connection_string = connection_string,
+            .namespace = namespace,
+            .coordination_epoch = epoch,
+        });
+    }
+
+    pub fn connectWithOptions(config: PostgresProviderOptions) Failure!PostgresProvider {
+        try ensureAbi();
+        var options = nativePostgresOptions(config);
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_postgres_provider = null;
+        try check(c.dilock_postgres_provider_create(&options, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_postgres_provider, raw) };
+    }
+
+    pub fn lock(self: *PostgresProvider, resource: [*:0]const u8) Failure!PostgresLock {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_postgres_lock = null;
+        try check(c.dilock_postgres_lock_create(self.raw orelse return error.InvalidArgument, resource, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_postgres_lock, raw) };
+    }
+
+    pub fn deinit(self: *PostgresProvider) void {
+        if (self.raw) |raw| c.dilock_postgres_provider_destroy(raw);
+        self.raw = null;
+    }
+};
+
+pub const PostgresLock = struct {
+    raw: ?*c.dilock_postgres_lock,
+
+    pub fn acquireDefault(self: *PostgresLock) Failure!PostgresLease {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_postgres_lease = null;
+        try check(c.dilock_postgres_acquire_default(self.raw orelse return error.InvalidArgument, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_postgres_lease, raw) };
+    }
+
+    pub fn acquire(self: *PostgresLock, wait_ms: i64, lease_ms: i64) Failure!PostgresLease {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_postgres_lease = null;
+        try check(c.dilock_postgres_acquire(self.raw orelse return error.InvalidArgument, wait_ms, lease_ms, &raw, &detail), &detail);
+        return .{ .raw = try requireHandle(c.dilock_postgres_lease, raw) };
+    }
+
+    pub fn tryAcquire(self: *PostgresLock) Failure!?PostgresLease {
+        var detail: c.dilock_error = undefined;
+        var raw: ?*c.dilock_postgres_lease = null;
+        const status = c.dilock_postgres_try_acquire(self.raw orelse return error.InvalidArgument, &raw, &detail);
+        if (status == c.DILOCK_STATUS_BUSY) return null;
+        try check(status, &detail);
+        return .{ .raw = try requireHandle(c.dilock_postgres_lease, raw) };
+    }
+
+    pub fn deinit(self: *PostgresLock) void {
+        if (self.raw) |raw| c.dilock_postgres_lock_destroy(raw);
+        self.raw = null;
+    }
+};
+
+pub const PostgresLease = struct {
+    raw: ?*c.dilock_postgres_lease,
+
+    pub fn isValid(self: *const PostgresLease) bool {
+        return if (self.raw) |raw| c.dilock_postgres_lease_is_valid(raw) != 0 else false;
+    }
+
+    /// Liveness check only; PostgreSQL advisory locks have no server TTL.
+    pub fn renew(self: *PostgresLease) Failure!bool {
+        var detail: c.dilock_error = undefined;
+        var renewed: i32 = 0;
+        try check(c.dilock_postgres_lease_renew(self.raw orelse return error.InvalidArgument, &renewed, &detail), &detail);
+        return renewed != 0;
+    }
+
+    pub fn release(self: *PostgresLease) Failure!ReleaseOutcome {
+        var detail: c.dilock_error = undefined;
+        var result: c.dilock_release_outcome = undefined;
+        try check(c.dilock_postgres_lease_release(self.raw orelse return error.InvalidArgument, &result, &detail), &detail);
+        return outcome(result);
+    }
+
+    pub fn deinit(self: *PostgresLease) void {
+        if (self.raw) |raw| c.dilock_postgres_lease_destroy(raw);
         self.raw = null;
     }
 };

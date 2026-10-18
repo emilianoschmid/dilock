@@ -3,7 +3,8 @@
   wire semantics remain in the Java Redis, etcd, and Consul modules."
   (:import [org.dilock.redis RedisProvider RedisLease$ReleaseOutcome AcquireOptions DilockException DilockException$Kind]
            [org.dilock.etcd EtcdProvider EtcdLease$ReleaseOutcome]
-           [org.dilock.consul ConsulProvider ConsulLease$ReleaseOutcome]))
+           [org.dilock.consul ConsulProvider ConsulLease$ReleaseOutcome]
+           [org.dilock.postgres PostgresProvider PostgresLease$ReleaseOutcome]))
 
 (defn redis-provider
   "Connect to one Redis authority and validate its pre-provisioned namespace.
@@ -25,6 +26,11 @@
   "Connect to one Consul agent and validate explicitly provisioned metadata."
   ([endpoint namespace epoch] (ConsulProvider/connect endpoint namespace epoch))
   ([endpoint epoch] (ConsulProvider/connect endpoint epoch)))
+
+(defn postgres-provider
+  "Connect to a pre-provisioned PostgreSQL advisory-session namespace."
+  ([jdbc-url namespace epoch] (PostgresProvider/connect jdbc-url namespace epoch))
+  ([jdbc-url epoch] (PostgresProvider/connect jdbc-url epoch)))
 
 (defmacro with-resource
   "Evaluate body with a Java AutoCloseable bound to binding; close it on every exit."
@@ -70,7 +76,8 @@
         cleanup-error (or (:error cleanup-result)
                           (when-not (or (= RedisLease$ReleaseOutcome/RELEASED (:outcome cleanup-result))
                                         (= EtcdLease$ReleaseOutcome/RELEASED (:outcome cleanup-result))
-                                        (= ConsulLease$ReleaseOutcome/RELEASED (:outcome cleanup-result)))
+                                        (= ConsulLease$ReleaseOutcome/RELEASED (:outcome cleanup-result))
+                                        (= PostgresLease$ReleaseOutcome/RELEASED (:outcome cleanup-result)))
                             (DilockException.
                              DilockException$Kind/LEASE_LOST
                              (str "Scoped lease release did not return RELEASED: "
@@ -114,6 +121,14 @@
 
 (defmacro with-consul-lock
   "Acquire and release one Consul KV session lock; provider remains caller-owned."
+  [[binding provider resource & [options]] & body]
+  (let [lock `(.lock ~provider ~resource)]
+    (if options
+      `(with-lease [~binding ~lock ~options] ~@body)
+      `(with-lease [~binding ~lock] ~@body))))
+
+(defmacro with-postgres-lock
+  "Acquire and release one PostgreSQL session advisory lock."
   [[binding provider resource & [options]] & body]
   (let [lock `(.lock ~provider ~resource)]
     (if options

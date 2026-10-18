@@ -1,0 +1,25 @@
+testthat::test_that("PostgreSQL advisory sessions contend, renew, and hand off", {
+  dsn <- Sys.getenv("DILOCK_POSTGRES_DSN", "")
+  testthat::skip_if(dsn == "", "set DILOCK_POSTGRES_DSN to run PostgreSQL integration")
+  testthat::skip_if_not_installed("DBI")
+  testthat::skip_if_not_installed("RPostgres")
+
+  namespace <- paste0("r", as.integer(Sys.time()), sample.int(999999L, 1L))
+  epoch <- paste0("r-postgres-", as.integer(Sys.time()), "-", sample.int(999999L, 1L))
+  resource <- paste0("r-postgres-live-", sample.int(999999L, 1L))
+  testthat::expect_equal(dilock_pg_provision_namespace(dsn, namespace, epoch), "created")
+
+  first <- dilock_pg_provider(dsn, namespace, epoch)
+  second <- dilock_pg_provider(dsn, namespace, epoch)
+  first_handle <- dilock_pg_lock(first, resource)
+  second_handle <- dilock_pg_lock(second, resource)
+  first_lease <- dilock_pg_try_acquire(first_handle)
+  testthat::expect_true(inherits(first_lease, "dilock_pg_lease"))
+  testthat::expect_null(dilock_pg_try_acquire(second_handle))
+  testthat::expect_true(dilock_pg_renew(first_lease))
+  testthat::expect_identical(dilock_pg_release(first_lease), "released")
+
+  successor <- dilock_pg_try_acquire(second_handle)
+  testthat::expect_true(inherits(successor, "dilock_pg_lease"))
+  testthat::expect_identical(dilock_pg_release(successor), "released")
+})

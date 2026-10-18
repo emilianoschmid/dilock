@@ -1,0 +1,13 @@
+[package]
+name = "dilock-postgres"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+license-file = "../LICENSE"
+description = "Experimental PostgreSQL advisory-session backend for Dilock"
+
+[dependencies]
+dilock = { path = "../dilock", version = "0.1.0" }
+tokio.workspace = true
+tokio-postgres.workspace = true

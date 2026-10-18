@@ -1,6 +1,6 @@
 # Dilock for Ruby
 
-Dilock implements the draft 1 Redis single-authority lease, etcd native-lock, and Consul KV/session profiles. It is a client library, not a coordinator service. The Ruby SDK uses the maintained `redis` Ruby client and the official gRPC Ruby transport with wire-compatible bindings generated from the etcd v3.7.2 API subset. The Consul adapter uses Ruby's standard-library HTTP client and requires no additional gem. No coordinator-side script installation is required: Redis runs the bundled owner-checked Lua scripts as ordinary `EVAL` requests.
+Dilock implements the draft 1 Redis single-authority lease, etcd native-lock, Consul KV/session, and experimental PostgreSQL advisory-session profiles. It is a client library, not a coordinator service. The Ruby SDK uses the maintained `redis` and `pg` Ruby clients and the official gRPC Ruby transport with wire-compatible bindings generated from the etcd v3.7.2 API subset. The Consul adapter uses Ruby's standard-library HTTP client. PostgreSQL keeps one private `PG::Connection` per held acquisition and has no TTL or fencing token; `renew` is a liveness check only.
 
 This candidate requires Ruby 3.2 or later. Add `dilock` to a Bundler dependency set; backend clients are declared runtime dependencies. The candidate gem version is `0.1.0`. The RubyGems name and owner have not been verified, and no gem is configured for automatic publication.
 

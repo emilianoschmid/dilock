@@ -1,0 +1,17 @@
+{
+  "name": "@dilock/postgres",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "PostgreSQL advisory-lock backend for Dilock",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist/*.js", "dist/*.d.ts", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": { "build": "tsc -p tsconfig.json", "prepack": "npm run build" },
+  "dependencies": {
+    "@dilock/core": "0.1.0",
+    "pg": "8.16.3"
+  }
+}

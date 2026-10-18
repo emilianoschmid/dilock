@@ -22,6 +22,7 @@ dependencies {
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
     }
     compileOnly("org.dilock:dilock-consul:0.1.0") { exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind") }
+    compileOnly("org.dilock:dilock-postgres:0.1.0")
     compileOnly("org.dilock:dilock-etcd:0.1.0") {
         exclude(group = "io.etcd", module = "jetcd-grpc")
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
@@ -32,6 +33,7 @@ dependencies {
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
     }
     testImplementation("org.dilock:dilock-consul:0.1.0")
+    testImplementation("org.dilock:dilock-postgres:0.1.0")
     testImplementation("org.dilock:dilock-etcd:0.1.0") {
         exclude(group = "io.etcd", module = "jetcd-grpc")
         exclude(group = "com.fasterxml.jackson.core", module = "jackson-databind")
@@ -57,7 +59,8 @@ java { withSourcesJar() }
 
 val liveBackendEndpointsConfigured = providers.environmentVariable("DILOCK_TEST_REDIS_ENDPOINT").isPresent ||
     providers.environmentVariable("DILOCK_TEST_ETCD_ENDPOINT").isPresent ||
-    providers.environmentVariable("DILOCK_TEST_CONSUL_ENDPOINT").isPresent
+    providers.environmentVariable("DILOCK_TEST_CONSUL_ENDPOINT").isPresent ||
+    providers.environmentVariable("DILOCK_POSTGRES_DSN").isPresent
 
 tasks.test {
     useJUnitPlatform()

@@ -9,6 +9,32 @@ import org.dilock.redis.RedisLease.ReleaseOutcome
 import com.fasterxml.jackson.databind.ObjectMapper
 
 final class FacadeSuite extends FunSuite:
+  test("PostgreSQL facade contends and hands off on a real authority when configured") {
+    val dsn = sys.env.get("DILOCK_POSTGRES_DSN")
+    if dsn.nonEmpty then
+      val namespace = s"scala3-pg-${System.nanoTime()}"
+      val epoch = s"scala3-epoch-${System.nanoTime()}"
+      org.dilock.postgres.PostgresProvider.provisionNamespace(dsn.get, namespace, epoch)
+      val first = DilockPostgres.connect(dsn.get, namespace, epoch)
+      val second = DilockPostgres.connect(dsn.get, namespace, epoch)
+      try
+        val firstLease = first.lock("scala3-provider").tryAcquire() match
+          case Right(Some(lease)) => lease
+          case other => fail(s"first PostgreSQL acquisition failed: $other")
+        try
+          assertEquals(second.lock("scala3-provider").tryAcquire(), Right(None))
+          assertEquals(firstLease.release(), org.dilock.postgres.PostgresLease.ReleaseOutcome.RELEASED)
+        finally firstLease.close()
+        val handoff = second.lock("scala3-provider").tryAcquire() match
+          case Right(Some(lease)) => lease
+          case other => fail(s"PostgreSQL handoff failed: $other")
+        try assertEquals(handoff.release(), org.dilock.postgres.PostgresLease.ReleaseOutcome.RELEASED)
+        finally handoff.close()
+      finally
+        first.close()
+        second.close()
+  }
+
   test("default acquisition policy matches the shared Java contract") {
     assertEquals(AcquirePolicy.default.toJava, AcquireOptions.DEFAULT)
   }

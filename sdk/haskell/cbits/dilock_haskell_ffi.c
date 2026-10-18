@@ -36,6 +36,7 @@ void hs_dilock_cancellation_destroy(void *cancellation) {
     dilock_cancellation_destroy((dilock_cancellation *)cancellation);
 }
 
+#ifndef DILOCK_HASKELL_POSTGRES_ONLY
 int hs_dilock_etcd_provider_create(
     const char *endpoint, const char *name_space, const char *epoch,
     const char *tls_roots, const char *tls_certificate, const char *tls_key,
@@ -263,4 +264,116 @@ int hs_dilock_consul_lease_release(void *lease, int *outcome, char *message) {
 
 void hs_dilock_consul_lease_destroy(void *lease) {
     dilock_consul_lease_destroy((dilock_consul_lease *)lease);
+}
+#endif
+
+static void postgres_options_init(dilock_postgres_options *options,
+    const char *connection_string, const char *name_space, const char *epoch,
+    int64_t rpc_timeout_ms, int64_t cleanup_timeout_ms, int64_t poll_interval_ms,
+    int64_t default_wait_ms, int64_t default_lease_ms) {
+    dilock_postgres_options_init(options);
+    options->connection_string = connection_string;
+    options->name_space = name_space;
+    options->coordination_epoch = epoch;
+    options->rpc_timeout_ms = rpc_timeout_ms;
+    options->cleanup_timeout_ms = cleanup_timeout_ms;
+    options->poll_interval_ms = poll_interval_ms;
+    options->default_wait_ms = default_wait_ms;
+    options->default_lease_ms = default_lease_ms;
+}
+
+int hs_dilock_postgres_provider_create(
+    const char *connection_string, const char *name_space, const char *epoch,
+    int64_t rpc_timeout_ms, int64_t cleanup_timeout_ms, int64_t poll_interval_ms,
+    int64_t default_wait_ms, int64_t default_lease_ms, void **out, char *message) {
+    dilock_postgres_options options;
+    postgres_options_init(&options, connection_string, name_space, epoch, rpc_timeout_ms,
+        cleanup_timeout_ms, poll_interval_ms, default_wait_ms, default_lease_ms);
+    dilock_error error = {0};
+    dilock_postgres_provider *value = NULL;
+    const dilock_status status = dilock_postgres_provider_create(&options, &value, &error);
+    copy_message(message, &error);
+    *out = value;
+    return (int)status;
+}
+
+int hs_dilock_postgres_namespace_provision(
+    const char *connection_string, const char *name_space, const char *epoch,
+    int64_t rpc_timeout_ms, int64_t cleanup_timeout_ms, int64_t poll_interval_ms,
+    int64_t default_wait_ms, int64_t default_lease_ms, char *message) {
+    dilock_postgres_options options;
+    postgres_options_init(&options, connection_string, name_space, epoch, rpc_timeout_ms,
+        cleanup_timeout_ms, poll_interval_ms, default_wait_ms, default_lease_ms);
+    dilock_error error = {0};
+    const dilock_status status = dilock_postgres_provision_namespace(&options, &error);
+    copy_message(message, &error);
+    return (int)status;
+}
+
+void hs_dilock_postgres_provider_destroy(void *provider) {
+    dilock_postgres_provider_destroy((dilock_postgres_provider *)provider);
+}
+
+int hs_dilock_postgres_lock_create(void *provider, const char *resource,
+                                   void **out, char *message) {
+    dilock_error error = {0};
+    dilock_postgres_lock *value = NULL;
+    const dilock_status status = dilock_postgres_lock_create(
+        (dilock_postgres_provider *)provider, resource, &value, &error);
+    copy_message(message, &error);
+    *out = value;
+    return (int)status;
+}
+
+void hs_dilock_postgres_lock_destroy(void *lock) {
+    dilock_postgres_lock_destroy((dilock_postgres_lock *)lock);
+}
+
+int hs_dilock_postgres_acquire(void *lock, int64_t wait_ms, int64_t lease_ms,
+                               void **out, char *message) {
+    dilock_error error = {0};
+    dilock_postgres_lease *value = NULL;
+    const dilock_status status = dilock_postgres_acquire(
+        (dilock_postgres_lock *)lock, wait_ms, lease_ms, &value, &error);
+    copy_message(message, &error);
+    *out = value;
+    return (int)status;
+}
+
+int hs_dilock_postgres_try_acquire(void *lock, void **out, char *message) {
+    dilock_error error = {0};
+    dilock_postgres_lease *value = NULL;
+    const dilock_status status = dilock_postgres_try_acquire(
+        (dilock_postgres_lock *)lock, &value, &error);
+    copy_message(message, &error);
+    *out = value;
+    return (int)status;
+}
+
+int hs_dilock_postgres_lease_valid(void *lease) {
+    return dilock_postgres_lease_is_valid((const dilock_postgres_lease *)lease);
+}
+
+int hs_dilock_postgres_lease_renew(void *lease, int *renewed, char *message) {
+    dilock_error error = {0};
+    int32_t value = 0;
+    const dilock_status status = dilock_postgres_lease_renew(
+        (dilock_postgres_lease *)lease, &value, &error);
+    copy_message(message, &error);
+    *renewed = (int)value;
+    return (int)status;
+}
+
+int hs_dilock_postgres_lease_release(void *lease, int *outcome, char *message) {
+    dilock_error error = {0};
+    dilock_release_outcome value = DILOCK_RELEASE_UNKNOWN;
+    const dilock_status status = dilock_postgres_lease_release(
+        (dilock_postgres_lease *)lease, &value, &error);
+    copy_message(message, &error);
+    *outcome = (int)value;
+    return (int)status;
+}
+
+void hs_dilock_postgres_lease_destroy(void *lease) {
+    dilock_postgres_lease_destroy((dilock_postgres_lease *)lease);
 }

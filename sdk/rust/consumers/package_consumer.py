@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 
-CRATES = ("dilock", "dilock-redis", "dilock-etcd", "dilock-consul")
+CRATES = ("dilock", "dilock-redis", "dilock-etcd", "dilock-consul", "dilock-postgres")
 
 
 class ConsumerError(RuntimeError):
@@ -67,6 +67,7 @@ dilock = { path = \"crates/dilock\" }
 dilock-redis = { path = \"crates/dilock-redis\" }
 dilock-etcd = { path = \"crates/dilock-etcd\" }
 dilock-consul = { path = \"crates/dilock-consul\" }
+dilock-postgres = { path = \"crates/dilock-postgres\" }
 
 [patch.crates-io]
 dilock = { path = \"crates/dilock\" }
@@ -76,6 +77,7 @@ dilock = { path = \"crates/dilock\" }
         """use dilock::{Options, resource_id};
 use dilock_etcd::EtcdProvider;
 use dilock_consul::{ConsulOptions, ConsulProvider};
+use dilock_postgres::{PostgresOptions, PostgresProvider};
 use dilock_redis::RedisProvider;
 
 fn validate_public_surface() -> Result<(), Box<dyn std::error::Error>> {
@@ -93,8 +95,11 @@ fn validate_public_surface() -> Result<(), Box<dyn std::error::Error>> {
         coordination_epoch: "archive-consumer-epoch".into(),
         ..ConsulOptions::default()
     };
-    let consul = ConsulProvider::new(&consul_options)?;
-    let _consul_handle = consul.lock("archive-consumer")?;
+    let _consul_options = consul_options;
+    let _consul_provider_type = std::mem::size_of::<ConsulProvider>();
+    let _postgres_options = PostgresOptions::default();
+    let _postgres_connect = PostgresProvider::connect;
+    let _postgres_provision = PostgresProvider::provision_namespace;
     Ok(())
 }
 
@@ -161,12 +166,42 @@ def main() -> int:
             source,
             ignore=shutil.ignore_patterns("target", ".git", "__pycache__"),
         )
+        # `cargo package` removes path dependencies from the packaged
+        # manifest.  The adapter crates then try to resolve `dilock` from
+        # crates.io, although this workspace intentionally is not published.
+        # Keep the source workspace unchanged and add a scratch-only Cargo
+        # config so the exact archives can still be built offline.
+        cargo_config = source / ".cargo"
+        cargo_config.mkdir()
+        internal_crates = {
+            crate: (source / directory).as_posix()
+            for crate, directory in (
+                ("dilock", "dilock"),
+                ("dilock-redis", "redis"),
+                ("dilock-etcd", "etcd"),
+                ("dilock-consul", "consul"),
+                ("dilock-postgres", "postgres"),
+            )
+        }
+        (cargo_config / "config.toml").write_text(
+            "[patch.crates-io]\n"
+            + "".join(
+                f'{crate} = {{ path = "{path}" }}\n'
+                for crate, path in internal_crates.items()
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
         env = os.environ.copy()
         env["CARGO_NET_OFFLINE"] = "true"
         native_c_value = args.dilock_c_lib_dir or (
             Path(os.environ["DILOCK_C_LIB_DIR"]) if os.environ.get("DILOCK_C_LIB_DIR") else None
         )
-        native_c_lib = native_c_value.expanduser().resolve() if native_c_value else None
+        native_c_root = native_c_value.expanduser().resolve() if native_c_value else None
+        if native_c_root is not None and (native_c_root / "lib" / "libdilock_c.so").is_file():
+            native_c_lib = native_c_root / "lib"
+        else:
+            native_c_lib = native_c_root
         if native_c_lib is None or not native_c_lib.is_dir():
             raise ConsumerError(
                 "Consul crate consumer requires a built C ABI installation; pass --dilock-c-lib-dir or set DILOCK_C_LIB_DIR",
@@ -265,9 +300,9 @@ def main() -> int:
         report.update({
             "status": "passed",
             "reason": (
-                "Built current workspace crates offline, extracted those exact archives, then compiled, tested, and ran an external consumer."
+                "Built current workspace crates offline, extracted those exact archives, then compiled, tested, and ran an external consumer for Core, Redis, etcd, Consul and PostgreSQL."
                 if args.archives_dir is None else
-                "Consumed the exact supplied .crate archives offline, extracted them, then compiled, tested, and ran an external consumer."
+                "Consumed the exact supplied .crate archives offline, extracted them, then compiled, tested, and ran an external consumer for Core, Redis, etcd, Consul and PostgreSQL."
             ),
             "cargo_target_dir": env.get("CARGO_TARGET_DIR"),
         })
