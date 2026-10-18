@@ -722,6 +722,9 @@ jobs:
           mvn --batch-mode --no-transfer-progress \
             -Dmaven.repo.local="$HOME/.m2/repository" \
             --file sdk/java/consumers/pom.xml package -DskipTests
+          mvn --batch-mode --no-transfer-progress \
+            -Dmaven.repo.local="$HOME/.m2/repository" \
+            org.apache.maven.plugins:maven-dependency-plugin:3.9.0:help -Ddetail=false
       - name: Verify Java PostgreSQL artifact consumer
         run: >-
           python sdk/java/consumers/package_consumer.py
@@ -929,6 +932,24 @@ jobs:
         run: bash conformance/record_postgres_versions.sh "postgresql://postgres:postgres@127.0.0.1:5432/dilock"
       - name: Install Rust toolchain
         run: rustup toolchain install 1.99.0 --profile minimal
+      - name: Install pinned protoc for Rust package verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=31.1
+          archive="protoc-${version}-linux-x86_64.zip"
+          download="$RUNNER_TEMP/$archive"
+          install_dir="$RUNNER_TEMP/protoc-${version}"
+          curl --fail --location --retry 0 \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v${version}/${archive}" \
+            --output "$download"
+          echo "96553041f1a91ea0efee963cb16f462f5985b4d65365f3907414c360044d8065  $download" | sha256sum --check --status
+          mkdir -p "$install_dir"
+          unzip -q "$download" -d "$install_dir"
+          test -x "$install_dir/bin/protoc"
+          "$install_dir/bin/protoc" --version | grep -Fx "libprotoc $version"
+          echo "PROTOC=$install_dir/bin/protoc" >> "$GITHUB_ENV"
+          echo "$install_dir/bin" >> "$GITHUB_PATH"
       - name: Set up Python for Conan
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
