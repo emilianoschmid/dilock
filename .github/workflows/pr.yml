@@ -715,7 +715,7 @@ jobs:
           python sdk/java/consumers/package_consumer.py
           --output .tools/java-postgres-package-consumer.json
           --scratch "$RUNNER_TEMP/java-postgres-package-consumer"
-          --maven-repo "$HOME/.m2/repository"
+          --maven-repo "$GITHUB_WORKSPACE/.tools/m2repo"
 
   postgres-advisory-scala:
     name: PostgreSQL advisory-session Scala 2.13/3 route
