@@ -704,10 +704,14 @@ jobs:
       - name: Run real PostgreSQL Java contention contract
         env:
           DILOCK_POSTGRES_DSN: jdbc:postgresql://127.0.0.1:5432/dilock?user=postgres&password=postgres
-        run: mvn --batch-mode --no-transfer-progress --file sdk/java/pom.xml -pl postgres -am test
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
+          --file sdk/java/pom.xml -pl postgres -am test
       - name: Prepare Maven dependency-closure plugin for artifact consumer
         run: >-
           mvn --batch-mode --no-transfer-progress
+          -Dmaven.repo.local=$GITHUB_WORKSPACE/.tools/m2repo
           --file sdk/java/pom.xml
           org.apache.maven.plugins:maven-dependency-plugin:3.9.0:go-offline
       - name: Verify Java PostgreSQL artifact consumer
@@ -947,6 +951,8 @@ jobs:
           python sdk/rust/consumers/package_consumer.py
           --output .tools/ci/rust-postgres-package-consumer.json
           --scratch .tools/ci/rust-postgres-package-consumer
+          --cargo-home "$HOME/.cargo"
+          --rustup-home "$HOME/.rustup"
           --dilock-c-lib-dir "$GITHUB_WORKSPACE/.tools/ci/rust-cabi-install"
 
   postgres-advisory-elixir:
