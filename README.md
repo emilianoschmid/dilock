@@ -20,6 +20,8 @@ Start with [semantics](spec/SEMANTICS.md), [language API guidance](docs/api/LANG
 
 The table below makes the current breadth visible. It lists the SDK implementation route and the technology used to coordinate through each backend. Objective-C remains a catalog placeholder without SDK source, so it is not counted among the 33 implementations. A resource is coordinated only by clients using the same backend, namespace, and protocol profile. See each linked guide for limitations and validation status.
 
+GitHub's language summary is a byte-based statistic, not a description of the architecture. The generated Crystal API pages under `sdk/crystal/lib/redis/docs/` are marked as generated in `.gitattributes`, so they do not make HTML appear to be a primary implementation language. This table is the authoritative overview of Dilock's languages, SDK routes, and coordination backends.
+
 | Language / ecosystem | Redis lock route | etcd lock route | Consul lock route | PostgreSQL lock route | Usage and examples |
 |---|---|---|---|---|---|
 | C# / .NET | .NET SDK + StackExchange.Redis | .NET SDK + native etcd gRPC | .NET engine | Native Npgsql provider | [SDK guide](sdk/dotnet/README.md) · [examples](docs/examples/README.md) |
