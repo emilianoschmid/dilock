@@ -12,6 +12,6 @@
   "scripts": { "build": "tsc -p tsconfig.json", "prepack": "npm run build" },
   "dependencies": {
     "@dilock/core": "0.1.0",
-    "pg": "8.16.3"
+    "pg": "8.23.1"
   }
 }

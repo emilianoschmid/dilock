@@ -6,3 +6,6 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.in text eol=lf
+
+# Generated API documentation; keep it published without skewing GitHub's language summary.
+sdk/crystal/lib/redis/docs/** linguist-generated=true
